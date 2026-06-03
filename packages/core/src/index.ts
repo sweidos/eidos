@@ -14,6 +14,7 @@ export { useEidos, useEidosResource, useEidosQueue, useEidosStatus } from './rea
 // Devtools helpers
 export { setOfflineSimulation } from './sw-bridge'
 export { useEidosStore } from './store'
+export type { EidosStore } from './store'
 
 // Types
 export type {

@@ -5,7 +5,7 @@
     "noUnusedParameters": false,
     "baseUrl": ".",
     "paths": {
-      "eidos": ["../../packages/core/src/index.ts"]
+      "@adityaraj/eidos": ["../../packages/core/src/index.ts"]
     },
     "types": ["vite/client"]
   },

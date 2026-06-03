@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import type { EidosState, ResourceEntry, ActionQueueItem } from './types'
 
-interface EidosStore extends EidosState {
+export interface EidosStore extends EidosState {
   // Online
   setOnline: (online: boolean) => void
   // SW

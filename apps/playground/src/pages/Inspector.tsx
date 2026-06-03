@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { Search, ArrowDown, Code2, Layers, Zap } from 'lucide-react'
-import { useEidosStore } from 'eidos'
+import { useEidosStore } from '@adityaraj/eidos'
 import { Card, CardHeader } from '../components/Card'
 import { CodeBlock } from '../components/CodeBlock'
 import { StatusBadge } from '../components/StatusBadge'
-import type { ResourceEntry, GeneratedStrategy } from 'eidos'
+import type { ResourceEntry, GeneratedStrategy } from '@adityaraj/eidos'
 
 const SAMPLE_RESOURCE: ResourceEntry = {
   url: '/api/products',
