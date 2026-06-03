@@ -7,7 +7,7 @@ export default defineConfig({
     lib: {
       entry: resolve(__dirname, 'src/sw.ts'),
       formats: ['es'],
-      fileName: () => 'vardi-sw.js',
+      fileName: () => 'eidos-sw.js',
     },
     outDir: resolve(__dirname, '../../apps/playground/public'),
     rollupOptions: { external: [] },

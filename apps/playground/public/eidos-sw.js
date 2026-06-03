@@ -1,9 +1,9 @@
-// vardi-sw.js — Vardi Service Worker v0.1.0
+// eidos-sw.js — Eidos Service Worker v0.1.0
 // Auto-generated runtime. Developers never write this file directly.
 // Edit packages/worker/src/sw.ts and run `pnpm build:worker` to regenerate.
 
 const CACHE_VERSION = 'v1'
-const CACHE_PREFIX = 'vardi'
+const CACHE_PREFIX = 'eidos'
 
 const runtimeConfig = {
   resources: new Map(),
@@ -38,23 +38,23 @@ self.addEventListener('message', (event) => {
   if (!data?.type) return
 
   switch (data.type) {
-    case 'VARDI_REGISTER_RESOURCE':
+    case 'EIDOS_REGISTER_RESOURCE':
       runtimeConfig.resources.set(data.url, {
         strategy: data.strategy,
         cacheName: data.cacheName ?? `${CACHE_PREFIX}-resources-${CACHE_VERSION}`,
       })
-      event.source?.postMessage({ type: 'VARDI_RESOURCE_REGISTERED', url: data.url })
+      event.source?.postMessage({ type: 'EIDOS_RESOURCE_REGISTERED', url: data.url })
       break
 
-    case 'VARDI_UNREGISTER_RESOURCE':
+    case 'EIDOS_UNREGISTER_RESOURCE':
       runtimeConfig.resources.delete(data.url)
       break
 
-    case 'VARDI_SIMULATE_OFFLINE':
+    case 'EIDOS_SIMULATE_OFFLINE':
       runtimeConfig.simulateOffline = data.enabled
       break
 
-    case 'VARDI_CLEAR_CACHE': {
+    case 'EIDOS_CLEAR_CACHE': {
       const cacheName = `${CACHE_PREFIX}-resources-${CACHE_VERSION}`
       caches.open(cacheName).then(async (cache) => {
         if (data.url) {
@@ -68,13 +68,13 @@ self.addEventListener('message', (event) => {
           const keys = await cache.keys()
           await Promise.all(keys.map((k) => cache.delete(k)))
         }
-        notifyClients({ type: 'VARDI_CACHE_CLEARED', url: data.url })
+        notifyClients({ type: 'EIDOS_CACHE_CLEARED', url: data.url })
       })
       break
     }
 
-    case 'VARDI_PING':
-      event.source?.postMessage({ type: 'VARDI_PONG' })
+    case 'EIDOS_PING':
+      event.source?.postMessage({ type: 'EIDOS_PONG' })
       break
   }
 })
@@ -109,18 +109,18 @@ async function cacheFirst(request, pathname, cacheName) {
   const cache = await caches.open(cacheName)
   const cached = await cache.match(request)
   if (cached) {
-    notifyClients({ type: 'VARDI_CACHE_HIT', url: pathname, strategy: 'cache-first' })
+    notifyClients({ type: 'EIDOS_CACHE_HIT', url: pathname, strategy: 'cache-first' })
     return cached
   }
   try {
     const response = await fetch(request)
     if (response.ok) {
       await cache.put(request, response.clone())
-      notifyClients({ type: 'VARDI_CACHE_UPDATED', url: pathname, strategy: 'cache-first' })
+      notifyClients({ type: 'EIDOS_CACHE_UPDATED', url: pathname, strategy: 'cache-first' })
     }
     return response
   } catch {
-    notifyClients({ type: 'VARDI_NETWORK_ERROR', url: pathname })
+    notifyClients({ type: 'EIDOS_NETWORK_ERROR', url: pathname })
     return offlineErrorResponse(pathname)
   }
 }
@@ -133,17 +133,17 @@ async function staleWhileRevalidate(request, pathname, cacheName) {
     .then(async (response) => {
       if (response.ok) {
         await cache.put(request, response.clone())
-        notifyClients({ type: 'VARDI_CACHE_UPDATED', url: pathname, strategy: 'stale-while-revalidate' })
+        notifyClients({ type: 'EIDOS_CACHE_UPDATED', url: pathname, strategy: 'stale-while-revalidate' })
       }
       return response
     })
     .catch(() => {
-      notifyClients({ type: 'VARDI_NETWORK_ERROR', url: pathname })
+      notifyClients({ type: 'EIDOS_NETWORK_ERROR', url: pathname })
       return null
     })
 
   if (cached) {
-    notifyClients({ type: 'VARDI_CACHE_HIT', url: pathname, strategy: 'stale-while-revalidate' })
+    notifyClients({ type: 'EIDOS_CACHE_HIT', url: pathname, strategy: 'stale-while-revalidate' })
     return cached
   }
 
@@ -157,16 +157,16 @@ async function networkFirst(request, pathname, cacheName) {
     const response = await fetch(request)
     if (response.ok) {
       await cache.put(request, response.clone())
-      notifyClients({ type: 'VARDI_CACHE_UPDATED', url: pathname, strategy: 'network-first' })
+      notifyClients({ type: 'EIDOS_CACHE_UPDATED', url: pathname, strategy: 'network-first' })
     }
     return response
   } catch {
     const cached = await cache.match(request)
     if (cached) {
-      notifyClients({ type: 'VARDI_CACHE_HIT', url: pathname, strategy: 'network-first' })
+      notifyClients({ type: 'EIDOS_CACHE_HIT', url: pathname, strategy: 'network-first' })
       return cached
     }
-    notifyClients({ type: 'VARDI_NETWORK_ERROR', url: pathname })
+    notifyClients({ type: 'EIDOS_NETWORK_ERROR', url: pathname })
     return offlineErrorResponse(pathname)
   }
 }
@@ -175,7 +175,7 @@ async function serveOffline(request, pathname, cacheName) {
   const cache = await caches.open(cacheName)
   const cached = await cache.match(request)
   if (cached) {
-    notifyClients({ type: 'VARDI_CACHE_HIT', url: pathname, strategy: 'offline-simulation', simulated: true })
+    notifyClients({ type: 'EIDOS_CACHE_HIT', url: pathname, strategy: 'offline-simulation', simulated: true })
     return cached
   }
   return offlineErrorResponse(pathname)
@@ -183,8 +183,8 @@ async function serveOffline(request, pathname, cacheName) {
 
 function offlineErrorResponse(pathname) {
   return new Response(
-    JSON.stringify({ error: 'offline', message: `No cached response for ${pathname}`, vardi: true }),
-    { status: 503, headers: { 'Content-Type': 'application/json', 'X-Vardi-Offline': 'true' } },
+    JSON.stringify({ error: 'offline', message: `No cached response for ${pathname}`, eidos: true }),
+    { status: 503, headers: { 'Content-Type': 'application/json', 'X-Eidos-Offline': 'true' } },
   )
 }
 

@@ -6,9 +6,9 @@ export function Learn() {
   return (
     <div className="max-w-3xl space-y-8 animate-fade-in">
       <div>
-        <h2 className="text-xl font-bold text-vardi-text">How It Works</h2>
-        <p className="text-sm text-vardi-muted mt-1 leading-relaxed">
-          Vardi is a thin runtime layer. It does not replace Service Workers —
+        <h2 className="text-xl font-bold text-eidos-text">How It Works</h2>
+        <p className="text-sm text-eidos-muted mt-1 leading-relaxed">
+          Eidos is a thin runtime layer. It does not replace Service Workers —
           it generates and configures them from your intent declarations, so you
           never write SW code directly.
         </p>
@@ -16,7 +16,7 @@ export function Learn() {
 
       {/* The problem */}
       <Section icon={BookOpen} title="The Problem">
-        <p className="text-sm text-vardi-text-dim leading-relaxed mb-4">
+        <p className="text-sm text-eidos-text-dim leading-relaxed mb-4">
           Building offline-capable web apps today requires a working knowledge of
           Service Workers, the Cache API, Background Sync, IndexedDB, and a
           caching strategy library like Workbox. That's a significant surface
@@ -32,8 +32,8 @@ export function Learn() {
             'Background Sync API and retry logic',
             'Cache versioning and cleanup on update',
           ].map((item) => (
-            <div key={item} className="flex items-start gap-2 text-xs text-vardi-muted">
-              <span className="text-vardi-red shrink-0 mt-0.5">✕</span>
+            <div key={item} className="flex items-start gap-2 text-xs text-eidos-muted">
+              <span className="text-eidos-red shrink-0 mt-0.5">✕</span>
               {item}
             </div>
           ))}
@@ -42,14 +42,14 @@ export function Learn() {
 
       {/* The vision */}
       <Section icon={Zap} title="The Vision">
-        <p className="text-sm text-vardi-text-dim leading-relaxed mb-4">
-          Developers should express <strong className="text-vardi-text">what they want</strong>,
+        <p className="text-sm text-eidos-text-dim leading-relaxed mb-4">
+          Developers should express <strong className="text-eidos-text">what they want</strong>,
           not how to implement it. The platform details should be an
           implementation concern of the runtime, not the application.
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <p className="text-[10px] font-mono text-vardi-muted uppercase tracking-widest mb-2">Before</p>
+            <p className="text-[10px] font-mono text-eidos-muted uppercase tracking-widest mb-2">Before</p>
             <CodeBlock
               code={`// workbox-config.js
 registerRoute(
@@ -71,7 +71,7 @@ self.addEventListener('sync', (event) => {
             />
           </div>
           <div>
-            <p className="text-[10px] font-mono text-vardi-muted uppercase tracking-widest mb-2">After</p>
+            <p className="text-[10px] font-mono text-eidos-muted uppercase tracking-widest mb-2">After</p>
             <CodeBlock
               code={`// your-app.ts
 resource('/api/products', {
@@ -88,39 +88,39 @@ action(createOrder, {
 
       {/* Architecture */}
       <Section icon={Layers} title="Architecture">
-        <p className="text-sm text-vardi-text-dim leading-relaxed mb-5">
-          Vardi has three layers. The runtime (your app) declares intent. The
+        <p className="text-sm text-eidos-text-dim leading-relaxed mb-5">
+          Eidos has three layers. The runtime (your app) declares intent. The
           bridge relays config to the worker via{' '}
-          <code className="font-mono text-vardi-accent text-xs">postMessage</code>.
+          <code className="font-mono text-eidos-accent text-xs">postMessage</code>.
           The worker applies the generated strategy to every matching fetch.
         </p>
 
         {/* Architecture diagram */}
-        <div className="rounded-xl border border-vardi-border bg-vardi-surface p-5 font-mono text-xs space-y-0">
+        <div className="rounded-xl border border-eidos-border bg-eidos-surface p-5 font-mono text-xs space-y-0">
           <ArchLayer
             label="Application Layer"
-            color="text-vardi-accent"
-            items={['resource(url, config)', 'action(fn, config)', 'VardiProvider']}
+            color="text-eidos-accent"
+            items={['resource(url, config)', 'action(fn, config)', 'EidosProvider']}
             note="you write this"
           />
-          <ArchArrow label="postMessage(VARDI_REGISTER_RESOURCE)" />
+          <ArchArrow label="postMessage(EIDOS_REGISTER_RESOURCE)" />
           <ArchLayer
             label="Runtime Layer"
-            color="text-vardi-green"
+            color="text-eidos-green"
             items={['Strategy derivation', 'Zustand store', 'SW bridge']}
-            note="vardi/core"
+            note="eidos/core"
           />
           <ArchArrow label="fetch intercept" />
           <ArchLayer
             label="Worker Layer"
-            color="text-vardi-amber"
+            color="text-eidos-amber"
             items={['CacheFirst', 'StaleWhileRevalidate', 'NetworkFirst']}
-            note="vardi-sw.js"
+            note="eidos-sw.js"
           />
           <ArchArrow label="Cache API / IndexedDB" />
           <ArchLayer
             label="Storage Layer"
-            color="text-vardi-muted"
+            color="text-eidos-muted"
             items={['Cache Storage', 'IndexedDB (action queue)', 'CacheStorage v1']}
             note="browser APIs"
           />
@@ -134,7 +134,7 @@ action(createOrder, {
             {
               step: 'Register',
               code: "resource('/api/products', { offline: true })",
-              desc: 'Adds an entry to the Zustand store and sends VARDI_REGISTER_RESOURCE to the SW.',
+              desc: 'Adds an entry to the Zustand store and sends EIDOS_REGISTER_RESOURCE to the SW.',
             },
             {
               step: 'Fetch',
@@ -144,7 +144,7 @@ action(createOrder, {
             {
               step: 'Cache',
               code: "await cache.put(request, response.clone())",
-              desc: 'SW clones the response into Cache Storage under vardi-resources-v1.',
+              desc: 'SW clones the response into Cache Storage under eidos-resources-v1.',
             },
             {
               step: 'Offline',
@@ -157,16 +157,16 @@ action(createOrder, {
               desc: 'SWR kicks off a background refresh after returning the cached response.',
             },
           ].map(({ step, code, desc }, i) => (
-            <div key={i} className="flex gap-3 p-3 rounded-lg border border-vardi-border bg-vardi-elevated">
-              <div className="w-6 h-6 rounded-full bg-vardi-accent/20 border border-vardi-accent/30 flex items-center justify-center shrink-0 mt-0.5">
-                <span className="text-[10px] font-mono text-vardi-accent font-bold">{i + 1}</span>
+            <div key={i} className="flex gap-3 p-3 rounded-lg border border-eidos-border bg-eidos-elevated">
+              <div className="w-6 h-6 rounded-full bg-eidos-accent/20 border border-eidos-accent/30 flex items-center justify-center shrink-0 mt-0.5">
+                <span className="text-[10px] font-mono text-eidos-accent font-bold">{i + 1}</span>
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs font-semibold text-vardi-text">{step}</span>
+                  <span className="text-xs font-semibold text-eidos-text">{step}</span>
                 </div>
-                <code className="text-[10px] font-mono text-vardi-green block mb-1.5 truncate">{code}</code>
-                <p className="text-xs text-vardi-muted leading-relaxed">{desc}</p>
+                <code className="text-[10px] font-mono text-eidos-green block mb-1.5 truncate">{code}</code>
+                <p className="text-xs text-eidos-muted leading-relaxed">{desc}</p>
               </div>
             </div>
           ))}
@@ -195,7 +195,7 @@ action(createOrder, {
             {
               step: 'Reconnect',
               code: 'window "online" event → replayQueue()',
-              desc: 'Vardi reads IDB, looks up the original function, calls it with the stored args.',
+              desc: 'Eidos reads IDB, looks up the original function, calls it with the stored args.',
             },
             {
               step: 'Cleanup',
@@ -203,14 +203,14 @@ action(createOrder, {
               desc: 'On success, the item is removed from IDB and the Zustand store after a brief delay.',
             },
           ].map(({ step, code, desc }, i) => (
-            <div key={i} className="flex gap-3 p-3 rounded-lg border border-vardi-border bg-vardi-elevated">
-              <div className="w-6 h-6 rounded-full bg-vardi-amber/20 border border-vardi-amber/30 flex items-center justify-center shrink-0 mt-0.5">
-                <span className="text-[10px] font-mono text-vardi-amber font-bold">{i + 1}</span>
+            <div key={i} className="flex gap-3 p-3 rounded-lg border border-eidos-border bg-eidos-elevated">
+              <div className="w-6 h-6 rounded-full bg-eidos-amber/20 border border-eidos-amber/30 flex items-center justify-center shrink-0 mt-0.5">
+                <span className="text-[10px] font-mono text-eidos-amber font-bold">{i + 1}</span>
               </div>
               <div className="flex-1 min-w-0">
-                <span className="text-xs font-semibold text-vardi-text block mb-1">{step}</span>
-                <code className="text-[10px] font-mono text-vardi-amber block mb-1.5 truncate">{code}</code>
-                <p className="text-xs text-vardi-muted leading-relaxed">{desc}</p>
+                <span className="text-xs font-semibold text-eidos-text block mb-1">{step}</span>
+                <code className="text-[10px] font-mono text-eidos-amber block mb-1.5 truncate">{code}</code>
+                <p className="text-xs text-eidos-muted leading-relaxed">{desc}</p>
               </div>
             </div>
           ))}
@@ -219,8 +219,8 @@ action(createOrder, {
 
       {/* Limitations */}
       <Section icon={Code2} title="Known Limitations">
-        <p className="text-sm text-vardi-text-dim leading-relaxed mb-4">
-          Vardi is an intentionally-scoped v0. These limitations are real and
+        <p className="text-sm text-eidos-text-dim leading-relaxed mb-4">
+          Eidos is an intentionally-scoped v0. These limitations are real and
           documented so you know exactly what you're getting.
         </p>
         <div className="space-y-2">
@@ -243,14 +243,14 @@ action(createOrder, {
             },
             {
               limit: 'Single SW path',
-              detail: 'VardiProvider assumes /vardi-sw.js. Multiple SW registrations in one app are not supported.',
+              detail: 'EidosProvider assumes /eidos-sw.js. Multiple SW registrations in one app are not supported.',
             },
           ].map(({ limit, detail }) => (
-            <div key={limit} className="flex gap-3 p-3 rounded-lg border border-vardi-border bg-vardi-elevated text-xs">
-              <span className="text-vardi-amber shrink-0 mt-0.5">⚠</span>
+            <div key={limit} className="flex gap-3 p-3 rounded-lg border border-eidos-border bg-eidos-elevated text-xs">
+              <span className="text-eidos-amber shrink-0 mt-0.5">⚠</span>
               <div>
-                <p className="font-semibold text-vardi-text">{limit}</p>
-                <p className="text-vardi-muted mt-0.5 leading-relaxed">{detail}</p>
+                <p className="font-semibold text-eidos-text">{limit}</p>
+                <p className="text-eidos-muted mt-0.5 leading-relaxed">{detail}</p>
               </div>
             </div>
           ))}
@@ -273,10 +273,10 @@ action(createOrder, {
               href={href}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-between p-3 rounded-lg border border-vardi-border hover:border-vardi-accent bg-vardi-elevated hover:bg-vardi-accent-dim transition-all group text-xs"
+              className="flex items-center justify-between p-3 rounded-lg border border-eidos-border hover:border-eidos-accent bg-eidos-elevated hover:bg-eidos-accent-dim transition-all group text-xs"
             >
-              <span className="text-vardi-text-dim group-hover:text-vardi-text transition-colors">{label}</span>
-              <ExternalLink size={11} className="text-vardi-muted group-hover:text-vardi-accent transition-colors shrink-0" />
+              <span className="text-eidos-text-dim group-hover:text-eidos-text transition-colors">{label}</span>
+              <ExternalLink size={11} className="text-eidos-muted group-hover:text-eidos-accent transition-colors shrink-0" />
             </a>
           ))}
         </div>
@@ -299,8 +299,8 @@ function Section({
   return (
     <Card>
       <div className="flex items-center gap-2 mb-4">
-        <Icon size={15} className="text-vardi-accent" />
-        <h3 className="text-sm font-semibold text-vardi-text">{title}</h3>
+        <Icon size={15} className="text-eidos-accent" />
+        <h3 className="text-sm font-semibold text-eidos-text">{title}</h3>
       </div>
       {children}
     </Card>
@@ -319,16 +319,16 @@ function ArchLayer({
   note: string
 }) {
   return (
-    <div className={`rounded-lg border border-vardi-border bg-vardi-elevated p-3 ${color}`}>
+    <div className={`rounded-lg border border-eidos-border bg-eidos-elevated p-3 ${color}`}>
       <div className="flex items-center justify-between mb-1.5">
         <span className="font-semibold">{label}</span>
-        <span className="text-[10px] text-vardi-muted">{note}</span>
+        <span className="text-[10px] text-eidos-muted">{note}</span>
       </div>
       <div className="flex gap-2 flex-wrap">
         {items.map((item) => (
           <span
             key={item}
-            className="text-[10px] bg-vardi-bg/50 px-2 py-0.5 rounded border border-current/20 text-vardi-text-dim"
+            className="text-[10px] bg-eidos-bg/50 px-2 py-0.5 rounded border border-current/20 text-eidos-text-dim"
           >
             {item}
           </span>
@@ -341,9 +341,9 @@ function ArchLayer({
 function ArchArrow({ label }: { label: string }) {
   return (
     <div className="flex flex-col items-center py-1">
-      <div className="w-px h-3 bg-vardi-border" />
-      <span className="text-[9px] font-mono text-vardi-muted">{label}</span>
-      <div className="w-px h-3 bg-vardi-border" />
+      <div className="w-px h-3 bg-eidos-border" />
+      <span className="text-[9px] font-mono text-eidos-muted">{label}</span>
+      <div className="w-px h-3 bg-eidos-border" />
     </div>
   )
 }

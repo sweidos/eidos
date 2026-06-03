@@ -18,7 +18,7 @@ const PRODUCTS = [
 
 function mockApiPlugin(): Plugin {
   return {
-    name: 'vardi-mock-api',
+    name: 'eidos-mock-api',
     configureServer(server) {
       server.middlewares.use(
         '/api/products',
@@ -57,8 +57,8 @@ export default defineConfig({
   plugins: [react(), mockApiPlugin()],
   resolve: {
     alias: {
-      // During dev: resolve 'vardi' directly to TypeScript source for hot-reload
-      vardi: resolve(__dirname, '../../packages/core/src/index.ts'),
+      // During dev: resolve 'eidos' directly to TypeScript source for hot-reload
+      eidos: resolve(__dirname, '../../packages/core/src/index.ts'),
     },
   },
   server: {

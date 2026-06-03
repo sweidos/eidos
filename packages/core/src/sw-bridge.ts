@@ -1,4 +1,4 @@
-import { useVardiStore } from './store'
+import { useEidosStore } from './store'
 
 let _registration: ServiceWorkerRegistration | null = null
 
@@ -8,11 +8,11 @@ export function getSwRegistration() {
 
 export async function registerServiceWorker(swPath: string): Promise<void> {
   if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
-    useVardiStore.getState().setSwStatus('unsupported')
+    useEidosStore.getState().setSwStatus('unsupported')
     return
   }
 
-  const store = useVardiStore.getState()
+  const store = useEidosStore.getState()
   store.setSwStatus('registering')
 
   try {
@@ -56,13 +56,13 @@ function onSwMessage(event: MessageEvent): void {
   const data = event.data as { type: string; url?: string; strategy?: string }
   if (!data?.type) return
 
-  const store = useVardiStore.getState()
+  const store = useEidosStore.getState()
   const { type, url } = data
 
   if (!url) return
 
   switch (type) {
-    case 'VARDI_CACHE_HIT': {
+    case 'EIDOS_CACHE_HIT': {
       const current = store.resources[url]
       store.updateResource(url, {
         status: 'fresh',
@@ -71,7 +71,7 @@ function onSwMessage(event: MessageEvent): void {
       })
       break
     }
-    case 'VARDI_CACHE_UPDATED': {
+    case 'EIDOS_CACHE_UPDATED': {
       store.updateResource(url, {
         status: 'fresh',
         lastEvent: 'cache-updated',
@@ -79,7 +79,7 @@ function onSwMessage(event: MessageEvent): void {
       })
       break
     }
-    case 'VARDI_NETWORK_ERROR': {
+    case 'EIDOS_NETWORK_ERROR': {
       store.updateResource(url, {
         status: 'error',
         lastEvent: 'network-error',
@@ -90,6 +90,6 @@ function onSwMessage(event: MessageEvent): void {
 }
 
 export function setOfflineSimulation(enabled: boolean): void {
-  sendToWorker({ type: 'VARDI_SIMULATE_OFFLINE', enabled })
-  useVardiStore.getState().setOnline(!enabled)
+  sendToWorker({ type: 'EIDOS_SIMULATE_OFFLINE', enabled })
+  useEidosStore.getState().setOnline(!enabled)
 }

@@ -1,4 +1,4 @@
-import { useVardiStore } from './store'
+import { useEidosStore } from './store'
 import {
   idbAddToQueue,
   idbGetQueue,
@@ -32,7 +32,7 @@ export function action<TArgs extends any[], TReturn>(
   _actionRegistry.set(actionId, fn as ActionFn<unknown[], unknown>)
 
   const wrapped = async (...args: TArgs): Promise<TReturn | QueuedResult> => {
-    const { isOnline } = useVardiStore.getState()
+    const { isOnline } = useEidosStore.getState()
 
     if (config.reliability === 'neverLose') {
       if (!isOnline) {
@@ -75,7 +75,7 @@ async function persistAndQueue(
   }
 
   await idbAddToQueue(item)
-  useVardiStore.getState().addQueueItem(item)
+  useEidosStore.getState().addQueueItem(item)
 
   return {
     queued: true,
@@ -85,7 +85,7 @@ async function persistAndQueue(
 }
 
 export async function replayQueue(): Promise<void> {
-  const store = useVardiStore.getState()
+  const store = useEidosStore.getState()
   if (!store.isOnline) return
 
   const queue = await idbGetQueue()

@@ -1,11 +1,11 @@
-# Vardi
+# Eidos
 
 > Describe intent. The runtime figures out how.
 
-Vardi is a small, opinionated abstraction layer for building offline-first web applications. Instead of configuring Service Workers, Cache API strategies, and IndexedDB queues directly, you declare **what you want** and the runtime generates the required behaviour.
+Eidos is a small, opinionated abstraction layer for building offline-first web applications. Instead of configuring Service Workers, Cache API strategies, and IndexedDB queues directly, you declare **what you want** and the runtime generates the required behaviour.
 
 ```ts
-import { resource, action } from 'vardi'
+import { resource, action } from 'eidos'
 
 // "I want this resource to work offline."
 const products = resource('/api/products', {
@@ -40,7 +40,7 @@ This is a large surface area, separate from your application logic, that every t
 Developers should describe **what they want**, not **how the browser should implement it**.
 
 ```ts
-// Before Vardi
+// Before Eidos
 // workbox-config.js
 registerRoute(
   ({ url }) => url.pathname === '/api/products',
@@ -57,7 +57,7 @@ self.addEventListener('sync', (event) => {
   }
 })
 
-// After Vardi
+// After Eidos
 resource('/api/products', { offline: true })
 action(createOrder, { reliability: 'neverLose' })
 ```
@@ -69,17 +69,17 @@ action(createOrder, { reliability: 'neverLose' })
 ### Install
 
 ```bash
-npm install vardi
+npm install eidos
 # or
-pnpm add vardi
+pnpm add eidos
 ```
 
 ### Add the service worker
 
-Copy `vardi-sw.js` to your project's `public/` directory:
+Copy `eidos-sw.js` to your project's `public/` directory:
 
 ```bash
-cp node_modules/vardi/dist/vardi-sw.js public/vardi-sw.js
+cp node_modules/eidos/dist/eidos-sw.js public/eidos-sw.js
 ```
 
 > **Vite users** — you can also add a plugin to do this automatically. See [setup guide](#vite-plugin).
@@ -87,20 +87,20 @@ cp node_modules/vardi/dist/vardi-sw.js public/vardi-sw.js
 ### Wrap your app
 
 ```tsx
-import { VardiProvider } from 'vardi'
+import { EidosProvider } from 'eidos'
 
 createRoot(document.getElementById('root')!).render(
-  <VardiProvider swPath="/vardi-sw.js">
+  <EidosProvider swPath="/eidos-sw.js">
     <App />
-  </VardiProvider>
+  </EidosProvider>
 )
 ```
 
 ### Declare resources and actions
 
 ```ts
-// src/lib/vardi.ts — module scope, so replay survives page reload
-import { resource, action } from 'vardi'
+// src/lib/eidos.ts — module scope, so replay survives page reload
+import { resource, action } from 'eidos'
 
 export const products = resource('/api/products', {
   offline: true,
@@ -203,41 +203,41 @@ const result = await createOrder(payload)
 Manually trigger queue replay. Called automatically on the `online` event when `autoReplay: true` (the default).
 
 ```ts
-import { replayQueue } from 'vardi'
+import { replayQueue } from 'eidos'
 
 window.addEventListener('online', replayQueue)
 ```
 
-### `VardiProvider`
+### `EidosProvider`
 
 Root provider that registers the SW and initialises the runtime.
 
 ```tsx
-<VardiProvider
-  swPath="/vardi-sw.js"   // default
+<EidosProvider
+  swPath="/eidos-sw.js"   // default
   autoReplay={true}       // replay queue on reconnect, default: true
 >
   <App />
-</VardiProvider>
+</EidosProvider>
 ```
 
 ### React Hooks
 
 ```ts
-import { useVardiStatus, useVardiResource, useVardiQueue } from 'vardi'
+import { useEidosStatus, useEidosResource, useEidosQueue } from 'eidos'
 
 // Online + SW status — cheap, safe in headers
-const { isOnline, swStatus } = useVardiStatus()
+const { isOnline, swStatus } = useEidosStatus()
 
 // Live state for a single resource
-const entry = useVardiResource('/api/products')
+const entry = useEidosResource('/api/products')
 // → { status, cacheHits, cachedAt, strategy, ... }
 
 // The full action queue
-const queue = useVardiQueue()
+const queue = useEidosQueue()
 
 // Full store (use sparingly)
-const state = useVardi()
+const state = useEidos()
 ```
 
 ### `setOfflineSimulation(enabled)`
@@ -245,7 +245,7 @@ const state = useVardi()
 Toggle offline simulation from devtools or tests. Sends a message to the SW to serve only cached responses.
 
 ```ts
-import { setOfflineSimulation } from 'vardi'
+import { setOfflineSimulation } from 'eidos'
 
 setOfflineSimulation(true)   // force offline
 setOfflineSimulation(false)  // restore normal
@@ -258,17 +258,17 @@ setOfflineSimulation(false)  // restore normal
 ```
 ┌─────────────────────────────────────────────┐
 │  Application Layer                           │
-│  resource() · action() · VardiProvider       │  ← you write this
+│  resource() · action() · EidosProvider       │  ← you write this
 └────────────────┬────────────────────────────┘
-                 │ postMessage(VARDI_REGISTER_RESOURCE)
+                 │ postMessage(EIDOS_REGISTER_RESOURCE)
 ┌────────────────▼────────────────────────────┐
 │  Runtime Layer (packages/core)               │
-│  Strategy derivation · Zustand store         │  ← vardi npm package
+│  Strategy derivation · Zustand store         │  ← eidos npm package
 │  SW bridge · IDB queue                       │
 └────────────────┬────────────────────────────┘
                  │ fetch intercept
 ┌────────────────▼────────────────────────────┐
-│  Worker Layer (vardi-sw.js)                  │
+│  Worker Layer (eidos-sw.js)                  │
 │  CacheFirst · StaleWhileRevalidate           │  ← generated SW
 │  NetworkFirst · Offline simulation           │
 └────────────────┬────────────────────────────┘
@@ -281,24 +281,24 @@ setOfflineSimulation(false)  // restore normal
 
 ### Service Worker protocol
 
-The runtime communicates with `vardi-sw.js` via `postMessage`. Messages sent from the app:
+The runtime communicates with `eidos-sw.js` via `postMessage`. Messages sent from the app:
 
 | Message | Purpose |
 |---|---|
-| `VARDI_REGISTER_RESOURCE` | Add a fetch-intercept rule |
-| `VARDI_UNREGISTER_RESOURCE` | Remove a rule |
-| `VARDI_CLEAR_CACHE` | Evict cache entries |
-| `VARDI_SIMULATE_OFFLINE` | Toggle offline simulation |
-| `VARDI_PING` | Health check |
+| `EIDOS_REGISTER_RESOURCE` | Add a fetch-intercept rule |
+| `EIDOS_UNREGISTER_RESOURCE` | Remove a rule |
+| `EIDOS_CLEAR_CACHE` | Evict cache entries |
+| `EIDOS_SIMULATE_OFFLINE` | Toggle offline simulation |
+| `EIDOS_PING` | Health check |
 
 Messages received from the SW:
 
 | Message | Purpose |
 |---|---|
-| `VARDI_CACHE_HIT` | A cached response was served |
-| `VARDI_CACHE_UPDATED` | Cache entry was refreshed from network |
-| `VARDI_NETWORK_ERROR` | Network request failed |
-| `VARDI_CACHE_CLEARED` | Cache was cleared |
+| `EIDOS_CACHE_HIT` | A cached response was served |
+| `EIDOS_CACHE_UPDATED` | Cache entry was refreshed from network |
+| `EIDOS_NETWORK_ERROR` | Network request failed |
+| `EIDOS_CACHE_CLEARED` | Cache was cleared |
 
 ---
 
@@ -307,7 +307,7 @@ Messages received from the SW:
 ```
 eidos/
 ├── packages/
-│   ├── core/           vardi npm package
+│   ├── core/           eidos npm package
 │   │   └── src/
 │   │       ├── types.ts
 │   │       ├── resource.ts     resource() implementation
@@ -316,13 +316,13 @@ eidos/
 │   │       ├── store.ts        Zustand store
 │   │       ├── sw-bridge.ts    postMessage channel
 │   │       ├── idb.ts          IndexedDB wrapper
-│   │       └── react/          VardiProvider + hooks
+│   │       └── react/          EidosProvider + hooks
 │   └── worker/         SW typed source
-│       └── src/sw.ts   → compiles to vardi-sw.js
+│       └── src/sw.ts   → compiles to eidos-sw.js
 ├── apps/
 │   └── playground/     interactive demo dashboard
 │       └── public/
-│           └── vardi-sw.js   compiled service worker
+│           └── eidos-sw.js   compiled service worker
 └── examples/           (planned)
 ```
 
@@ -348,19 +348,19 @@ It includes:
 
 ## Vite Plugin
 
-To automatically copy `vardi-sw.js` into `public/` during dev and build, add this to your `vite.config.ts`:
+To automatically copy `eidos-sw.js` into `public/` during dev and build, add this to your `vite.config.ts`:
 
 ```ts
 import { copyFileSync } from 'fs'
 import { resolve } from 'path'
 
-function vardiPlugin() {
+function eidosPlugin() {
   return {
-    name: 'vardi-sw',
+    name: 'eidos-sw',
     buildStart() {
       copyFileSync(
-        resolve('./node_modules/vardi/dist/vardi-sw.js'),
-        resolve('./public/vardi-sw.js'),
+        resolve('./node_modules/eidos/dist/eidos-sw.js'),
+        resolve('./public/eidos-sw.js'),
       )
     },
   }
@@ -379,7 +379,7 @@ These are real limitations in v0.1. They are documented so you know exactly what
 | Pathname matching | Resources match by pathname only. Cross-origin URLs require the full URL to be registered. |
 | Module-scope actions | `action()` must be called at module scope for replay to work after a page reload. |
 | No TTL | Cached resources do not expire automatically. Call `resource.invalidate()` to clear. |
-| Single SW | `VardiProvider` assumes `/vardi-sw.js`. Multiple SW registrations in one app are unsupported. |
+| Single SW | `EidosProvider` assumes `/eidos-sw.js`. Multiple SW registrations in one app are unsupported. |
 
 ---
 
@@ -413,7 +413,7 @@ pnpm build:core
 
 The project uses pnpm workspaces. TypeScript strict mode is enabled everywhere.
 
-The naming (`Vardi`) is a placeholder. All references are easy to find/replace — the package name, SW filename, and message prefix are the only places the name appears.
+The naming (`Eidos`) is a placeholder. All references are easy to find/replace — the package name, SW filename, and message prefix are the only places the name appears.
 
 ---
 

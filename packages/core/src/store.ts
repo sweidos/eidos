@@ -1,11 +1,11 @@
 import { create } from 'zustand'
-import type { VardiState, ResourceEntry, ActionQueueItem } from './types'
+import type { EidosState, ResourceEntry, ActionQueueItem } from './types'
 
-interface VardiStore extends VardiState {
+interface EidosStore extends EidosState {
   // Online
   setOnline: (online: boolean) => void
   // SW
-  setSwStatus: (status: VardiState['swStatus'], error?: string) => void
+  setSwStatus: (status: EidosState['swStatus'], error?: string) => void
   // Resources
   registerResource: (url: string, entry: ResourceEntry) => void
   updateResource: (url: string, update: Partial<ResourceEntry>) => void
@@ -17,7 +17,7 @@ interface VardiStore extends VardiState {
   hydrateQueue: (items: ActionQueueItem[]) => void
 }
 
-export const useVardiStore = create<VardiStore>((set) => ({
+export const useEidosStore = create<EidosStore>((set) => ({
   isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
   swStatus: 'idle',
   swError: undefined,

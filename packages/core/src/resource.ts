@@ -1,4 +1,4 @@
-import { useVardiStore } from './store'
+import { useEidosStore } from './store'
 import { sendToWorker } from './sw-bridge'
 import type {
   ResourceConfig,
@@ -31,11 +31,11 @@ export function resource<T = unknown>(
   }
 
   // Persist to Zustand store (drives devtools)
-  useVardiStore.getState().registerResource(url, entry)
+  useEidosStore.getState().registerResource(url, entry)
 
   // Inform the service worker
   sendToWorker({
-    type: 'VARDI_REGISTER_RESOURCE',
+    type: 'EIDOS_REGISTER_RESOURCE',
     url,
     strategy: strategy.swStrategy,
     cacheName: strategy.cacheName,
@@ -47,18 +47,18 @@ export function resource<T = unknown>(
     strategy,
 
     fetch: async () => {
-      useVardiStore.getState().updateResource(url, {
+      useEidosStore.getState().updateResource(url, {
         status: 'fetching',
         fetchedAt: Date.now(),
       })
       try {
         const res = await fetch(url)
-        useVardiStore.getState().updateResource(url, {
+        useEidosStore.getState().updateResource(url, {
           status: res.ok ? 'fresh' : 'error',
         })
         return res
       } catch (err) {
-        useVardiStore.getState().updateResource(url, { status: 'error' })
+        useEidosStore.getState().updateResource(url, { status: 'error' })
         throw err
       }
     },
@@ -69,7 +69,7 @@ export function resource<T = unknown>(
     },
 
     query: () => ({
-      queryKey: ['vardi', url] as [string, string],
+      queryKey: ['eidos', url] as [string, string],
       queryFn: () => handle.json(),
     }),
 
@@ -78,8 +78,8 @@ export function resource<T = unknown>(
     },
 
     invalidate: async () => {
-      sendToWorker({ type: 'VARDI_CLEAR_CACHE', url })
-      useVardiStore.getState().updateResource(url, {
+      sendToWorker({ type: 'EIDOS_CLEAR_CACHE', url })
+      useEidosStore.getState().updateResource(url, {
         status: 'stale',
         cachedAt: undefined,
         lastEvent: 'cache-cleared',
@@ -123,7 +123,7 @@ const STRATEGY_META: Record<
     ],
     equivalentCode: `// Workbox equivalent
 new StaleWhileRevalidate({
-  cacheName: 'vardi-resources-v1',
+  cacheName: 'eidos-resources-v1',
   plugins: [new ExpirationPlugin({ maxEntries: 60 })],
 })`,
   },
@@ -139,7 +139,7 @@ new StaleWhileRevalidate({
     ],
     equivalentCode: `// Workbox equivalent
 new CacheFirst({
-  cacheName: 'vardi-resources-v1',
+  cacheName: 'eidos-resources-v1',
   plugins: [new ExpirationPlugin({ maxEntries: 60 })],
 })`,
   },
@@ -155,7 +155,7 @@ new CacheFirst({
     ],
     equivalentCode: `// Workbox equivalent
 new NetworkFirst({
-  cacheName: 'vardi-resources-v1',
+  cacheName: 'eidos-resources-v1',
   networkTimeoutSeconds: 3,
 })`,
   },
@@ -165,6 +165,6 @@ function buildStrategy(swStrategy: CacheStrategy, _url: string): GeneratedStrate
   return {
     ...STRATEGY_META[swStrategy],
     swStrategy,
-    cacheName: 'vardi-resources-v1',
+    cacheName: 'eidos-resources-v1',
   }
 }

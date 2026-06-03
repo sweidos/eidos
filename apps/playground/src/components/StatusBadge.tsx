@@ -5,21 +5,21 @@ interface StatusBadgeProps {
 }
 
 const CONFIG: Record<string, { label: string; classes: string; dot: string }> = {
-  idle:         { label: 'idle',         classes: 'bg-vardi-border         text-vardi-muted',     dot: 'bg-vardi-muted'  },
-  fetching:     { label: 'fetching',     classes: 'bg-vardi-accent-dim    text-vardi-accent',    dot: 'bg-vardi-accent animate-pulse'  },
-  fresh:        { label: 'fresh',        classes: 'bg-vardi-green-dim     text-vardi-green',     dot: 'bg-vardi-green'  },
-  stale:        { label: 'stale',        classes: 'bg-vardi-amber-dim     text-vardi-amber',     dot: 'bg-vardi-amber'  },
-  error:        { label: 'error',        classes: 'bg-vardi-red-dim       text-vardi-red',       dot: 'bg-vardi-red'    },
-  offline:      { label: 'offline',      classes: 'bg-vardi-amber-dim     text-vardi-amber',     dot: 'bg-vardi-amber'  },
-  pending:      { label: 'pending',      classes: 'bg-vardi-accent-dim    text-vardi-accent',    dot: 'bg-vardi-accent'  },
-  replaying:    { label: 'replaying',    classes: 'bg-vardi-amber-dim     text-vardi-amber',     dot: 'bg-vardi-amber animate-pulse' },
-  succeeded:    { label: 'succeeded',    classes: 'bg-vardi-green-dim     text-vardi-green',     dot: 'bg-vardi-green'  },
-  failed:       { label: 'failed',       classes: 'bg-vardi-red-dim       text-vardi-red',       dot: 'bg-vardi-red'    },
-  active:       { label: 'active',       classes: 'bg-vardi-green-dim     text-vardi-green',     dot: 'bg-vardi-green'  },
-  registering:  { label: 'registering',  classes: 'bg-vardi-amber-dim     text-vardi-amber',     dot: 'bg-vardi-amber animate-pulse' },
-  unsupported:  { label: 'unsupported',  classes: 'bg-vardi-red-dim       text-vardi-red',       dot: 'bg-vardi-red'    },
-  'cache-hit':  { label: 'cache hit',    classes: 'bg-vardi-green-dim     text-vardi-green',     dot: 'bg-vardi-green'  },
-  'cache-updated': { label: 'updated',  classes: 'bg-vardi-accent-dim    text-vardi-accent',    dot: 'bg-vardi-accent'  },
+  idle:         { label: 'idle',         classes: 'bg-eidos-border         text-eidos-muted',     dot: 'bg-eidos-muted'  },
+  fetching:     { label: 'fetching',     classes: 'bg-eidos-accent-dim    text-eidos-accent',    dot: 'bg-eidos-accent animate-pulse'  },
+  fresh:        { label: 'fresh',        classes: 'bg-eidos-green-dim     text-eidos-green',     dot: 'bg-eidos-green'  },
+  stale:        { label: 'stale',        classes: 'bg-eidos-amber-dim     text-eidos-amber',     dot: 'bg-eidos-amber'  },
+  error:        { label: 'error',        classes: 'bg-eidos-red-dim       text-eidos-red',       dot: 'bg-eidos-red'    },
+  offline:      { label: 'offline',      classes: 'bg-eidos-amber-dim     text-eidos-amber',     dot: 'bg-eidos-amber'  },
+  pending:      { label: 'pending',      classes: 'bg-eidos-accent-dim    text-eidos-accent',    dot: 'bg-eidos-accent'  },
+  replaying:    { label: 'replaying',    classes: 'bg-eidos-amber-dim     text-eidos-amber',     dot: 'bg-eidos-amber animate-pulse' },
+  succeeded:    { label: 'succeeded',    classes: 'bg-eidos-green-dim     text-eidos-green',     dot: 'bg-eidos-green'  },
+  failed:       { label: 'failed',       classes: 'bg-eidos-red-dim       text-eidos-red',       dot: 'bg-eidos-red'    },
+  active:       { label: 'active',       classes: 'bg-eidos-green-dim     text-eidos-green',     dot: 'bg-eidos-green'  },
+  registering:  { label: 'registering',  classes: 'bg-eidos-amber-dim     text-eidos-amber',     dot: 'bg-eidos-amber animate-pulse' },
+  unsupported:  { label: 'unsupported',  classes: 'bg-eidos-red-dim       text-eidos-red',       dot: 'bg-eidos-red'    },
+  'cache-hit':  { label: 'cache hit',    classes: 'bg-eidos-green-dim     text-eidos-green',     dot: 'bg-eidos-green'  },
+  'cache-updated': { label: 'updated',  classes: 'bg-eidos-accent-dim    text-eidos-accent',    dot: 'bg-eidos-accent'  },
 }
 
 export function StatusBadge({ status }: StatusBadgeProps) {

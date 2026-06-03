@@ -4,16 +4,16 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "pnpm --filter @vardi/playground dev",
-    "build": "pnpm --filter vardi build && pnpm --filter @vardi/playground build",
-    "build:core": "pnpm --filter vardi build",
-    "build:worker": "pnpm --filter @vardi/worker build",
-    "build:playground": "pnpm --filter @vardi/playground build",
+    "dev": "pnpm --filter @eidos/playground dev",
+    "build": "pnpm --filter eidos build && pnpm --filter @eidos/playground build",
+    "build:core": "pnpm --filter eidos build",
+    "build:worker": "pnpm --filter @eidos/worker build",
+    "build:playground": "pnpm --filter @eidos/playground build",
     "type-check": "pnpm -r type-check",
     "lint": "pnpm -r lint",
     "clean": "pnpm -r exec -- rm -rf dist node_modules .turbo",
-    "publish:dry": "pnpm --filter vardi publish --dry-run",
-    "publish:core": "pnpm --filter vardi publish --access public"
+    "publish:dry": "pnpm --filter eidos publish --dry-run",
+    "publish:core": "pnpm --filter eidos publish --access public"
   },
   "devDependencies": {
     "typescript": "^5.4.5"

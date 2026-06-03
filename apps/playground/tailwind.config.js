@@ -4,7 +4,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        vardi: {
+        eidos: {
           bg:           '#080810',
           surface:      '#0f0f1a',
           elevated:     '#16162a',

@@ -1,6 +1,6 @@
 import type { ActionQueueItem } from './types'
 
-const DB_NAME = 'vardi'
+const DB_NAME = 'eidos'
 const DB_VERSION = 1
 const QUEUE_STORE = 'action-queue'
 
