@@ -1,19 +1,19 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Vardi — describe intent, the runtime figures out how.
+// Eidos — describe intent, the runtime figures out how.
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Public API
 export { resource } from './resource'
 export { action, replayQueue } from './action'
-export { initVardi } from './runtime'
+export { initEidos } from './runtime'
 
 // React bindings
-export { VardiProvider } from './react/Provider'
-export { useVardi, useVardiResource, useVardiQueue, useVardiStatus } from './react/hooks'
+export { EidosProvider } from './react/Provider'
+export { useEidos, useEidosResource, useEidosQueue, useEidosStatus } from './react/hooks'
 
 // Devtools helpers
 export { setOfflineSimulation } from './sw-bridge'
-export { useVardiStore } from './store'
+export { useEidosStore } from './store'
 
 // Types
 export type {
@@ -25,6 +25,6 @@ export type {
   ActionHandle,
   ActionQueueItem,
   QueuedResult,
-  VardiState,
+  EidosState,
   CacheStrategy,
 } from './types'

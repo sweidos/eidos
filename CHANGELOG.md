@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to `vardi` will be documented here.
+All notable changes to `eidos` will be documented here.
 
 This project follows [Semantic Versioning](https://semver.org/).
 
@@ -12,21 +12,21 @@ Initial release. Smallest possible version that demonstrates the vision end-to-e
 
 ### Added
 
-**Core package (`vardi`)**
+**Core package (`eidos`)**
 - `resource(url, config)` — register an offline-capable resource with auto-generated caching strategy
 - `action(fn, config)` — wrap any async function with `best-effort` or `neverLose` reliability
 - `replayQueue()` — manually replay the IndexedDB-persisted action queue
-- `VardiProvider` — React root component that registers the SW and initialises the runtime
-- `useVardiStatus()` — online + SW status hook
-- `useVardiResource(url)` — live cache state for a single resource
-- `useVardiQueue()` — reactive action queue
+- `EidosProvider` — React root component that registers the SW and initialises the runtime
+- `useEidosStatus()` — online + SW status hook
+- `useEidosResource(url)` — live cache state for a single resource
+- `useEidosQueue()` — reactive action queue
 - `setOfflineSimulation(enabled)` — toggle offline simulation from devtools or tests
 - Full TypeScript types with JSDoc comments
 
-**Service Worker (`vardi-sw.js`)**
+**Service Worker (`eidos-sw.js`)**
 - `CacheFirst`, `StaleWhileRevalidate`, `NetworkFirst` strategies
-- Dynamic registration via `VARDI_REGISTER_RESOURCE` postMessage
-- Offline simulation mode (`VARDI_SIMULATE_OFFLINE`)
+- Dynamic registration via `EIDOS_REGISTER_RESOURCE` postMessage
+- Offline simulation mode (`EIDOS_SIMULATE_OFFLINE`)
 - Cache versioning and stale-cache cleanup on activation
 - Bidirectional `postMessage` channel (cache hit/miss/update events)
 
@@ -37,7 +37,7 @@ Initial release. Smallest possible version that demonstrates the vision end-to-e
 - Each strategy includes: name, reasoning, behavior steps, Workbox equivalent
 
 **IndexedDB action queue**
-- Typed CRUD wrapper for the `vardi/action-queue` IDB store
+- Typed CRUD wrapper for the `eidos/action-queue` IDB store
 - Survives page reload — queue is hydrated from IDB on app start
 - Per-item status: `pending → replaying → succeeded/failed`
 - Configurable `maxRetries` with retry count tracking

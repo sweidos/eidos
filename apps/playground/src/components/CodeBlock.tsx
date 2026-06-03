@@ -18,20 +18,20 @@ export function CodeBlock({ code, title, className = '' }: CodeBlockProps) {
   }
 
   return (
-    <div className={`rounded-lg border border-vardi-border overflow-hidden ${className}`}>
+    <div className={`rounded-lg border border-eidos-border overflow-hidden ${className}`}>
       {title && (
-        <div className="flex items-center justify-between px-4 py-2 border-b border-vardi-border bg-vardi-elevated">
-          <span className="text-[11px] font-mono text-vardi-muted">{title}</span>
+        <div className="flex items-center justify-between px-4 py-2 border-b border-eidos-border bg-eidos-elevated">
+          <span className="text-[11px] font-mono text-eidos-muted">{title}</span>
           <button
             onClick={copy}
-            className="flex items-center gap-1 text-[11px] text-vardi-muted hover:text-vardi-text transition-colors"
+            className="flex items-center gap-1 text-[11px] text-eidos-muted hover:text-eidos-text transition-colors"
           >
-            {copied ? <Check size={12} className="text-vardi-green" /> : <Copy size={12} />}
+            {copied ? <Check size={12} className="text-eidos-green" /> : <Copy size={12} />}
             {copied ? 'copied' : 'copy'}
           </button>
         </div>
       )}
-      <pre className="p-4 overflow-x-auto text-sm font-mono text-vardi-text bg-vardi-surface leading-relaxed">
+      <pre className="p-4 overflow-x-auto text-sm font-mono text-eidos-text bg-eidos-surface leading-relaxed">
         <code>{code}</code>
       </pre>
     </div>

@@ -1,7 +1,7 @@
 {
-  "name": "@vardi/worker",
+  "name": "@eidos/worker",
   "version": "0.1.0",
-  "description": "Vardi service worker source (compiled output ships with the vardi package)",
+  "description": "Eidos service worker source (compiled output ships with the eidos package)",
   "private": true,
   "type": "module",
   "scripts": {

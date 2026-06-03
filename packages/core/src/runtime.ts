@@ -1,10 +1,10 @@
 import { registerServiceWorker } from './sw-bridge'
 import { replayQueue } from './action'
-import { useVardiStore } from './store'
+import { useEidosStore } from './store'
 import { idbGetQueue } from './idb'
 
-export interface VardiConfig {
-  /** Path to the vardi service worker. Defaults to '/vardi-sw.js'. */
+export interface EidosConfig {
+  /** Path to the eidos service worker. Defaults to '/eidos-sw.js'. */
   swPath?: string
   /** Automatically replay the action queue on reconnect. Default: true. */
   autoReplay?: boolean
@@ -12,18 +12,18 @@ export interface VardiConfig {
 
 let _initialized = false
 
-export async function initVardi(config: VardiConfig = {}): Promise<void> {
+export async function initEidos(config: EidosConfig = {}): Promise<void> {
   if (_initialized) return
   _initialized = true
 
-  const swPath = config.swPath ?? '/vardi-sw.js'
+  const swPath = config.swPath ?? '/eidos-sw.js'
   const autoReplay = config.autoReplay ?? true
 
   // Restore persisted queue from IndexedDB on startup so devtools can show it
   try {
     const persisted = await idbGetQueue()
     if (persisted.length > 0) {
-      useVardiStore.getState().hydrateQueue(persisted)
+      useEidosStore.getState().hydrateQueue(persisted)
     }
   } catch {
     // IndexedDB unavailable (e.g. Firefox private browsing) — silent fallback
@@ -43,8 +43,8 @@ export async function initVardi(config: VardiConfig = {}): Promise<void> {
   }
 
   if (import.meta.env.DEV) {
-    const store = useVardiStore.getState()
-    console.groupCollapsed('%c⚡ Vardi', 'color:#818cf8;font-weight:bold')
+    const store = useEidosStore.getState()
+    console.groupCollapsed('%c⚡ Eidos', 'color:#818cf8;font-weight:bold')
     console.log('SW path:', swPath)
     console.log('Auto-replay:', autoReplay)
     console.log('SW status:', store.swStatus)
@@ -53,6 +53,6 @@ export async function initVardi(config: VardiConfig = {}): Promise<void> {
 }
 
 /** Reset internal state — intended for testing only. */
-export function _resetVardi() {
+export function _resetEidos() {
   _initialized = false
 }

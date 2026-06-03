@@ -1,5 +1,5 @@
 {
-  "name": "vardi",
+  "name": "eidos",
   "version": "0.1.0",
   "description": "Describe intent. The runtime figures out how. An abstraction layer for offline-first web apps.",
   "author": "Aditya Raj",
@@ -21,13 +21,13 @@
     "url": "https://github.com/iamadi11/eidos.git",
     "directory": "packages/core"
   },
-  "main": "./dist/vardi.cjs.js",
-  "module": "./dist/vardi.es.js",
+  "main": "./dist/eidos.cjs.js",
+  "module": "./dist/eidos.es.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/vardi.es.js",
-      "require": "./dist/vardi.cjs.js",
+      "import": "./dist/eidos.es.js",
+      "require": "./dist/eidos.cjs.js",
       "types": "./dist/index.d.ts"
     }
   },

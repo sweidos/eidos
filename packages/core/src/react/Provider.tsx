@@ -1,22 +1,22 @@
 import { useEffect, type ReactNode } from 'react'
-import { initVardi, type VardiConfig } from '../runtime'
+import { initEidos, type EidosConfig } from '../runtime'
 
-interface VardiProviderProps extends VardiConfig {
+interface EidosProviderProps extends EidosConfig {
   children: ReactNode
 }
 
 /**
  * Mount once at the root of your application.
- * Registers the service worker and initialises the Vardi runtime.
+ * Registers the service worker and initialises the Eidos runtime.
  *
  * @example
- * <VardiProvider swPath="/vardi-sw.js">
+ * <EidosProvider swPath="/eidos-sw.js">
  *   <App />
- * </VardiProvider>
+ * </EidosProvider>
  */
-export function VardiProvider({ children, swPath, autoReplay }: VardiProviderProps) {
+export function EidosProvider({ children, swPath, autoReplay }: EidosProviderProps) {
   useEffect(() => {
-    initVardi({ swPath, autoReplay })
+    initEidos({ swPath, autoReplay })
     // Run once on mount only
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])

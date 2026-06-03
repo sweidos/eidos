@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Vardi Core Types
+// Eidos Core Types
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type CacheStrategy =
@@ -14,7 +14,7 @@ export interface ResourceConfig {
   offline: boolean
   /** Override the auto-selected caching strategy. */
   strategy?: CacheStrategy
-  /** Custom cache bucket name. Defaults to 'vardi-resources-v1'. */
+  /** Custom cache bucket name. Defaults to 'eidos-resources-v1'. */
   cacheName?: string
 }
 
@@ -100,7 +100,7 @@ export interface ActionHandle<TArgs extends any[], TReturn> {
 
 // ── Global State ─────────────────────────────────────────────────────────────
 
-export interface VardiState {
+export interface EidosState {
   isOnline: boolean
   swStatus: 'idle' | 'registering' | 'active' | 'error' | 'unsupported'
   swError?: string

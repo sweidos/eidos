@@ -5,7 +5,7 @@ import {
   Search,
   BookOpen,
 } from 'lucide-react'
-import { useVardiStore } from 'vardi'
+import { useEidosStore } from 'eidos'
 import type { Page } from '../App'
 
 interface NavItem {
@@ -21,8 +21,8 @@ interface SidebarProps {
 }
 
 export function Sidebar({ current, onNavigate }: SidebarProps) {
-  const resources = useVardiStore((s) => s.resources)
-  const queue     = useVardiStore((s) => s.queue)
+  const resources = useEidosStore((s) => s.resources)
+  const queue     = useEidosStore((s) => s.queue)
 
   const pending = queue.filter((q) => q.status === 'pending' || q.status === 'replaying').length
 
@@ -35,7 +35,7 @@ export function Sidebar({ current, onNavigate }: SidebarProps) {
   ]
 
   return (
-    <aside className="w-52 shrink-0 border-r border-vardi-border bg-vardi-surface flex flex-col overflow-y-auto">
+    <aside className="w-52 shrink-0 border-r border-eidos-border bg-eidos-surface flex flex-col overflow-y-auto">
       <nav className="flex-1 p-3 space-y-0.5">
         {navItems.map((item) => {
           const Icon = item.icon
@@ -47,17 +47,17 @@ export function Sidebar({ current, onNavigate }: SidebarProps) {
               className={`
                 w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-all
                 ${active
-                  ? 'bg-vardi-accent-dim text-vardi-text border border-vardi-accent-mid'
-                  : 'text-vardi-text-dim hover:bg-vardi-elevated hover:text-vardi-text border border-transparent'
+                  ? 'bg-eidos-accent-dim text-eidos-text border border-eidos-accent-mid'
+                  : 'text-eidos-text-dim hover:bg-eidos-elevated hover:text-eidos-text border border-transparent'
                 }
               `}
             >
-              <Icon size={14} className={active ? 'text-vardi-accent' : ''} />
+              <Icon size={14} className={active ? 'text-eidos-accent' : ''} />
               <span className="flex-1 text-left font-medium">{item.label}</span>
               {item.badge !== undefined && item.badge !== 0 && (
                 <span className={`
                   text-[10px] font-mono px-1.5 py-0.5 rounded-full min-w-[18px] text-center
-                  ${active ? 'bg-vardi-accent text-white' : 'bg-vardi-elevated text-vardi-muted'}
+                  ${active ? 'bg-eidos-accent text-white' : 'bg-eidos-elevated text-eidos-muted'}
                 `}>
                   {item.badge}
                 </span>
@@ -68,12 +68,12 @@ export function Sidebar({ current, onNavigate }: SidebarProps) {
       </nav>
 
       {/* Footer */}
-      <div className="p-3 border-t border-vardi-border">
+      <div className="p-3 border-t border-eidos-border">
         <a
           href="https://github.com/iamadi11/eidos"
           target="_blank"
           rel="noopener noreferrer"
-          className="block text-[11px] text-vardi-muted hover:text-vardi-accent transition-colors text-center font-mono"
+          className="block text-[11px] text-eidos-muted hover:text-eidos-accent transition-colors text-center font-mono"
         >
           github / eidos ↗
         </a>

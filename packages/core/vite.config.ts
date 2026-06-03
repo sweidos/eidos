@@ -15,8 +15,8 @@ export default defineConfig({
   build: {
     lib: {
       entry: resolve(__dirname, 'src/index.ts'),
-      name: 'Vardi',
-      fileName: (format) => `vardi.${format}.js`,
+      name: 'Eidos',
+      fileName: (format) => `eidos.${format}.js`,
       formats: ['es', 'cjs'],
     },
     rollupOptions: {
