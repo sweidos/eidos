@@ -1,0 +1,25 @@
+{
+  "name": "eidos-monorepo",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm --filter @vardi/playground dev",
+    "build": "pnpm --filter vardi build && pnpm --filter @vardi/playground build",
+    "build:core": "pnpm --filter vardi build",
+    "build:worker": "pnpm --filter @vardi/worker build",
+    "build:playground": "pnpm --filter @vardi/playground build",
+    "type-check": "pnpm -r type-check",
+    "lint": "pnpm -r lint",
+    "clean": "pnpm -r exec -- rm -rf dist node_modules .turbo",
+    "publish:dry": "pnpm --filter vardi publish --dry-run",
+    "publish:core": "pnpm --filter vardi publish --access public"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  }
+}

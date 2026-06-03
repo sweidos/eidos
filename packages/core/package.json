@@ -1,0 +1,58 @@
+{
+  "name": "vardi",
+  "version": "0.1.0",
+  "description": "Describe intent. The runtime figures out how. An abstraction layer for offline-first web apps.",
+  "author": "Aditya Raj",
+  "license": "MIT",
+  "type": "module",
+  "keywords": [
+    "service-worker",
+    "offline",
+    "pwa",
+    "cache",
+    "indexeddb",
+    "background-sync",
+    "offline-first",
+    "react"
+  ],
+  "homepage": "https://github.com/iamadi11/eidos",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/iamadi11/eidos.git",
+    "directory": "packages/core"
+  },
+  "main": "./dist/vardi.cjs.js",
+  "module": "./dist/vardi.es.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/vardi.es.js",
+      "require": "./dist/vardi.cjs.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "vite build && tsc --emitDeclarationOnly --declaration --outDir dist",
+    "dev": "vite build --watch",
+    "type-check": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
+  },
+  "dependencies": {
+    "zustand": "^4.5.2"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "typescript": "^5.4.5",
+    "vite": "^5.3.1",
+    "vite-plugin-dts": "^3.9.1"
+  }
+}
