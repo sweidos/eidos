@@ -1,5 +1,5 @@
 {
-  "name": "eidos",
+  "name": "@adityaraj/eidos",
   "version": "0.1.0",
   "description": "Describe intent. The runtime figures out how. An abstraction layer for offline-first web apps.",
   "author": "Aditya Raj",
@@ -29,6 +29,9 @@
       "import": "./dist/eidos.es.js",
       "require": "./dist/eidos.cjs.js",
       "types": "./dist/index.d.ts"
+    },
+    "./sw": {
+      "default": "./dist/eidos-sw.js"
     }
   },
   "files": [
@@ -36,9 +39,10 @@
     "README.md"
   ],
   "scripts": {
-    "build": "vite build && tsc --emitDeclarationOnly --declaration --outDir dist",
+    "build": "vite build && node scripts/copy-sw.mjs",
     "dev": "vite build --watch",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "prepublishOnly": "pnpm build"
   },
   "peerDependencies": {
     "react": ">=18.0.0",

@@ -1,6 +1,6 @@
 import { Wifi, WifiOff, Cpu, AlertCircle } from 'lucide-react'
-import { useEidosStatus } from 'eidos'
-import { setOfflineSimulation } from 'eidos'
+import { useEidosStatus } from '@adityaraj/eidos'
+import { setOfflineSimulation } from '@adityaraj/eidos'
 import { useState } from 'react'
 
 const SW_STATUS_LABEL: Record<string, string> = {

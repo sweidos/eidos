@@ -1,6 +1,6 @@
 // Module-scope declarations — action functions are registered here so they
 // survive page refreshes and are available for queue replay on reconnect.
-import { resource, action } from 'eidos'
+import { resource, action } from '@adityaraj/eidos'
 
 // ── Resources ─────────────────────────────────────────────────────────────────
 

@@ -58,7 +58,7 @@ export default defineConfig({
   resolve: {
     alias: {
       // During dev: resolve 'eidos' directly to TypeScript source for hot-reload
-      eidos: resolve(__dirname, '../../packages/core/src/index.ts'),
+      '@adityaraj/eidos': resolve(__dirname, '../../packages/core/src/index.ts'),
     },
   },
   server: {
