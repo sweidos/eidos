@@ -5,7 +5,7 @@
 Eidos is a small, opinionated abstraction layer for building offline-first web applications. Instead of configuring Service Workers, Cache API strategies, and IndexedDB queues directly, you declare **what you want** and the runtime generates the required behaviour.
 
 ```ts
-import { resource, action } from '@adityaraj/eidos'
+import { resource, action } from '@eidos/core'
 
 // "I want this resource to work offline."
 const products = resource('/api/products', {
@@ -87,7 +87,7 @@ cp node_modules/eidos/dist/eidos-sw.js public/eidos-sw.js
 ### Wrap your app
 
 ```tsx
-import { EidosProvider } from '@adityaraj/eidos'
+import { EidosProvider } from '@eidos/core'
 
 createRoot(document.getElementById('root')!).render(
   <EidosProvider swPath="/eidos-sw.js">
@@ -100,7 +100,7 @@ createRoot(document.getElementById('root')!).render(
 
 ```ts
 // src/lib/eidos.ts — module scope, so replay survives page reload
-import { resource, action } from '@adityaraj/eidos'
+import { resource, action } from '@eidos/core'
 
 export const products = resource('/api/products', {
   offline: true,
@@ -203,7 +203,7 @@ const result = await createOrder(payload)
 Manually trigger queue replay. Called automatically on the `online` event when `autoReplay: true` (the default).
 
 ```ts
-import { replayQueue } from '@adityaraj/eidos'
+import { replayQueue } from '@eidos/core'
 
 window.addEventListener('online', replayQueue)
 ```
@@ -224,7 +224,7 @@ Root provider that registers the SW and initialises the runtime.
 ### React Hooks
 
 ```ts
-import { useEidosStatus, useEidosResource, useEidosQueue } from '@adityaraj/eidos'
+import { useEidosStatus, useEidosResource, useEidosQueue } from '@eidos/core'
 
 // Online + SW status — cheap, safe in headers
 const { isOnline, swStatus } = useEidosStatus()
@@ -245,7 +245,7 @@ const state = useEidos()
 Toggle offline simulation from devtools or tests. Sends a message to the SW to serve only cached responses.
 
 ```ts
-import { setOfflineSimulation } from '@adityaraj/eidos'
+import { setOfflineSimulation } from '@eidos/core'
 
 setOfflineSimulation(true)   // force offline
 setOfflineSimulation(false)  // restore normal

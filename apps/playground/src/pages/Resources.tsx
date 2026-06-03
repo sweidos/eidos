@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { Database, RefreshCw, Trash2, ChevronDown, ChevronRight } from 'lucide-react'
-import { useEidosStore } from '@adityaraj/eidos'
+import { useEidosStore } from '@eidos/core'
 import { Card, CardHeader } from '../components/Card'
 import { StatusBadge } from '../components/StatusBadge'
 import { CodeBlock } from '../components/CodeBlock'
-import type { ResourceEntry } from '@adityaraj/eidos'
+import type { ResourceEntry } from '@eidos/core'
 
 export function Resources() {
   const resources = useEidosStore((s) => s.resources)
@@ -34,7 +34,7 @@ export function Resources() {
       <Card>
         <CardHeader title="How resources are registered" />
         <CodeBlock
-          code={`import { resource } from '@adityaraj/eidos'
+          code={`import { resource } from '@eidos/core'
 
 // Call at module scope — registration is idempotent.
 // The runtime sends EIDOS_REGISTER_RESOURCE to the SW,
