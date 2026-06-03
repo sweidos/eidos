@@ -3,7 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@10.0.0",
   "scripts": {
+    "preinstall": "node -e \"if(process.env.npm_execpath&&!process.env.npm_execpath.includes('pnpm'))throw new Error('Use pnpm, not npm or yarn. Run: corepack enable && pnpm install')\"",
     "dev": "pnpm --filter @eidos/playground dev",
     "build": "pnpm --filter @eidos/core build && pnpm --filter @eidos/playground build",
     "build:core": "pnpm --filter @eidos/core build",
