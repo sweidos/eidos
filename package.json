@@ -5,15 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "pnpm --filter @eidos/playground dev",
-    "build": "pnpm --filter @adityaraj/eidos build && pnpm --filter @eidos/playground build",
-    "build:core": "pnpm --filter @adityaraj/eidos build",
+    "build": "pnpm --filter @eidos/core build && pnpm --filter @eidos/playground build",
+    "build:core": "pnpm --filter @eidos/core build",
     "build:worker": "pnpm --filter @eidos/worker build",
     "build:playground": "pnpm --filter @eidos/playground build",
     "type-check": "pnpm -r type-check",
     "lint": "pnpm -r lint",
     "clean": "pnpm -r exec -- rm -rf dist node_modules .turbo",
-    "publish:dry": "pnpm --filter @adityaraj/eidos publish --dry-run",
-    "publish:core": "pnpm --filter @adityaraj/eidos publish --access public"
+    "publish:dry": "pnpm --filter @eidos/core publish --dry-run",
+    "publish:core": "pnpm --filter @eidos/core publish --access public"
   },
   "devDependencies": {
     "typescript": "^5.4.5"

@@ -10,7 +10,7 @@ import {
   ArrowRight,
   Layers,
 } from 'lucide-react'
-import { useEidosStatus, useEidosStore, replayQueue } from '@adityaraj/eidos'
+import { useEidosStatus, useEidosStore, replayQueue } from '@eidos/core'
 import { Card, CardHeader } from '../components/Card'
 import { StatusBadge } from '../components/StatusBadge'
 import { CodeBlock } from '../components/CodeBlock'
@@ -101,7 +101,7 @@ export function Overview({ onNavigate }: OverviewProps) {
           description="Everything above was driven by two declarations."
         />
         <CodeBlock
-          code={`import { resource, action } from '@adityaraj/eidos'
+          code={`import { resource, action } from '@eidos/core'
 
 // Register an offline-capable resource.
 // The runtime picks StaleWhileRevalidate.

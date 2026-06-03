@@ -5,7 +5,7 @@ import {
   Search,
   BookOpen,
 } from 'lucide-react'
-import { useEidosStore } from '@adityaraj/eidos'
+import { useEidosStore } from '@eidos/core'
 import type { Page } from '../App'
 
 interface NavItem {

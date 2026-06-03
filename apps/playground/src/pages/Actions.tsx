@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { ListOrdered, RefreshCw, Inbox, Clock, CheckCircle, XCircle, Loader } from 'lucide-react'
-import { useEidosStore, replayQueue } from '@adityaraj/eidos'
+import { useEidosStore, replayQueue } from '@eidos/core'
 import { Card, CardHeader } from '../components/Card'
 import { StatusBadge } from '../components/StatusBadge'
 import { CodeBlock } from '../components/CodeBlock'
-import type { ActionQueueItem } from '@adityaraj/eidos'
+import type { ActionQueueItem } from '@eidos/core'
 
 export function Actions() {
   const queue    = useEidosStore((s) => s.queue)
@@ -97,7 +97,7 @@ export function Actions() {
         </div>
 
         <CodeBlock
-          code={`import { action } from '@adityaraj/eidos'
+          code={`import { action } from '@eidos/core'
 
 const createOrder = action(
   async (payload: OrderPayload) => {
