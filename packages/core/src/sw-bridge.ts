@@ -28,6 +28,11 @@ export async function registerServiceWorker(swPath: string): Promise<void> {
     // Track online/offline
     window.addEventListener('online', () => store.setOnline(true))
     window.addEventListener('offline', () => store.setOnline(false))
+
+    // resource() is called at module scope — before the SW is ready.
+    // Re-send every registration now that the SW is active so it can
+    // start intercepting fetches immediately.
+    flushResourceRegistrations()
   } catch (err) {
     store.setSwStatus('error', String(err))
   }
@@ -92,4 +97,19 @@ function onSwMessage(event: MessageEvent): void {
 export function setOfflineSimulation(enabled: boolean): void {
   sendToWorker({ type: 'EIDOS_SIMULATE_OFFLINE', enabled })
   useEidosStore.getState().setOnline(!enabled)
+}
+
+// Sends EIDOS_REGISTER_RESOURCE for every resource already in the store.
+// Called once after the SW activates to handle the common case where
+// resource() is declared at module scope before the SW is ready.
+function flushResourceRegistrations(): void {
+  const { resources } = useEidosStore.getState()
+  Object.values(resources).forEach((entry) => {
+    sendToWorker({
+      type: 'EIDOS_REGISTER_RESOURCE',
+      url: entry.url,
+      strategy: entry.strategy.swStrategy,
+      cacheName: entry.strategy.cacheName,
+    })
+  })
 }
