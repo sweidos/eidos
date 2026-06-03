@@ -7,3 +7,7 @@ dist/
 coverage/
 .env
 .env.local
+
+# tsc accidentally emitting into src/ — build goes to dist/ only
+apps/**/src/**/*.js
+packages/*/src/**/*.js
