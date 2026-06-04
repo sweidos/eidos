@@ -120,15 +120,15 @@ export function Learn() {
 
       {/* ── Installation ─────────────────────────────────────────────────────── */}
       <H2 id="install">Installation</H2>
-      <Pre label="terminal">{`npm install @eidos/core
+      <Pre label="terminal">{`npm install @sweidos/eidos
 # or
-pnpm add @eidos/core`}</Pre>
+pnpm add @sweidos/eidos`}</Pre>
       <P>Then copy the service worker into your project's public directory:</P>
-      <Pre label="terminal">{`cp node_modules/@eidos/core/dist/eidos-sw.js public/eidos-sw.js`}</Pre>
+      <Pre label="terminal">{`cp node_modules/@sweidos/eidos/dist/eidos-sw.js public/eidos-sw.js`}</Pre>
 
       {/* ── Quick Setup ──────────────────────────────────────────────────────── */}
       <H2 id="setup">Quick Setup</H2>
-      <Pre label="main.tsx">{`import { EidosProvider } from '@eidos/core'
+      <Pre label="main.tsx">{`import { EidosProvider } from '@sweidos/eidos'
 import { createRoot } from 'react-dom/client'
 
 createRoot(document.getElementById('root')!).render(
@@ -137,7 +137,7 @@ createRoot(document.getElementById('root')!).render(
   </EidosProvider>
 )`}</Pre>
       <Pre label="src/lib/eidos.ts">{`// Declare at module scope so actions survive page reload for replay.
-import { resource, action } from '@eidos/core'
+import { resource, action } from '@sweidos/eidos'
 
 export const products = resource('/api/products', { offline: true })
 
@@ -250,7 +250,7 @@ if ('queued' in result) {
         <Code>isOnline</Code> transitions from <Code>false</Code> to <Code>true</Code> — this
         catches both real network reconnects and <Code>setOfflineSimulation(false)</Code>.
       </P>
-      <Pre>{`import { replayQueue } from '@eidos/core'
+      <Pre>{`import { replayQueue } from '@sweidos/eidos'
 
 // Manual trigger (autoReplay: false)
 await replayQueue()
@@ -308,7 +308,7 @@ await replayQueue()
 
       <H3>useEidosStore(selector)</H3>
       <P>Direct access to the Zustand store. Use a selector to subscribe to only what you need.</P>
-      <Pre>{`import { useEidosStore } from '@eidos/core'
+      <Pre>{`import { useEidosStore } from '@sweidos/eidos'
 
 const isOnline    = useEidosStore(s => s.isOnline)
 const pendingCount = useEidosStore(s =>
@@ -472,7 +472,7 @@ const productEntry = useEidosStore(s => s.resources['/api/products'])`}</Pre>
         behave correctly) and sends <Code>EIDOS_SIMULATE_OFFLINE</Code> to the service worker
         (so fetch interception returns cached responses only).
       </P>
-      <Pre>{`import { setOfflineSimulation } from '@eidos/core'
+      <Pre>{`import { setOfflineSimulation } from '@sweidos/eidos'
 
 setOfflineSimulation(true)   // go offline
 // → action() queues new calls to IndexedDB
@@ -493,7 +493,7 @@ setOfflineSimulation(false)  // go back online
                              │ postMessage(EIDOS_REGISTER_RESOURCE)
                              │ postMessage(EIDOS_SIMULATE_OFFLINE)
 ┌────────────────────────────▼────────────────────────────┐
-│  Runtime Layer  (@eidos/core)                            │
+│  Runtime Layer  (@sweidos/eidos)                            │
 │  Strategy derivation  Zustand store  SW bridge           │  ← npm package
 │  IDB queue (idbAddToQueue / idbGetQueue)                 │
 │  flushResourceRegistrations() on SW activation          │

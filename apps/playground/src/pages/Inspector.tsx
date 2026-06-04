@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { useEidosStore } from '@eidos/core'
-import type { ResourceEntry } from '@eidos/core'
+import { useEidosStore } from '@sweidos/eidos'
+import type { ResourceEntry } from '@sweidos/eidos'
 
 const SAMPLE: ResourceEntry = {
   url: '/api/products',
