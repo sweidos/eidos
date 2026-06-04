@@ -1,0 +1,9 @@
+{
+  "buildCommand": "pnpm --filter @eidos/playground build",
+  "outputDirectory": "apps/playground/dist",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "framework": "vite",
+  "rewrites": [
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ]
+}
