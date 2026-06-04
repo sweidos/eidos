@@ -16,6 +16,8 @@ export interface ResourceConfig {
   strategy?: CacheStrategy
   /** Custom cache bucket name. Defaults to 'eidos-resources-v1'. */
   cacheName?: string
+  /** Max age of cached response in milliseconds. Expired entries trigger a network fetch. */
+  maxAge?: number
 }
 
 export interface GeneratedStrategy {
@@ -80,6 +82,8 @@ export interface ActionQueueItem {
   status: 'pending' | 'replaying' | 'succeeded' | 'failed'
   error?: string
   completedAt?: number
+  /** Earliest timestamp at which this item should be retried (exponential backoff). */
+  nextRetryAt?: number
 }
 
 export interface QueuedResult {

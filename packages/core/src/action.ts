@@ -56,12 +56,28 @@ export function action<TArgs extends any[], TReturn>(
   return wrapped as unknown as ActionHandle<TArgs, TReturn>
 }
 
+function isJsonSerializable(value: unknown): boolean {
+  try {
+    JSON.stringify(value)
+    return true
+  } catch {
+    return false
+  }
+}
+
 async function persistAndQueue(
   actionId: string,
   actionName: string,
   args: unknown[],
   config: ActionConfig,
 ): Promise<QueuedResult> {
+  if (import.meta.env.DEV && !isJsonSerializable(args)) {
+    console.warn(
+      `[eidos] action "${actionName}" queued with non-JSON-serializable args. These args will be lost after a page reload. Use plain JSON values for neverLose actions.`,
+      args,
+    )
+  }
+
   const id = uid()
   const item: ActionQueueItem = {
     id,
@@ -84,13 +100,22 @@ async function persistAndQueue(
   }
 }
 
+// Base delay 2s, doubles per retry, capped at 5 minutes, ±20% jitter
+function backoffMs(retryCount: number): number {
+  const base = Math.min(2000 * 2 ** retryCount, 300_000)
+  return base * (0.8 + Math.random() * 0.4)
+}
+
 export async function replayQueue(): Promise<void> {
   const store = useEidosStore.getState()
   if (!store.isOnline) return
 
   const queue = await idbGetQueue()
+  const now = Date.now()
   const pending = queue.filter(
-    (item) => item.status === 'pending' || item.status === 'failed',
+    (item) =>
+      (item.status === 'pending' || item.status === 'failed') &&
+      (!item.nextRetryAt || item.nextRetryAt <= now),
   )
 
   for (const item of pending) {
@@ -125,8 +150,9 @@ export async function replayQueue(): Promise<void> {
           retryCount,
         })
       } else {
-        store.updateQueueItem(item.id, { status: 'pending', retryCount })
-        await idbUpdateQueueItem(item.id, { status: 'pending', retryCount })
+        const nextRetryAt = Date.now() + backoffMs(retryCount)
+        store.updateQueueItem(item.id, { status: 'pending', retryCount, nextRetryAt })
+        await idbUpdateQueueItem(item.id, { status: 'pending', retryCount, nextRetryAt })
       }
     }
   }

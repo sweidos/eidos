@@ -1,11 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { RefreshCw, ShoppingCart, CheckCircle, WifiOff, ArrowRight, Clock } from 'lucide-react'
 import { useEidosStore, replayQueue } from '@sweidos/eidos'
 import type { ActionQueueItem, ResourceEntry } from '@sweidos/eidos'
 import { productsResource, createOrder, type Product } from '../lib/eidos'
-import type { Page } from '../App'
-
-interface DemoProps { onNavigate: (p: Page) => void }
 
 // ── Event feed types ──────────────────────────────────────────────────────────
 
@@ -31,7 +29,8 @@ function now()  { return new Date().toLocaleTimeString('en', { hour12: false }) 
 
 // ── Demo Page ─────────────────────────────────────────────────────────────────
 
-export function Demo({ onNavigate }: DemoProps) {
+export function Demo() {
+  const navigate = useNavigate()
   const [events, setEvents]   = useState<SwEvent[]>([])
   const evRef                  = useRef<SwEvent[]>([])
   const queue                  = useEidosStore(s => s.queue)
@@ -73,7 +72,7 @@ export function Demo({ onNavigate }: DemoProps) {
             </p>
           </div>
           <button
-            onClick={() => onNavigate('learn')}
+            onClick={() => navigate('/learn')}
             className="flex items-center gap-1.5 text-xs text-eidos-accent border border-eidos-accent px-3 py-1.5 hover:bg-eidos-accent hover:text-eidos-bg transition-colors duration-150 cursor-pointer"
           >
             API reference <ArrowRight size={11} />
@@ -119,7 +118,7 @@ action(createOrder, {
         {/* Left: interactive demos */}
         <div className="overflow-y-auto border-r border-eidos-border divide-y divide-eidos-border">
           <ProductsDemo onEmit={emit} resourceEntry={resourceEntry} isOnline={isOnline} />
-          <OrdersDemo onEmit={emit} queue={queue} isOnline={isOnline} onNavigate={onNavigate} />
+          <OrdersDemo onEmit={emit} queue={queue} isOnline={isOnline} />
         </div>
 
         {/* Right: live event stream + stats */}
@@ -321,13 +320,13 @@ function ResultBadge({ r }: { r: 'hit' | 'miss' | 'offline' | 'error' }) {
 // ── Orders Demo ───────────────────────────────────────────────────────────────
 
 function OrdersDemo({
-  onEmit, queue, isOnline, onNavigate,
+  onEmit, queue, isOnline,
 }: {
   onEmit: EmitFn
   queue: ActionQueueItem[]
   isOnline: boolean
-  onNavigate: (p: Page) => void
 }) {
+  const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [result,  setResult]  = useState<{ text: string; ok: boolean } | null>(null)
 
@@ -432,7 +431,7 @@ function OrdersDemo({
       </div>
 
       <button
-        onClick={() => onNavigate('actions')}
+        onClick={() => navigate('/actions')}
         className="mt-2 flex items-center gap-1 text-2xs text-eidos-muted hover:text-eidos-accent transition-colors cursor-pointer"
       >
         view full queue <ArrowRight size={9} />
