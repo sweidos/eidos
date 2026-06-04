@@ -1,20 +1,24 @@
 // eidos-sw.js — Eidos Service Worker v0.1.0
-// Auto-generated runtime. Developers never write this file directly.
-// Edit packages/worker/src/sw.ts and run `pnpm build:worker` to regenerate.
+// Two responsibilities:
+//   1. App shell caching — dashboard works offline after first visit
+//   2. API resource caching — strategies declared via resource()
 
 const CACHE_VERSION = 'v1'
-const CACHE_PREFIX = 'eidos'
+const SHELL_CACHE   = `eidos-shell-${CACHE_VERSION}`
+const API_CACHE     = `eidos-resources-${CACHE_VERSION}`
 
 const runtimeConfig = {
-  resources: new Map(),
+  resources: new Map(),   // pathname → { strategy, cacheName }
   simulateOffline: false,
 }
 
-// ── Lifecycle ─────────────────────────────────────────────────────────────────
+// ── Install ───────────────────────────────────────────────────────────────────
 
 self.addEventListener('install', (event) => {
   event.waitUntil(self.skipWaiting())
 })
+
+// ── Activate ──────────────────────────────────────────────────────────────────
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
@@ -23,11 +27,11 @@ self.addEventListener('activate', (event) => {
       caches.keys().then((keys) =>
         Promise.all(
           keys
-            .filter((k) => k.startsWith(CACHE_PREFIX) && !k.endsWith(CACHE_VERSION))
-            .map((k) => caches.delete(k)),
-        ),
+            .filter((k) => k.startsWith('eidos') && k !== SHELL_CACHE && k !== API_CACHE)
+            .map((k) => caches.delete(k))
+        )
       ),
-    ]),
+    ])
   )
 })
 
@@ -41,7 +45,7 @@ self.addEventListener('message', (event) => {
     case 'EIDOS_REGISTER_RESOURCE':
       runtimeConfig.resources.set(data.url, {
         strategy: data.strategy,
-        cacheName: data.cacheName ?? `${CACHE_PREFIX}-resources-${CACHE_VERSION}`,
+        cacheName: data.cacheName ?? API_CACHE,
       })
       event.source?.postMessage({ type: 'EIDOS_RESOURCE_REGISTERED', url: data.url })
       break
@@ -55,14 +59,11 @@ self.addEventListener('message', (event) => {
       break
 
     case 'EIDOS_CLEAR_CACHE': {
-      const cacheName = `${CACHE_PREFIX}-resources-${CACHE_VERSION}`
-      caches.open(cacheName).then(async (cache) => {
+      caches.open(API_CACHE).then(async (cache) => {
         if (data.url) {
           const keys = await cache.keys()
           await Promise.all(
-            keys
-              .filter((req) => new URL(req.url).pathname === data.url)
-              .map((req) => cache.delete(req)),
+            keys.filter((r) => new URL(r.url).pathname === data.url).map((r) => cache.delete(r))
           )
         } else {
           const keys = await cache.keys()
@@ -84,29 +85,63 @@ self.addEventListener('message', (event) => {
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return
 
-  const pathname = new URL(event.request.url).pathname
-  const reg = runtimeConfig.resources.get(pathname)
-  if (!reg) return
+  const url      = new URL(event.request.url)
+  const pathname = url.pathname
 
-  event.respondWith(handleFetch(event.request, pathname, reg))
+  // 1. Registered API resources
+  const reg = runtimeConfig.resources.get(pathname)
+  if (reg) {
+    event.respondWith(handleApiResource(event.request, pathname, reg))
+    return
+  }
+
+  // 2. App shell — same-origin non-API assets (HTML, JS, CSS, fonts, images)
+  //    Stale-while-revalidate: serve from cache instantly, refresh in background.
+  if (url.origin === self.location.origin && !pathname.startsWith('/api/')) {
+    event.respondWith(appShell(event.request))
+  }
 })
 
-async function handleFetch(request, pathname, reg) {
-  if (runtimeConfig.simulateOffline) {
-    return serveOffline(request, pathname, reg.cacheName)
+// ── App shell strategy ────────────────────────────────────────────────────────
+
+async function appShell(request) {
+  const cache  = await caches.open(SHELL_CACHE)
+  const cached = await cache.match(request)
+
+  const refresh = fetch(request)
+    .then((resp) => {
+      if (resp.ok) cache.put(request, resp.clone())
+      return resp
+    })
+    .catch(() => null)
+
+  if (cached) {
+    refresh // update in background
+    return cached
   }
+
+  const fresh = await refresh
+  return fresh ?? new Response(
+    '<html><body><h2>Offline</h2><p>Visit this page while online first.</p></body></html>',
+    { status: 503, headers: { 'Content-Type': 'text/html' } }
+  )
+}
+
+// ── API caching strategies ────────────────────────────────────────────────────
+
+async function handleApiResource(request, pathname, reg) {
+  if (runtimeConfig.simulateOffline) return serveOffline(request, pathname, reg.cacheName)
+
   switch (reg.strategy) {
-    case 'cache-first':         return cacheFirst(request, pathname, reg.cacheName)
+    case 'cache-first':            return cacheFirst(request, pathname, reg.cacheName)
     case 'stale-while-revalidate': return staleWhileRevalidate(request, pathname, reg.cacheName)
-    case 'network-first':       return networkFirst(request, pathname, reg.cacheName)
-    default:                    return fetch(request)
+    case 'network-first':          return networkFirst(request, pathname, reg.cacheName)
+    default:                       return fetch(request)
   }
 }
 
-// ── Strategies ────────────────────────────────────────────────────────────────
-
 async function cacheFirst(request, pathname, cacheName) {
-  const cache = await caches.open(cacheName)
+  const cache  = await caches.open(cacheName)
   const cached = await cache.match(request)
   if (cached) {
     notifyClients({ type: 'EIDOS_CACHE_HIT', url: pathname, strategy: 'cache-first' })
@@ -126,16 +161,16 @@ async function cacheFirst(request, pathname, cacheName) {
 }
 
 async function staleWhileRevalidate(request, pathname, cacheName) {
-  const cache = await caches.open(cacheName)
+  const cache  = await caches.open(cacheName)
   const cached = await cache.match(request)
 
   const revalidate = fetch(request)
-    .then(async (response) => {
-      if (response.ok) {
-        await cache.put(request, response.clone())
+    .then(async (resp) => {
+      if (resp.ok) {
+        await cache.put(request, resp.clone())
         notifyClients({ type: 'EIDOS_CACHE_UPDATED', url: pathname, strategy: 'stale-while-revalidate' })
       }
-      return response
+      return resp
     })
     .catch(() => {
       notifyClients({ type: 'EIDOS_NETWORK_ERROR', url: pathname })
@@ -172,7 +207,7 @@ async function networkFirst(request, pathname, cacheName) {
 }
 
 async function serveOffline(request, pathname, cacheName) {
-  const cache = await caches.open(cacheName)
+  const cache  = await caches.open(cacheName)
   const cached = await cache.match(request)
   if (cached) {
     notifyClients({ type: 'EIDOS_CACHE_HIT', url: pathname, strategy: 'offline-simulation', simulated: true })
@@ -184,11 +219,11 @@ async function serveOffline(request, pathname, cacheName) {
 function offlineErrorResponse(pathname) {
   return new Response(
     JSON.stringify({ error: 'offline', message: `No cached response for ${pathname}`, eidos: true }),
-    { status: 503, headers: { 'Content-Type': 'application/json', 'X-Eidos-Offline': 'true' } },
+    { status: 503, headers: { 'Content-Type': 'application/json', 'X-Eidos-Offline': 'true' } }
   )
 }
 
 async function notifyClients(message) {
   const clients = await self.clients.matchAll({ includeUncontrolled: true })
-  clients.forEach((client) => client.postMessage(message))
+  clients.forEach((c) => c.postMessage(message))
 }
