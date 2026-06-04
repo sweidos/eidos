@@ -1,118 +1,108 @@
 import { useState, useEffect, useRef } from 'react'
-import { RefreshCw, ShoppingCart, Zap, CheckCircle, WifiOff, ArrowRight, Clock } from 'lucide-react'
+import { RefreshCw, ShoppingCart, CheckCircle, WifiOff, ArrowRight, Clock } from 'lucide-react'
 import { useEidosStore, replayQueue } from '@eidos/core'
-import type { ActionQueueItem } from '@eidos/core'
+import type { ActionQueueItem, ResourceEntry } from '@eidos/core'
 import { productsResource, createOrder, type Product } from '../lib/eidos'
 import type { Page } from '../App'
 
-interface DemoProps {
-  onNavigate: (p: Page) => void
-}
+interface DemoProps { onNavigate: (p: Page) => void }
 
-// ── Types ──────────────────────────────────────────────────────────────────────
+// ── Event feed types ──────────────────────────────────────────────────────────
 
 interface SwEvent {
   id: string
   time: string
-  kind: 'cache-hit' | 'cache-updated' | 'network-error' | 'queue-add' | 'queue-replay' | 'sw-ready'
-  label: string
-  meta?: string
+  kind: 'HIT' | 'STORE' | 'ERR' | 'QUEUE' | 'REPLAY' | 'SW' | 'INFO'
+  msg: string
 }
 
-const EVENT_COLORS: Record<SwEvent['kind'], string> = {
-  'cache-hit':     'text-eidos-green',
-  'cache-updated': 'text-eidos-accent',
-  'network-error': 'text-eidos-red',
-  'queue-add':     'text-eidos-amber',
-  'queue-replay':  'text-eidos-green',
-  'sw-ready':      'text-eidos-muted',
+const KIND_COLOR: Record<SwEvent['kind'], string> = {
+  HIT:   'text-eidos-accent',
+  STORE: 'text-eidos-blue',
+  ERR:   'text-eidos-red',
+  QUEUE: 'text-eidos-amber',
+  REPLAY:'text-eidos-accent',
+  SW:    'text-eidos-muted',
+  INFO:  'text-eidos-text-dim',
 }
 
-const EVENT_PREFIXES: Record<SwEvent['kind'], string> = {
-  'cache-hit':     '⚡ HIT',
-  'cache-updated': '↑ STORE',
-  'network-error': '✕ ERROR',
-  'queue-add':     '+ QUEUE',
-  'queue-replay':  '↺ REPLAY',
-  'sw-ready':      '· READY',
-}
+function uid()  { return Math.random().toString(36).slice(2, 7) }
+function now()  { return new Date().toLocaleTimeString('en', { hour12: false }) }
 
-function uid() { return Math.random().toString(36).slice(2, 7) }
-function ts() { return new Date().toLocaleTimeString('en', { hour12: false }) }
-
-// ── Demo page ─────────────────────────────────────────────────────────────────
+// ── Demo Page ─────────────────────────────────────────────────────────────────
 
 export function Demo({ onNavigate }: DemoProps) {
-  const [events, setEvents] = useState<SwEvent[]>([])
-  const eventsRef = useRef<SwEvent[]>([])
+  const [events, setEvents]   = useState<SwEvent[]>([])
+  const evRef                  = useRef<SwEvent[]>([])
+  const queue                  = useEidosStore(s => s.queue)
+  const isOnline               = useEidosStore(s => s.isOnline)
+  const swStatus               = useEidosStore(s => s.swStatus)
+  const resourceEntry          = useEidosStore(s => s.resources['/api/products'])
 
-  const resourceState = useEidosStore(s => s.resources['/api/products'])
-  const queue         = useEidosStore(s => s.queue)
-  const isOnline      = useEidosStore(s => s.isOnline)
-  const swStatus      = useEidosStore(s => s.swStatus)
-
-  // Track queue changes to emit events
-  const prevQueueLen = useRef(queue.length)
+  // Queue events
+  const prevQLen = useRef(0)
   useEffect(() => {
-    const curr = queue.filter(q => q.status === 'pending' || q.status === 'replaying')
-    const prev = prevQueueLen.current
-    if (curr.length > prev) {
-      addEvent({ kind: 'queue-add', label: `createOrder queued`, meta: 'IndexedDB' })
-    } else if (curr.length < prev && prev > 0) {
-      addEvent({ kind: 'queue-replay', label: `queue replayed`, meta: `${prev} action(s)` })
-    }
-    prevQueueLen.current = curr.length
+    const curr = queue.filter(q => q.status === 'pending' || q.status === 'replaying').length
+    if (curr > prevQLen.current) emit('QUEUE', `createOrder queued → IndexedDB`)
+    else if (curr < prevQLen.current && prevQLen.current > 0) emit('REPLAY', `replayQueue() executed`)
+    prevQLen.current = curr
   }, [queue])
 
   useEffect(() => {
-    if (swStatus === 'active') {
-      addEvent({ kind: 'sw-ready', label: 'eidos-sw.js activated', meta: 'v1' })
-    }
+    if (swStatus === 'active') emit('SW', 'eidos-sw.js activated · scope /')
   }, [swStatus])
 
-  function addEvent(e: Omit<SwEvent, 'id' | 'time'>) {
-    const next: SwEvent = { ...e, id: uid(), time: ts() }
-    eventsRef.current = [next, ...eventsRef.current].slice(0, 50)
-    setEvents([...eventsRef.current])
-  }
-
-  function onCacheEvent(kind: SwEvent['kind'], label: string, meta?: string) {
-    addEvent({ kind, label, meta })
+  function emit(kind: SwEvent['kind'], msg: string) {
+    const e: SwEvent = { id: uid(), time: now(), kind, msg }
+    evRef.current = [e, ...evRef.current].slice(0, 80)
+    setEvents([...evRef.current])
   }
 
   return (
-    <div className="min-h-full flex flex-col">
-      {/* ── Hero ───────────────────────────────────────────────────────────── */}
-      <div className="border-b border-eidos-border bg-eidos-surface px-6 py-8">
-        <p className="text-[11px] font-mono text-eidos-accent uppercase tracking-widest mb-3">
-          Service Worker Runtime
-        </p>
-        <h1 className="text-3xl font-bold text-eidos-text tracking-tight leading-tight mb-3">
-          Stop writing service workers.
-        </h1>
-        <p className="text-eidos-text-dim text-sm max-w-2xl leading-relaxed mb-5">
-          You declare what you want. Eidos generates the fetch interception rules, picks the right
-          caching strategy, and queues failed actions to IndexedDB — automatically.
-        </p>
+    <div className="flex flex-col h-full">
+      {/* ── Hero strip ─────────────────────────────────────────────────────── */}
+      <div className="shrink-0 border-b border-eidos-border bg-eidos-surface px-6 py-5">
+        <div className="flex items-start justify-between flex-wrap gap-4">
+          <div>
+            <h1 className="text-lg font-bold text-eidos-text mb-1">
+              Stop writing service workers.
+            </h1>
+            <p className="text-sm text-eidos-muted max-w-xl">
+              Declare intent in 2 lines. @eidos/core generates the fetch intercept rules,
+              picks the right caching strategy, and queues offline actions to IndexedDB — automatically.
+            </p>
+          </div>
+          <button
+            onClick={() => onNavigate('learn')}
+            className="flex items-center gap-1.5 text-xs text-eidos-accent border border-eidos-accent px-3 py-1.5 hover:bg-eidos-accent hover:text-eidos-bg transition-colors duration-150 cursor-pointer"
+          >
+            API reference <ArrowRight size={11} />
+          </button>
+        </div>
 
-        {/* Before / After */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-3xl">
-          <div className="rounded-lg border border-eidos-border bg-eidos-elevated p-3">
-            <p className="text-[10px] font-mono text-eidos-red uppercase mb-2 tracking-widest">Before</p>
-            <pre className="text-[11px] font-mono text-eidos-muted leading-relaxed overflow-x-auto">{`registerRoute(
+        {/* Before/After code comparison */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+          <div className="border border-eidos-border bg-eidos-bg p-3">
+            <div className="text-2xs text-eidos-red mb-2">// before — workbox config</div>
+            <pre className="text-2xs text-eidos-muted leading-relaxed overflow-x-auto">{`registerRoute(
   /\\/api\\/products/,
   new StaleWhileRevalidate({
     cacheName: 'api-cache',
-    plugins: [new ExpirationPlugin(
-      { maxEntries: 60 }
-    )],
+    plugins: [new ExpirationPlugin({
+      maxEntries: 60,
+    })],
   })
 )
-// + 40 lines of sync event handler`}</pre>
+self.addEventListener('sync', ev => {
+  if (ev.tag === 'create-order')
+    ev.waitUntil(replayOrders())  // +40 lines
+})`}</pre>
           </div>
-          <div className="rounded-lg border border-eidos-accent/20 bg-eidos-accent-dim p-3">
-            <p className="text-[10px] font-mono text-eidos-accent uppercase mb-2 tracking-widest">After</p>
-            <pre className="text-[11px] font-mono text-eidos-text leading-relaxed">{`resource('/api/products', {
+          <div className="border border-eidos-accent/40 bg-eidos-bg p-3">
+            <div className="text-2xs text-eidos-accent mb-2">// after — eidos</div>
+            <pre className="text-2xs text-eidos-text leading-relaxed">{`import { resource, action } from '@eidos/core'
+
+resource('/api/products', {
   offline: true,  // → StaleWhileRevalidate
 })
 
@@ -123,60 +113,64 @@ action(createOrder, {
         </div>
       </div>
 
-      {/* ── Main demo area ─────────────────────────────────────────────────── */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_380px] min-h-0">
+      {/* ── Main area: demos + event feed ──────────────────────────────────── */}
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_360px] min-h-0 overflow-hidden">
 
         {/* Left: interactive demos */}
-        <div className="border-r border-eidos-border overflow-y-auto">
-          <ProductsDemo onEvent={onCacheEvent} resourceState={resourceState} isOnline={isOnline} />
-          <div className="border-t border-eidos-border" />
-          <OrdersDemo onEvent={onCacheEvent} queue={queue} isOnline={isOnline} onNavigate={onNavigate} />
+        <div className="overflow-y-auto border-r border-eidos-border divide-y divide-eidos-border">
+          <ProductsDemo onEmit={emit} resourceEntry={resourceEntry} isOnline={isOnline} />
+          <OrdersDemo onEmit={emit} queue={queue} isOnline={isOnline} onNavigate={onNavigate} />
         </div>
 
-        {/* Right: live event stream */}
-        <div className="flex flex-col overflow-hidden bg-eidos-surface">
-          <div className="flex items-center justify-between px-4 py-2.5 border-b border-eidos-border shrink-0">
-            <div className="flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-eidos-green animate-pulse" />
-              <span className="text-xs font-mono text-eidos-text">Runtime Events</span>
+        {/* Right: live event stream + stats */}
+        <div className="flex flex-col overflow-hidden bg-eidos-bg">
+          {/* Stream header */}
+          <div className="flex items-center justify-between px-4 py-2 border-b border-eidos-border shrink-0">
+            <div className="flex items-center gap-2 text-2xs text-eidos-muted">
+              <span className="w-1.5 h-1.5 bg-eidos-accent animate-pulse" />
+              runtime events
             </div>
-            <button
-              onClick={() => setEvents([])}
-              className="text-[10px] font-mono text-eidos-muted hover:text-eidos-text-dim transition-colors"
-            >
+            <button onClick={() => setEvents([])} className="text-2xs text-eidos-muted hover:text-eidos-red cursor-pointer transition-colors">
               clear
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-3 space-y-1.5 font-mono text-[11px]">
+          {/* Event rows */}
+          <div className="flex-1 overflow-y-auto p-3 space-y-0.5">
             {events.length === 0 && (
-              <div className="flex flex-col items-center justify-center h-32 gap-2">
-                <div className="text-eidos-muted">waiting for activity</div>
-                <div className="text-eidos-border text-[10px]">fetch a product or submit an order</div>
+              <div className="text-2xs text-eidos-muted text-center py-8">
+                waiting for activity...
               </div>
             )}
             {events.map(ev => (
-              <div key={ev.id} className="flex gap-2 items-baseline animate-slide-right">
-                <span className="text-eidos-border shrink-0 font-tabular">{ev.time}</span>
-                <span className={`shrink-0 font-semibold w-16 ${EVENT_COLORS[ev.kind]}`}>
-                  {EVENT_PREFIXES[ev.kind]}
-                </span>
-                <span className="text-eidos-text-dim truncate">{ev.label}</span>
-                {ev.meta && (
-                  <span className="text-eidos-border shrink-0 ml-auto">{ev.meta}</span>
-                )}
+              <div key={ev.id} className="flex gap-2 text-2xs leading-5 font-tabular animate-slide-right">
+                <span className="text-eidos-border shrink-0 w-16">{ev.time}</span>
+                <span className={`shrink-0 w-12 font-bold ${KIND_COLOR[ev.kind]}`}>{ev.kind}</span>
+                <span className="text-eidos-text-dim truncate">{ev.msg}</span>
               </div>
             ))}
           </div>
 
-          {/* Runtime status strip */}
-          <div className="border-t border-eidos-border px-4 py-2 shrink-0 grid grid-cols-3 gap-2 text-center">
-            <RuntimeStat label="cache hits" value={String(resourceState?.cacheHits ?? 0)} />
-            <RuntimeStat label="queue" value={String(queue.filter(q => q.status === 'pending').length)} />
-            <RuntimeStat
-              label="cached at"
-              value={resourceState?.cachedAt ? new Date(resourceState.cachedAt).toLocaleTimeString('en', {hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit'}) : '—'}
-            />
+          {/* Stats strip */}
+          <div className="border-t border-eidos-border px-4 py-2.5 shrink-0 grid grid-cols-3 gap-2 text-2xs">
+            <div>
+              <div className="text-eidos-muted">cache hits</div>
+              <div className="text-eidos-accent font-bold font-tabular">{resourceEntry?.cacheHits ?? 0}</div>
+            </div>
+            <div>
+              <div className="text-eidos-muted">queued</div>
+              <div className="text-eidos-amber font-bold font-tabular">
+                {queue.filter(q => q.status === 'pending').length}
+              </div>
+            </div>
+            <div>
+              <div className="text-eidos-muted">cached at</div>
+              <div className="text-eidos-text-dim font-tabular">
+                {resourceEntry?.cachedAt
+                  ? new Date(resourceEntry.cachedAt).toLocaleTimeString('en', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                  : '—'}
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -184,61 +178,38 @@ action(createOrder, {
   )
 }
 
-function RuntimeStat({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-eidos-muted text-[9px] font-mono uppercase tracking-widest">{label}</p>
-      <p className="text-eidos-text text-sm font-mono font-semibold font-tabular">{value}</p>
-    </div>
-  )
-}
+// ── Products Demo ─────────────────────────────────────────────────────────────
 
-// ── Products demo ─────────────────────────────────────────────────────────────
-
-type CacheEventFn = (kind: SwEvent['kind'], label: string, meta?: string) => void
-
-interface ResourceState {
-  status: string
-  lastEvent?: string
-  cacheHits: number
-  cachedAt?: number
-}
+type EmitFn = (kind: SwEvent['kind'], msg: string) => void
 
 function ProductsDemo({
-  onEvent,
-  resourceState,
+  onEmit,
+  resourceEntry,
   isOnline,
 }: {
-  onEvent: CacheEventFn
-  resourceState: ResourceState | undefined
+  onEmit: EmitFn
+  resourceEntry: ResourceEntry | undefined
   isOnline: boolean
 }) {
   const [products, setProducts]     = useState<Product[] | null>(null)
   const [loading,  setLoading]      = useState(false)
-  const [lastResult, setLastResult] = useState<'hit' | 'miss' | 'error' | 'offline' | null>(null)
+  const [result,   setResult]       = useState<'hit' | 'miss' | 'offline' | 'error' | null>(null)
 
   async function fetch_() {
     setLoading(true)
-    setLastResult(null)
+    setResult(null)
     try {
       const data = await productsResource.json() as Product[]
-      // resource.ts now throws on non-ok responses, so data is always the real payload.
-      // Guard defensively anyway in case something unexpected slips through.
-      if (!Array.isArray(data)) throw new Error('Unexpected response shape')
+      if (!Array.isArray(data)) throw new Error('unexpected shape')
       setProducts(data)
-
       const entry = useEidosStore.getState().resources['/api/products']
       const hit   = entry?.lastEvent === 'cache-hit'
-      setLastResult(hit ? 'hit' : 'miss')
-      onEvent(
-        hit ? 'cache-hit' : 'cache-updated',
-        '/api/products',
-        hit ? 'served from cache' : 'fetched & cached',
-      )
+      setResult(hit ? 'hit' : 'miss')
+      onEmit(hit ? 'HIT' : 'STORE', `/api/products → ${hit ? 'served from cache' : 'fetched & cached'}`)
     } catch (err) {
-      const isOffline = String(err).includes('offline')
-      setLastResult(isOffline ? 'offline' : 'error')
-      onEvent('network-error', '/api/products', isOffline ? 'no cache yet' : 'network fail')
+      const offline = String(err).includes('offline')
+      setResult(offline ? 'offline' : 'error')
+      onEmit('ERR', `/api/products → ${offline ? 'offline · no cache yet' : String(err)}`)
     } finally {
       setLoading(false)
     }
@@ -247,131 +218,118 @@ function ProductsDemo({
   async function clear() {
     await productsResource.invalidate()
     setProducts(null)
-    setLastResult(null)
+    setResult(null)
+    onEmit('INFO', '/api/products cache cleared')
   }
 
   return (
     <div className="p-5">
-      {/* Section header */}
-      <div className="flex items-start justify-between mb-4">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <h2 className="text-sm font-semibold text-eidos-text">Products</h2>
-            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-eidos-accent-dim text-eidos-accent border border-eidos-accent/20">
-              StaleWhileRevalidate
-            </span>
-          </div>
-          <p className="text-xs text-eidos-muted">
-            First fetch hits the network. Every subsequent fetch is instant — from cache.
-          </p>
+      {/* Label row */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-bold text-eidos-text">products</span>
+          <span className="text-2xs text-eidos-muted border border-eidos-border px-1.5 py-0.5">
+            StaleWhileRevalidate
+          </span>
         </div>
-        <CacheIndicator result={lastResult} />
+        {result && <ResultBadge r={result} />}
       </div>
 
       {/* Declaration */}
-      <div className="rounded-lg border border-eidos-border bg-eidos-elevated px-3 py-2 mb-4 font-mono text-[11px]">
-        <span className="text-eidos-text-dim">resource</span>
-        <span className="text-eidos-accent">(</span>
-        <span className="text-eidos-green">'/api/products'</span>
-        <span className="text-eidos-muted">, {'{'} </span>
-        <span className="text-eidos-text-dim">offline</span>
-        <span className="text-eidos-muted">: </span>
-        <span className="text-eidos-accent">true</span>
-        <span className="text-eidos-muted"> {'}'}</span>
-        <span className="text-eidos-accent">)</span>
+      <div className="border border-eidos-border bg-eidos-bg px-3 py-2 mb-4 text-2xs text-eidos-text-dim leading-relaxed">
+        <span className="text-eidos-muted">resource</span>(<span className="text-eidos-accent">'/api/products'</span>, {'{ '}
+        <span className="text-eidos-text-dim">offline</span>: <span className="text-eidos-accent">true</span>
+        {' }'})<br />
+        <span className="text-eidos-border">// → StaleWhileRevalidate · eidos-resources-v1</span>
       </div>
 
       {/* Product list */}
-      <div className="space-y-1.5 mb-4 min-h-[140px]">
+      <div className="min-h-[120px] mb-4">
         {loading && (
-          <div className="flex items-center justify-center py-10 gap-2 text-xs text-eidos-muted font-mono">
-            <RefreshCw size={12} className="animate-spin" /> fetching…
+          <div className="flex items-center gap-2 text-2xs text-eidos-muted py-8 justify-center">
+            <RefreshCw size={11} className="animate-spin" /> fetching...
           </div>
         )}
-        {!loading && !products && lastResult !== 'offline' && (
-          <div className="flex items-center justify-center py-10 text-xs text-eidos-muted font-mono">
-            no data yet — click fetch
+        {!loading && result === 'offline' && (
+          <div className="flex flex-col items-center justify-center py-8 gap-1.5 text-center">
+            <WifiOff size={16} className="text-eidos-amber" />
+            <div className="text-2xs text-eidos-amber">offline · no cached response yet</div>
+            <div className="text-2xs text-eidos-muted">fetch while online first to populate the cache</div>
           </div>
         )}
-        {!loading && lastResult === 'offline' && (
-          <div className="flex flex-col items-center justify-center py-8 gap-1.5">
-            <WifiOff size={18} className="text-eidos-amber" />
-            <p className="text-xs text-eidos-amber font-mono">offline — no cached response yet</p>
-            <p className="text-[10px] text-eidos-muted">fetch while online first to populate the cache</p>
+        {!loading && !products && result !== 'offline' && (
+          <div className="flex items-center justify-center py-8 text-2xs text-eidos-muted">
+            no data · click fetch
           </div>
         )}
-        {!loading && Array.isArray(products) && products.map(p => (
-          <div key={p.id} className="flex items-center justify-between px-3 py-2 rounded-lg bg-eidos-elevated border border-eidos-border text-xs animate-slide-up">
-            <div className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-eidos-accent/40 shrink-0" />
-              <span className="text-eidos-text font-medium">{p.name}</span>
-              <span className="text-eidos-muted font-mono">{p.category}</span>
-            </div>
-            <span className="font-mono text-eidos-text-dim font-tabular">${p.price}</span>
+        {!loading && Array.isArray(products) && (
+          <div className="border border-eidos-border divide-y divide-eidos-border">
+            {products.map(p => (
+              <div key={p.id} className="flex items-center justify-between px-3 py-2 text-xs">
+                <span className="text-eidos-text">{p.name}</span>
+                <div className="flex items-center gap-4">
+                  <span className="text-2xs text-eidos-muted">{p.category}</span>
+                  <span className="text-eidos-accent font-tabular">${p.price}</span>
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
+        )}
       </div>
 
       <div className="flex gap-2">
         <button
           onClick={fetch_}
           disabled={loading}
-          className="flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-eidos-accent text-eidos-bg text-sm font-semibold hover:bg-sky-300 transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2 bg-eidos-accent text-eidos-bg text-xs font-bold hover:bg-green-400 transition-colors disabled:opacity-50 cursor-pointer"
         >
-          <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
+          <RefreshCw size={11} className={loading ? 'animate-spin' : ''} />
           Fetch Products
         </button>
         {products && !loading && (
           <button
             onClick={clear}
-            className="px-3 py-2 text-xs font-mono rounded-lg border border-eidos-border text-eidos-muted hover:border-eidos-accent hover:text-eidos-text transition-all"
+            className="px-3 py-2 text-xs border border-eidos-border text-eidos-muted hover:border-eidos-border hover:text-eidos-red transition-colors cursor-pointer"
           >
             clear cache
           </button>
         )}
       </div>
 
-      {!isOnline && (
-        <p className="mt-2 text-[10px] font-mono text-eidos-amber">
-          ⚡ offline mode — fetches served from cache automatically
-        </p>
-      )}
+      <div className="mt-2 text-2xs text-eidos-muted font-tabular">
+        {resourceEntry?.cacheHits ?? 0} hits · {resourceEntry?.cachedAt ? `cached ${new Date(resourceEntry.cachedAt).toLocaleTimeString('en', { hour12: false })}` : 'not cached yet'}
+        {!isOnline && ' · offline mode active'}
+      </div>
     </div>
   )
 }
 
-function CacheIndicator({ result }: { result: 'hit' | 'miss' | 'error' | 'offline' | null }) {
-  if (!result) return null
-  const cfg: Record<string, { text: string; cls: string }> = {
-    hit:     { text: '⚡ cache hit',       cls: 'text-eidos-green  bg-eidos-green-dim  border-eidos-green/20'  },
-    miss:    { text: '↑ fetched & cached', cls: 'text-eidos-accent bg-eidos-accent-dim border-eidos-accent/20' },
-    error:   { text: '✕ network error',   cls: 'text-eidos-red    bg-eidos-red-dim    border-eidos-red/20'    },
-    offline: { text: '⚠ offline · no cache', cls: 'text-eidos-amber bg-eidos-amber-dim border-eidos-amber/20' },
-  }
-  const c = cfg[result]
-  if (!c) return null
+function ResultBadge({ r }: { r: 'hit' | 'miss' | 'offline' | 'error' }) {
+  const cfg = {
+    hit:     { text: '⚡ cache hit',       cls: 'text-eidos-accent border-eidos-accent/40 bg-eidos-accent-dim' },
+    miss:    { text: '↑ fetched & cached', cls: 'text-eidos-blue border-eidos-blue/40 bg-eidos-blue-dim' },
+    offline: { text: '⚠ offline · no cache', cls: 'text-eidos-amber border-eidos-amber/40 bg-eidos-amber-dim' },
+    error:   { text: '✕ error',            cls: 'text-eidos-red border-eidos-red/40 bg-eidos-red-dim' },
+  }[r]
   return (
-    <span className={`text-[10px] font-mono px-2 py-1 rounded border animate-fade-in ${c.cls}`}>
-      {c.text}
+    <span className={`text-2xs border px-2 py-0.5 animate-fade-in ${cfg.cls}`}>
+      {cfg.text}
     </span>
   )
 }
 
-// ── Orders demo ───────────────────────────────────────────────────────────────
+// ── Orders Demo ───────────────────────────────────────────────────────────────
 
 function OrdersDemo({
-  onEvent,
-  queue,
-  isOnline,
-  onNavigate,
+  onEmit, queue, isOnline, onNavigate,
 }: {
-  onEvent: CacheEventFn
+  onEmit: EmitFn
   queue: ActionQueueItem[]
   isOnline: boolean
   onNavigate: (p: Page) => void
 }) {
-  const [result, setResult] = useState<{ text: string; kind: 'ok' | 'queued' | 'error' } | null>(null)
   const [loading, setLoading] = useState(false)
+  const [result,  setResult]  = useState<{ text: string; ok: boolean } | null>(null)
 
   const pending = queue.filter(q => q.status === 'pending' || q.status === 'replaying')
 
@@ -381,103 +339,92 @@ function OrdersDemo({
     try {
       const res = await createOrder({ productId: 1, quantity: 1, customerName: 'Demo User' })
       if ('queued' in res && res.queued) {
-        setResult({ text: `queued — will execute when online`, kind: 'queued' })
-        onEvent('queue-add', 'createOrder', 'persisted to IndexedDB')
+        setResult({ text: `queued → IDB · will replay on reconnect`, ok: false })
+        onEmit('QUEUE', `createOrder → persisted to IndexedDB`)
       } else {
         const r = res as { id: string }
-        setResult({ text: `order ${r.id} confirmed`, kind: 'ok' })
-        onEvent('cache-updated', 'createOrder', 'executed')
+        setResult({ text: `${r.id} confirmed`, ok: true })
+        onEmit('STORE', `createOrder → ${r.id}`)
       }
     } catch {
-      setResult({ text: 'request failed', kind: 'error' })
+      setResult({ text: 'request failed', ok: false })
+      onEmit('ERR', 'createOrder → network failure')
     } finally {
       setLoading(false)
     }
   }
 
   async function replay() {
+    onEmit('REPLAY', `replayQueue() · ${pending.length} item(s)`)
     await replayQueue()
-    onEvent('queue-replay', 'replayQueue()', `${pending.length} item(s)`)
   }
 
   return (
     <div className="p-5">
-      <div className="flex items-start justify-between mb-4">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <h2 className="text-sm font-semibold text-eidos-text">Orders</h2>
-            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-eidos-amber-dim text-eidos-amber border border-eidos-amber/20">
-              neverLose
-            </span>
-          </div>
-          <p className="text-xs text-eidos-muted">
-            Offline? Orders queue to IndexedDB. Reconnect and they replay automatically.
-          </p>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-bold text-eidos-text">orders</span>
+          <span className="text-2xs text-eidos-amber border border-eidos-amber/40 px-1.5 py-0.5">neverLose</span>
         </div>
       </div>
 
-      <div className="rounded-lg border border-eidos-border bg-eidos-elevated px-3 py-2 mb-4 font-mono text-[11px]">
-        <span className="text-eidos-text-dim">action</span>
-        <span className="text-eidos-accent">(</span>
-        <span className="text-eidos-text-dim">orderApi.create</span>
-        <span className="text-eidos-muted">, {'{'} </span>
-        <span className="text-eidos-text-dim">reliability</span>
-        <span className="text-eidos-muted">: </span>
-        <span className="text-eidos-amber">'neverLose'</span>
-        <span className="text-eidos-muted"> {'}'}</span>
-        <span className="text-eidos-accent">)</span>
+      {/* Declaration */}
+      <div className="border border-eidos-border bg-eidos-bg px-3 py-2 mb-4 text-2xs text-eidos-text-dim leading-relaxed">
+        <span className="text-eidos-muted">action</span>(<span className="text-eidos-text-dim">createOrder</span>, {'{ '}
+        <span className="text-eidos-text-dim">reliability</span>: <span className="text-eidos-amber">'neverLose'</span>
+        {' }'})<br />
+        <span className="text-eidos-border">// → IndexedDB queue · auto-replay on reconnect</span>
       </div>
 
-      {/* Queue */}
-      <div className="min-h-[80px] mb-4 space-y-1.5">
-        {pending.length === 0 ? (
-          <div className="flex items-center justify-center h-20 text-xs text-eidos-muted font-mono">
-            {isOnline ? 'simulate offline then submit an order' : '⚡ offline — submit to queue'}
-          </div>
-        ) : (
-          pending.map(item => (
-            <div key={item.id} className="flex items-center justify-between px-3 py-2 rounded-lg border border-eidos-amber/20 bg-eidos-amber-dim text-xs font-mono animate-slide-up">
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-eidos-amber animate-pulse" />
-                <span className="text-eidos-text">{item.actionName}</span>
-                <span className="text-eidos-muted">retry {item.retryCount}/{item.maxRetries}</span>
-              </div>
-              <span className={`px-1.5 py-0.5 rounded text-[10px] border ${
-                item.status === 'replaying'
-                  ? 'bg-eidos-accent-dim border-eidos-accent/20 text-eidos-accent'
-                  : 'bg-eidos-amber-dim border-eidos-amber/20 text-eidos-amber'
-              }`}>{item.status}</span>
-            </div>
-          ))
-        )}
-      </div>
-
+      {/* Result */}
       {result && (
-        <div className={`flex items-center gap-2 text-xs font-mono px-3 py-2 rounded-lg border mb-3 animate-fade-in ${
-          result.kind === 'ok'     ? 'bg-eidos-green-dim border-eidos-green/20 text-eidos-green' :
-          result.kind === 'queued' ? 'bg-eidos-amber-dim border-eidos-amber/20 text-eidos-amber' :
-                                     'bg-eidos-red-dim   border-eidos-red/20   text-eidos-red'
+        <div className={`flex items-center gap-2 text-2xs border px-3 py-2 mb-3 ${
+          result.ok ? 'border-eidos-accent/40 text-eidos-accent bg-eidos-accent-dim' : 'border-eidos-amber/40 text-eidos-amber bg-eidos-amber-dim'
         }`}>
-          {result.kind === 'ok'     ? <CheckCircle size={12} /> :
-           result.kind === 'queued' ? <Clock size={12} /> :
-                                      <WifiOff size={12} />}
+          {result.ok ? <CheckCircle size={11} /> : <Clock size={11} />}
           {result.text}
         </div>
       )}
+
+      {/* Queue */}
+      <div className="min-h-[80px] mb-4">
+        {pending.length === 0 ? (
+          <div className="flex items-center justify-center h-20 text-2xs text-eidos-muted">
+            {isOnline ? 'simulate offline · submit an order' : '⚡ offline · orders will queue to IDB'}
+          </div>
+        ) : (
+          <div className="border border-eidos-border divide-y divide-eidos-border">
+            {pending.map(item => (
+              <div key={item.id} className="flex items-center justify-between px-3 py-2 text-2xs">
+                <div className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 bg-eidos-amber animate-pulse-fast" />
+                  <span className="text-eidos-text">{item.actionName}</span>
+                  <span className="text-eidos-muted">retry {item.retryCount}/{item.maxRetries}</span>
+                </div>
+                <span className={`text-2xs border px-1.5 py-0.5 ${
+                  item.status === 'replaying'
+                    ? 'border-eidos-accent/40 text-eidos-accent'
+                    : 'border-eidos-amber/40 text-eidos-amber'
+                }`}>{item.status}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       <div className="flex gap-2">
         <button
           onClick={submit}
           disabled={loading}
-          className="flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-eidos-elevated border border-eidos-border text-eidos-text text-sm font-medium hover:border-eidos-accent transition-all disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2 border border-eidos-border text-eidos-text text-xs hover:border-eidos-accent hover:text-eidos-accent transition-colors disabled:opacity-50 cursor-pointer"
         >
-          <ShoppingCart size={13} className={loading ? 'animate-pulse' : ''} />
+          <ShoppingCart size={11} className={loading ? 'animate-pulse' : ''} />
           Submit Order
         </button>
         {pending.length > 0 && isOnline && (
           <button
             onClick={replay}
-            className="px-3 py-2 text-xs font-mono rounded-lg border border-eidos-green/30 bg-eidos-green-dim text-eidos-green hover:bg-eidos-green/15 transition-all"
+            className="px-3 py-2 text-xs bg-eidos-accent text-eidos-bg font-bold hover:bg-green-400 transition-colors cursor-pointer"
           >
             replay {pending.length}
           </button>
@@ -486,9 +433,9 @@ function OrdersDemo({
 
       <button
         onClick={() => onNavigate('actions')}
-        className="mt-3 flex items-center gap-1 text-[11px] text-eidos-muted hover:text-eidos-accent transition-colors font-mono"
+        className="mt-2 flex items-center gap-1 text-2xs text-eidos-muted hover:text-eidos-accent transition-colors cursor-pointer"
       >
-        view full queue <ArrowRight size={10} />
+        view full queue <ArrowRight size={9} />
       </button>
     </div>
   )

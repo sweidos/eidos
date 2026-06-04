@@ -1,34 +1,24 @@
-import { Wifi, WifiOff, Cpu, AlertCircle } from 'lucide-react'
-import { useEidosStatus, setOfflineSimulation } from '@eidos/core'
+import { Wifi, WifiOff, Cpu } from 'lucide-react'
+import { useEidosStatus, setOfflineSimulation, useEidosStore } from '@eidos/core'
 import { useState } from 'react'
 import type { Page } from '../App'
 
-const NAV: { id: Page; label: string }[] = [
-  { id: 'demo',      label: 'Demo'         },
-  { id: 'resources', label: 'Resources'    },
-  { id: 'actions',   label: 'Action Queue' },
-  { id: 'inspector', label: 'Inspector'    },
-  { id: 'learn',     label: 'How It Works' },
+const TABS: { id: Page; label: string }[] = [
+  { id: 'demo',      label: 'demo'      },
+  { id: 'resources', label: 'resources' },
+  { id: 'actions',   label: 'actions'   },
+  { id: 'inspector', label: 'inspector' },
+  { id: 'learn',     label: 'api'       },
 ]
 
-const SW_COLOR: Record<string, string> = {
-  active:      'text-eidos-green',
-  registering: 'text-eidos-amber',
-  error:       'text-eidos-red',
-  idle:        'text-eidos-muted',
-  unsupported: 'text-eidos-red',
-}
-
-interface HeaderProps {
-  page: Page
-  onNavigate: (p: Page) => void
-}
+interface HeaderProps { page: Page; onNavigate: (p: Page) => void }
 
 export function Header({ page, onNavigate }: HeaderProps) {
   const { isOnline, swStatus } = useEidosStatus()
+  const pendingCount = useEidosStore(s => s.queue.filter(q => q.status === 'pending').length)
   const [simulating, setSimulating] = useState(false)
 
-  function toggleOffline() {
+  function toggleSim() {
     const next = !simulating
     setSimulating(next)
     setOfflineSimulation(next)
@@ -36,61 +26,77 @@ export function Header({ page, onNavigate }: HeaderProps) {
 
   return (
     <header className="shrink-0 border-b border-eidos-border bg-eidos-surface">
-      <div className="flex items-center justify-between px-4 h-11 border-b border-eidos-border">
-        <div className="flex items-center gap-2.5">
-          <div className="w-5 h-5 rounded bg-eidos-accent flex items-center justify-center">
-            <span className="text-eidos-bg text-[10px] font-bold font-mono leading-none">e</span>
-          </div>
-          <span className="font-semibold text-sm tracking-tight text-eidos-text">eidos</span>
-          <span className="font-mono text-[10px] text-eidos-muted border border-eidos-border rounded px-1.5 py-0.5">v0.1.0</span>
-          <span className="hidden sm:block text-eidos-border">·</span>
-          <span className="hidden sm:block text-xs text-eidos-muted font-mono">@eidos/core</span>
+      {/* Top bar — brand + status */}
+      <div className="flex items-center justify-between px-4 h-10 border-b border-eidos-border">
+        {/* Brand */}
+        <div className="flex items-center gap-3">
+          <span className="text-eidos-accent font-bold text-sm tracking-tight">eidos</span>
+          <span className="text-eidos-border">·</span>
+          <span className="text-2xs text-eidos-muted">@eidos/core v0.1.0</span>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className={`hidden sm:flex items-center gap-1.5 text-xs font-mono ${SW_COLOR[swStatus] ?? 'text-eidos-muted'}`}>
-            {swStatus === 'error' ? <AlertCircle size={11} /> : <Cpu size={11} />}
-            <span>SW {swStatus}</span>
-          </div>
+        {/* Status chips */}
+        <div className="flex items-center gap-4 text-2xs">
+          {/* SW status */}
+          <span className={`flex items-center gap-1.5 ${
+            swStatus === 'active' ? 'text-eidos-accent' :
+            swStatus === 'registering' ? 'text-eidos-amber' : 'text-eidos-muted'
+          }`}>
+            <Cpu size={10} />
+            SW {swStatus}
+          </span>
 
-          <div className="w-px h-3.5 bg-eidos-border" />
+          <span className="text-eidos-border">|</span>
 
-          <div className={`flex items-center gap-1.5 text-xs font-mono ${isOnline ? 'text-eidos-green' : 'text-eidos-amber'}`}>
-            {isOnline ? <Wifi size={11} /> : <WifiOff size={11} />}
-            <span>{isOnline ? 'online' : 'offline'}</span>
-          </div>
+          {/* Online/offline */}
+          <span className={`flex items-center gap-1.5 ${isOnline ? 'text-eidos-accent' : 'text-eidos-amber'}`}>
+            {isOnline ? <Wifi size={10} /> : <WifiOff size={10} />}
+            {isOnline ? 'online' : 'offline'}
+          </span>
 
-          <div className="w-px h-3.5 bg-eidos-border" />
+          <span className="text-eidos-border">|</span>
 
+          {/* Offline simulation toggle */}
           <button
-            onClick={toggleOffline}
-            className={`flex items-center gap-1.5 text-[11px] font-mono px-2 py-1 rounded border transition-all ${
+            onClick={toggleSim}
+            className={`flex items-center gap-1.5 px-2 py-0.5 border transition-colors duration-150 cursor-pointer ${
               simulating
-                ? 'bg-eidos-amber-dim border-eidos-amber text-eidos-amber'
-                : 'border-eidos-border text-eidos-muted hover:border-eidos-accent hover:text-eidos-text'
+                ? 'border-eidos-amber text-eidos-amber bg-eidos-amber-dim'
+                : 'border-eidos-border text-eidos-muted hover:border-eidos-elevated hover:text-eidos-text-dim'
             }`}
           >
-            <WifiOff size={10} />
-            {simulating ? 'stop simulation' : 'simulate offline'}
+            <WifiOff size={9} />
+            {simulating ? 'stop sim' : 'sim offline'}
           </button>
         </div>
       </div>
 
-      <nav className="flex items-end px-4 overflow-x-auto">
-        {NAV.map(({ id, label }) => (
-          <button
-            key={id}
-            onClick={() => onNavigate(id)}
-            className={`px-4 py-2.5 text-xs font-medium border-b-2 whitespace-nowrap transition-all ${
-              page === id
-                ? 'border-eidos-accent text-eidos-text'
-                : 'border-transparent text-eidos-muted hover:text-eidos-text-dim'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </nav>
+      {/* Tab navigation — green left-border for active, monospace labels */}
+      <div className="flex items-stretch px-4 h-9 gap-0">
+        {TABS.map(tab => {
+          const active = page === tab.id
+          return (
+            <button
+              key={tab.id}
+              onClick={() => onNavigate(tab.id)}
+              className={`
+                relative px-4 text-xs transition-colors duration-150 cursor-pointer
+                flex items-center gap-1.5 border-b-2
+                ${active
+                  ? 'text-eidos-accent border-eidos-accent'
+                  : 'text-eidos-muted border-transparent hover:text-eidos-text-dim'}
+              `}
+            >
+              {tab.label}
+              {tab.id === 'actions' && pendingCount > 0 && (
+                <span className="text-2xs bg-eidos-amber text-eidos-bg px-1 font-bold">
+                  {pendingCount}
+                </span>
+              )}
+            </button>
+          )
+        })}
+      </div>
     </header>
   )
 }
