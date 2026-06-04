@@ -12,7 +12,7 @@ Initial release. Smallest possible version that demonstrates the vision end-to-e
 
 ### Added
 
-**Core package (`@eidos/core`)** — npm `@eidos/core@0.1.0`
+**Core package (`@sweidos/eidos`)** — npm `@sweidos/eidos@0.1.0`
 - `resource(url, config)` — register an offline-capable resource with auto-generated caching strategy
 - `action(fn, config)` — wrap any async function with `best-effort` or `neverLose` reliability
 - `replayQueue()` — manually replay the IndexedDB-persisted action queue

@@ -1,5 +1,5 @@
 {
-  "name": "@eidos/core",
+  "name": "@sweidos/eidos",
   "version": "0.1.0",
   "description": "Describe intent. The runtime figures out how. An abstraction layer for offline-first web apps.",
   "author": "Aditya Raj",

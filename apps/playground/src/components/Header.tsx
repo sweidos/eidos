@@ -1,5 +1,5 @@
 import { Wifi, WifiOff, Cpu } from 'lucide-react'
-import { useEidosStatus, setOfflineSimulation, useEidosStore } from '@eidos/core'
+import { useEidosStatus, setOfflineSimulation, useEidosStore } from '@sweidos/eidos'
 import { useState } from 'react'
 import type { Page } from '../App'
 
@@ -32,7 +32,7 @@ export function Header({ page, onNavigate }: HeaderProps) {
         <div className="flex items-center gap-3">
           <span className="text-eidos-accent font-bold text-sm tracking-tight">eidos</span>
           <span className="text-eidos-border">·</span>
-          <span className="text-2xs text-eidos-muted">@eidos/core v0.1.0</span>
+          <span className="text-2xs text-eidos-muted">@sweidos/eidos v0.1.0</span>
         </div>
 
         {/* Status chips */}

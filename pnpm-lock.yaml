@@ -14,7 +14,7 @@ importers:
 
   apps/playground:
     dependencies:
-      '@eidos/core':
+      '@sweidos/eidos':
         specifier: workspace:*
         version: link:../../packages/core
       '@tanstack/react-query':

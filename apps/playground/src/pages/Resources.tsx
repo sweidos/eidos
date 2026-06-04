@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { useEidosStore } from '@eidos/core'
-import type { ResourceEntry } from '@eidos/core'
+import { useEidosStore } from '@sweidos/eidos'
+import type { ResourceEntry } from '@sweidos/eidos'
 
 export function Resources() {
   const resources = useEidosStore(s => s.resources)
@@ -31,7 +31,7 @@ export function Resources() {
 
       <div className="mt-5 border border-eidos-border bg-eidos-surface p-4">
         <div className="text-2xs text-eidos-muted mb-2">registration.ts</div>
-        <pre className="text-2xs text-eidos-text-dim leading-relaxed overflow-x-auto">{`import { resource } from '@eidos/core'
+        <pre className="text-2xs text-eidos-text-dim leading-relaxed overflow-x-auto">{`import { resource } from '@sweidos/eidos'
 
 // Module-scope — idempotent, re-registration returns same handle
 const products = resource('/api/products', {

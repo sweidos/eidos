@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { useEidosStore, replayQueue } from '@eidos/core'
-import type { ActionQueueItem } from '@eidos/core'
+import { useEidosStore, replayQueue } from '@sweidos/eidos'
+import type { ActionQueueItem } from '@sweidos/eidos'
 
 export function Actions() {
   const queue    = useEidosStore(s => s.queue)

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { RefreshCw, ShoppingCart, CheckCircle, WifiOff, ArrowRight, Clock } from 'lucide-react'
-import { useEidosStore, replayQueue } from '@eidos/core'
-import type { ActionQueueItem, ResourceEntry } from '@eidos/core'
+import { useEidosStore, replayQueue } from '@sweidos/eidos'
+import type { ActionQueueItem, ResourceEntry } from '@sweidos/eidos'
 import { productsResource, createOrder, type Product } from '../lib/eidos'
 import type { Page } from '../App'
 
@@ -68,7 +68,7 @@ export function Demo({ onNavigate }: DemoProps) {
               Stop writing service workers.
             </h1>
             <p className="text-sm text-eidos-muted max-w-xl">
-              Declare intent in 2 lines. @eidos/core generates the fetch intercept rules,
+              Declare intent in 2 lines. @sweidos/eidos generates the fetch intercept rules,
               picks the right caching strategy, and queues offline actions to IndexedDB — automatically.
             </p>
           </div>
@@ -100,7 +100,7 @@ self.addEventListener('sync', ev => {
           </div>
           <div className="border border-eidos-accent/40 bg-eidos-bg p-3">
             <div className="text-2xs text-eidos-accent mb-2">// after — eidos</div>
-            <pre className="text-2xs text-eidos-text leading-relaxed">{`import { resource, action } from '@eidos/core'
+            <pre className="text-2xs text-eidos-text leading-relaxed">{`import { resource, action } from '@sweidos/eidos'
 
 resource('/api/products', {
   offline: true,  // → StaleWhileRevalidate
