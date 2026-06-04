@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { ChevronDown, ChevronRight, Database, Trash2, RefreshCw } from 'lucide-react'
 import { useEidosStore } from '@eidos/core'
 import type { ResourceEntry } from '@eidos/core'
 
@@ -8,44 +7,46 @@ export function Resources() {
   const entries   = Object.values(resources)
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-5 animate-fade-in">
-      <div>
-        <h2 className="text-lg font-semibold text-eidos-text mb-1">Resources</h2>
-        <p className="text-sm text-eidos-muted">
-          Every <code className="font-mono text-eidos-accent text-xs">resource()</code> declaration
-          registers a fetch-intercept rule with the service worker.
-          Expand any row to see the generated strategy.
+    <div className="max-w-4xl mx-auto p-5 animate-fade-in">
+      <div className="border-b border-eidos-border pb-4 mb-5">
+        <h2 className="text-base font-bold text-eidos-text mb-1">resources</h2>
+        <p className="text-xs text-eidos-muted">
+          Every <code className="text-eidos-accent">resource()</code> call registers a fetch-intercept
+          rule with the service worker. Expand a row to inspect the generated caching strategy.
         </p>
       </div>
 
       {entries.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 border border-eidos-border rounded-xl bg-eidos-surface gap-3">
-          <Database size={28} className="text-eidos-border" />
-          <p className="text-sm text-eidos-text">No resources registered</p>
-          <p className="text-xs text-eidos-muted font-mono text-center max-w-xs">
-            Call{' '}
-            <span className="text-eidos-accent">resource('/api/url', {'{ offline: true }'})</span>
-            {' '}at module scope.
+        <div className="border border-eidos-border p-8 text-center">
+          <p className="text-sm text-eidos-text mb-1">no resources registered</p>
+          <p className="text-xs text-eidos-muted">
+            call <code className="text-eidos-accent">resource('/api/url', {'{ offline: true }'})</code> at module scope
           </p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="border border-eidos-border divide-y divide-eidos-border">
           {entries.map(e => <ResourceRow key={e.url} entry={e} />)}
         </div>
       )}
 
-      <div className="rounded-xl border border-eidos-border bg-eidos-surface p-4">
-        <p className="text-xs font-mono text-eidos-muted mb-3">registration.ts</p>
-        <pre className="text-xs font-mono text-eidos-text leading-relaxed">{`import { resource } from '@eidos/core'
+      <div className="mt-5 border border-eidos-border bg-eidos-surface p-4">
+        <div className="text-2xs text-eidos-muted mb-2">registration.ts</div>
+        <pre className="text-2xs text-eidos-text-dim leading-relaxed overflow-x-auto">{`import { resource } from '@eidos/core'
 
-// Module-scope — runs once, registers with SW on load
+// Module-scope — idempotent, re-registration returns same handle
 const products = resource('/api/products', {
-  offline: true,            // → StaleWhileRevalidate
+  offline: true,   // → StaleWhileRevalidate auto-selected
 })
 
-// Use directly or with TanStack Query
-const data = await products.json()
-const q    = useQuery(products.query())`}</pre>
+// Use directly
+const data = await products.json<Product[]>()
+
+// Or with TanStack Query
+const { data } = useQuery(products.query<Product[]>())
+
+// Inspect generated strategy
+console.log(products.strategy.name)      // 'StaleWhileRevalidate'
+console.log(products.strategy.reasoning) // one-line rationale`}</pre>
       </div>
     </div>
   )
@@ -55,12 +56,12 @@ function ResourceRow({ entry }: { entry: ResourceEntry }) {
   const [open, setOpen] = useState(false)
 
   const statusColor = {
-    idle:        'text-eidos-muted',
-    fetching:    'text-eidos-accent',
-    fresh:       'text-eidos-green',
-    stale:       'text-eidos-amber',
-    error:       'text-eidos-red',
-    offline:     'text-eidos-amber',
+    idle:     'text-eidos-muted',
+    fetching: 'text-eidos-blue',
+    fresh:    'text-eidos-accent',
+    stale:    'text-eidos-amber',
+    error:    'text-eidos-red',
+    offline:  'text-eidos-amber',
   }[entry.status] ?? 'text-eidos-muted'
 
   const cachedStr = entry.cachedAt
@@ -68,56 +69,54 @@ function ResourceRow({ entry }: { entry: ResourceEntry }) {
     : '—'
 
   return (
-    <div className="rounded-xl border border-eidos-border bg-eidos-surface overflow-hidden">
+    <div>
       <button
         onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-eidos-elevated transition-colors text-left"
+        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-eidos-surface transition-colors cursor-pointer text-xs"
       >
-        <Database size={13} className="text-eidos-accent shrink-0" />
-        <span className="font-mono text-sm text-eidos-text flex-1">{entry.url}</span>
-        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-eidos-elevated border border-eidos-border text-eidos-muted">{entry.strategy.name}</span>
-        <span className={`text-xs font-mono ${statusColor}`}>{entry.status}</span>
-        <span className="text-[10px] font-mono text-eidos-muted font-tabular">
-          <span className="text-eidos-green">{entry.cacheHits}</span> hits
-        </span>
-        <span className="text-[10px] font-mono text-eidos-muted">cached: {cachedStr}</span>
-        {open ? <ChevronDown size={13} className="text-eidos-muted shrink-0" /> : <ChevronRight size={13} className="text-eidos-muted shrink-0" />}
+        <span className="text-eidos-accent font-bold w-4">{open ? '▼' : '▶'}</span>
+        <span className="text-eidos-text flex-1 font-bold">{entry.url}</span>
+        <span className="text-eidos-muted border border-eidos-border px-2 py-0.5 text-2xs">{entry.strategy.name}</span>
+        <span className={`w-16 text-2xs ${statusColor}`}>{entry.status}</span>
+        <span className="text-eidos-accent font-tabular text-2xs w-10 text-right">{entry.cacheHits}</span>
+        <span className="text-eidos-muted text-2xs w-4">hit</span>
+        <span className="text-eidos-muted text-2xs w-20 text-right">{cachedStr}</span>
       </button>
 
       {open && (
-        <div className="border-t border-eidos-border p-4 space-y-4 animate-fade-in bg-eidos-elevated/30">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <div className="border-t border-eidos-border bg-eidos-surface px-4 py-4 animate-fade-in">
+          {/* Meta grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
             {[
-              ['Strategy',   entry.strategy.swStrategy],
-              ['Cache',      entry.strategy.cacheName],
-              ['Cached at',  cachedStr],
-              ['offline',    entry.config.offline ? 'yes' : 'no'],
+              ['sw strategy', entry.strategy.swStrategy],
+              ['cache name',  entry.strategy.cacheName],
+              ['cached at',   cachedStr],
+              ['offline',     entry.config.offline ? 'yes' : 'no'],
             ].map(([l, v]) => (
-              <div key={l} className="bg-eidos-elevated rounded-lg px-3 py-2">
-                <p className="text-[9px] font-mono text-eidos-muted uppercase tracking-widest">{l}</p>
-                <p className="text-xs font-mono text-eidos-text mt-0.5 truncate">{v}</p>
+              <div key={l} className="border border-eidos-border px-3 py-2">
+                <div className="text-2xs text-eidos-muted uppercase tracking-widest mb-0.5">{l}</div>
+                <div className="text-xs text-eidos-text font-bold">{v}</div>
               </div>
             ))}
           </div>
 
-          <p className="text-xs text-eidos-text-dim leading-relaxed">{entry.strategy.reasoning}</p>
-
-          <div className="space-y-1.5">
-            {entry.strategy.behavior.map((step, i) => (
-              <div key={i} className="flex gap-2 text-xs text-eidos-muted">
-                <span className="font-mono text-eidos-accent shrink-0">{i + 1}.</span>
-                <span>{step}</span>
-              </div>
-            ))}
+          {/* Reasoning */}
+          <div className="mb-4">
+            <div className="text-2xs text-eidos-muted uppercase tracking-widest mb-1">why this strategy</div>
+            <p className="text-xs text-eidos-text-dim leading-relaxed">{entry.strategy.reasoning}</p>
           </div>
 
-          <div className="flex gap-2 pt-1">
-            <button className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border border-eidos-border text-eidos-muted hover:text-eidos-text hover:border-eidos-accent transition-all">
-              <RefreshCw size={11} /> Refetch
-            </button>
-            <button className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border border-eidos-red/30 text-eidos-red/60 hover:text-eidos-red hover:border-eidos-red transition-all">
-              <Trash2 size={11} /> Clear Cache
-            </button>
+          {/* Behavior steps */}
+          <div>
+            <div className="text-2xs text-eidos-muted uppercase tracking-widest mb-2">runtime behavior</div>
+            <div className="space-y-1">
+              {entry.strategy.behavior.map((step, i) => (
+                <div key={i} className="flex gap-2 text-xs">
+                  <span className="text-eidos-accent shrink-0 w-4 font-bold">{i + 1}.</span>
+                  <span className="text-eidos-text-dim">{step}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}
