@@ -6,6 +6,50 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.0.0] — 2026-06-05
+
+First stable release.
+
+### Added
+
+**Core package**
+- `ResourceConfig.maxAge` — TTL in milliseconds; expired cache entries trigger a network re-fetch
+- `ResourceHandle.unregister()` — remove a resource from the SW registry and Zustand store
+- `ActionQueueItem.nextRetryAt` — epoch timestamp set by exponential backoff; items not yet due are skipped on each replay pass
+- `sideEffects: false` in `package.json` — enables tree-shaking in bundlers
+
+### Changed
+
+- **Exponential backoff on queue replay** — failed `neverLose` actions are retried at `min(2s × 2^retryCount, 5min)` ±20% jitter instead of immediately
+- **`cacheName` override now respected** — `ResourceConfig.cacheName` is correctly propagated to the generated strategy and SW registration (was silently ignored in 0.x)
+- **`EIDOS_CLEAR_CACHE` uses per-resource bucket** — SW now looks up the registered `cacheName` per URL instead of always clearing `eidos-resources-v1`
+
+### Fixed
+
+- SWR background revalidation now wrapped in `event.waitUntil()` — prevents the SW from being terminated before the cache write completes
+- Dev-mode warning when `resource()` is called twice for the same URL with different config
+- Dev-mode warning when `neverLose` action args are not JSON-serializable (args would be silently lost after a page reload)
+
+### Infrastructure
+
+- GitHub Actions workflow (`deploy.yml`) — builds and deploys playground to Vercel, publishes `@sweidos/eidos` to npm when version bumps, creates GitHub Release
+- Root `vercel.json` — fixes Vercel cloud builds for the monorepo (`rootDirectory: null` + `cd ../..` bug)
+- URL routing in playground — `react-router-dom` replaces `useState`-based page switching; browser back/forward and deep links now work
+
+---
+
+## [0.2.0] — 2026-06-04
+
+### Added
+
+- GitHub Actions CI/CD pipeline — first automated deploy and npm publish
+
+### Fixed
+
+- Playground navigation now uses React Router — deep links work, browser history works
+
+---
+
 ## [0.1.0] — 2026-06-03
 
 Initial release. Smallest possible version that demonstrates the vision end-to-end.

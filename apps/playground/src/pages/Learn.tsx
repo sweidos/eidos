@@ -165,6 +165,7 @@ export const createOrder = action(
         <PropRow name="offline"    type="boolean"                                                  desc="Required. Enables SW fetch interception and cache persistence for this URL." />
         <PropRow name="strategy"   type="'cache-first' | 'stale-while-revalidate' | 'network-first'" def="auto" desc="Override the auto-selected caching strategy. If omitted, Eidos picks the best one based on offline." />
         <PropRow name="cacheName"  type="string"                                                   def="'eidos-resources-v1'" desc="Custom Cache Storage bucket name." />
+        <PropRow name="maxAge"     type="number"                                                   def="∞" desc="TTL in milliseconds. Cached entries older than maxAge are treated as a cache miss and re-fetched from network." />
       </Table>
 
       <H3>Strategy auto-selection</H3>
@@ -194,7 +195,11 @@ await products.prefetch()
 
 // Remove all cached entries for this URL from Cache Storage.
 // Sets status to 'stale' in the devtools store.
-await products.invalidate()`}</Pre>
+await products.invalidate()
+
+// Remove from registry + send EIDOS_UNREGISTER_RESOURCE to SW.
+// Required before re-registering the same URL with different config.
+products.unregister()`}</Pre>
 
       <H3>Handle properties</H3>
       <Pre>{`products.url        // '/api/products'
@@ -219,8 +224,14 @@ products.strategy   // GeneratedStrategy object (see Types)`}</Pre>
       <H3>Reliability modes</H3>
       <Table headers={['Mode', 'Online', 'Offline', 'Network failure']}>
         <PropRow name="best-effort" type="Calls fn directly" def="Drops the call" desc="fn throws → error propagates, nothing queued." />
-        <PropRow name="neverLose"   type="Calls fn, queues on throw" def="Queues to IndexedDB" desc="fn throws → serialised to IDB, replayed on reconnect." />
+        <PropRow name="neverLose"   type="Calls fn, queues on throw" def="Queues to IndexedDB" desc="fn throws → serialised to IDB, replayed on reconnect with exponential backoff." />
       </Table>
+      <P>
+        <strong className="text-eidos-text">Exponential backoff:</strong> failed retries are delayed
+        by <Code>min(2s × 2^retryCount, 5min)</Code> with ±20% jitter. The{' '}
+        <Code>nextRetryAt</Code> field on each queue item tells you when the next attempt is
+        scheduled. Items not yet due are skipped silently on each <Code>replayQueue()</Code> pass.
+      </P>
 
       <H3>Return type</H3>
       <Pre>{`// Online + successful
@@ -326,9 +337,10 @@ const productEntry = useEidosStore(s => s.resources['/api/products'])`}</Pre>
 
       <Collapse title="ResourceConfig">
         <Pre>{`interface ResourceConfig {
-  offline:   boolean
-  strategy?: 'cache-first' | 'stale-while-revalidate' | 'network-first'
+  offline:    boolean
+  strategy?:  'cache-first' | 'stale-while-revalidate' | 'network-first'
   cacheName?: string
+  maxAge?:    number  // TTL in ms — expired entries trigger network fetch
 }`}</Pre>
       </Collapse>
 
@@ -342,6 +354,7 @@ const productEntry = useEidosStore(s => s.resources['/api/products'])`}</Pre>
   query():           { queryKey: [string, string]; queryFn: () => Promise<T> }
   prefetch():        Promise<void>
   invalidate():      Promise<void>
+  unregister():      void   // remove from SW + registry
 }`}</Pre>
       </Collapse>
 
@@ -380,16 +393,17 @@ const productEntry = useEidosStore(s => s.resources['/api/products'])`}</Pre>
 
       <Collapse title="ActionQueueItem">
         <Pre>{`interface ActionQueueItem {
-  id:          string
-  actionId:    string   // registry key (= config.name ?? fn.name)
-  actionName:  string   // display label
-  args:        unknown[]
-  queuedAt:    number   // epoch ms
-  retryCount:  number
-  maxRetries:  number
-  status:      'pending' | 'replaying' | 'succeeded' | 'failed'
-  error?:      string
+  id:           string
+  actionId:     string   // registry key (= config.name ?? fn.name)
+  actionName:   string   // display label
+  args:         unknown[]
+  queuedAt:     number   // epoch ms
+  retryCount:   number
+  maxRetries:   number
+  status:       'pending' | 'replaying' | 'succeeded' | 'failed'
+  error?:       string
   completedAt?: number
+  nextRetryAt?: number   // epoch ms — set by exponential backoff after a failure
 }`}</Pre>
       </Collapse>
 
@@ -532,7 +546,7 @@ setOfflineSimulation(false)  // go back online
           { l: 'GET-only SW interception', d: 'The SW fetch handler ignores non-GET methods. POST/PUT/DELETE actions go through the action queue, not SW caching.' },
           { l: 'Pathname matching only', d: 'Resources are matched by URL pathname. /api/products matches http://localhost:3000/api/products but not https://api.example.com/products. Use the full URL string for cross-origin resources.' },
           { l: 'Module-scope actions required', d: 'action() must execute at module import time for replay to work after page reload. Actions declared inside components or event handlers are not available in the replay registry.' },
-          { l: 'No automatic cache expiry', d: 'Cached responses never expire. Call resource.invalidate() or send EIDOS_CLEAR_CACHE to evict stale data.' },
+          { l: 'maxAge is client-side only', d: 'The maxAge TTL is enforced in the main thread. The SW still serves the cached response to other tabs or after a page reload until invalidate() is called.' },
           { l: 'Single SW registration', d: 'EidosProvider assumes one /eidos-sw.js per origin. Registering multiple service workers from the same provider is unsupported.' },
           { l: 'No background sync integration', d: 'The action queue is replayed on reconnect in the main thread, not via the Background Sync API. The page must be open for replay to fire.' },
           { l: 'CacheStorage availability', d: 'In Firefox private browsing mode, CacheStorage and IndexedDB may be unavailable. Eidos degrades gracefully — resources fetch from the network, actions silently fail without queuing.' },
