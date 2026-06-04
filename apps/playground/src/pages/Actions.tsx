@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useEidosStore, replayQueue } from '@sweidos/eidos'
 import type { ActionQueueItem } from '@sweidos/eidos'
 
@@ -87,10 +87,31 @@ if ('queued' in result) {
 
 // 4. Status transitions
 'pending' → 'replaying' → 'succeeded'  // removed from IDB after 3s
-                        → 'failed'     // maxRetries exceeded`}</pre>
+                        → 'failed'     // maxRetries exceeded
+
+// 5. Exponential backoff between retries
+//    delay = min(2s × 2^retryCount, 5min) ± 20% jitter
+//    Items with nextRetryAt in the future are skipped on each replay pass.`}</pre>
       </div>
     </div>
   )
+}
+
+function RetryCountdown({ nextRetryAt }: { nextRetryAt: number }) {
+  const [secs, setSecs] = useState(Math.max(0, Math.ceil((nextRetryAt - Date.now()) / 1000)))
+
+  useEffect(() => {
+    if (secs <= 0) return
+    const id = setInterval(() => {
+      const remaining = Math.max(0, Math.ceil((nextRetryAt - Date.now()) / 1000))
+      setSecs(remaining)
+      if (remaining === 0) clearInterval(id)
+    }, 500)
+    return () => clearInterval(id)
+  }, [nextRetryAt, secs])
+
+  if (secs <= 0) return null
+  return <span className="text-eidos-blue">retry in {secs}s</span>
 }
 
 function QueueItem({ item }: { item: ActionQueueItem }) {
@@ -119,6 +140,7 @@ function QueueItem({ item }: { item: ActionQueueItem }) {
         <span>queued: {new Date(item.queuedAt).toLocaleTimeString('en', { hour12: false })}</span>
         {item.completedAt && <span>done: {new Date(item.completedAt).toLocaleTimeString('en', { hour12: false })}</span>}
         <span>retries: {item.retryCount}/{item.maxRetries}</span>
+        {item.status === 'pending' && item.nextRetryAt && <RetryCountdown nextRetryAt={item.nextRetryAt} />}
       </div>
       {item.error && <p className="text-2xs text-eidos-red mt-1">{item.error}</p>}
       <p className="text-2xs text-eidos-muted mt-1 truncate">

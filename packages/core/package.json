@@ -5,6 +5,7 @@
   "author": "Aditya Raj",
   "license": "MIT",
   "type": "module",
+  "sideEffects": false,
   "keywords": [
     "service-worker",
     "offline",

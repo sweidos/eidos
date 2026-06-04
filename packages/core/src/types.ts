@@ -54,6 +54,8 @@ export interface ResourceHandle<T = unknown> {
   query: () => { queryKey: [string, string]; queryFn: () => Promise<T> }
   prefetch: () => Promise<void>
   invalidate: () => Promise<void>
+  /** Remove from registry and SW. Required before re-registering the same URL with different config. */
+  unregister: () => void
 }
 
 // ── Action ───────────────────────────────────────────────────────────────────
