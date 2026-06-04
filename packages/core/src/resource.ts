@@ -181,6 +181,12 @@ export function resource<T = unknown>(
         cacheMisses: 0,
       })
     },
+
+    unregister: () => {
+      _registry.delete(url)
+      sendToWorker({ type: 'EIDOS_UNREGISTER_RESOURCE', url })
+      useEidosStore.getState().unregisterResource(url)
+    },
   }
 
   _registry.set(url, handle)

@@ -35,7 +35,9 @@ export function Resources() {
 
 // Module-scope — idempotent, re-registration returns same handle
 const products = resource('/api/products', {
-  offline: true,   // → StaleWhileRevalidate auto-selected
+  offline: true,          // → StaleWhileRevalidate auto-selected
+  maxAge: 5 * 60 * 1000, // 5-min TTL — expired cache treated as miss
+  cacheName: 'my-cache',  // optional custom bucket
 })
 
 // Use directly
@@ -46,7 +48,11 @@ const { data } = useQuery(products.query<Product[]>())
 
 // Inspect generated strategy
 console.log(products.strategy.name)      // 'StaleWhileRevalidate'
-console.log(products.strategy.reasoning) // one-line rationale`}</pre>
+console.log(products.strategy.reasoning) // one-line rationale
+
+// Cleanup
+products.invalidate()  // evict cached entries
+products.unregister()  // remove from SW + registry`}</pre>
       </div>
     </div>
   )
@@ -92,6 +98,8 @@ function ResourceRow({ entry }: { entry: ResourceEntry }) {
               ['cache name',  entry.strategy.cacheName],
               ['cached at',   cachedStr],
               ['offline',     entry.config.offline ? 'yes' : 'no'],
+              ['max age',     entry.config.maxAge ? `${(entry.config.maxAge / 1000).toFixed(0)}s` : '∞'],
+              ['hits / misses', `${entry.cacheHits} / ${entry.cacheMisses}`],
             ].map(([l, v]) => (
               <div key={l} className="border border-eidos-border px-3 py-2">
                 <div className="text-2xs text-eidos-muted uppercase tracking-widest mb-0.5">{l}</div>
