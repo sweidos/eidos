@@ -96,11 +96,18 @@ export function resource<T = unknown>(
             cachedAt: Date.now(),
             lastEvent: 'cache-updated',
           })
-        } else {
-          store.updateResource(url, { status: 'error' })
+          return response
         }
 
-        return response
+        // Non-2xx response (e.g. 503 from offline SW) — update status and throw
+        // so callers get a proper error instead of a plain-object body they can't use.
+        store.updateResource(url, { status: response.status === 503 ? 'offline' : 'error' })
+
+        // Check if the SW tagged this as an offline response
+        const isOffline = response.headers.get('X-Eidos-Offline') === 'true'
+        throw new Error(
+          isOffline ? `offline: no cached response for ${url}` : `${response.status} ${response.statusText}`,
+        )
       } catch (err) {
         // Network failure — try cache one more time as fallback
         const cache = await caches.open(strategy.cacheName).catch(() => null)

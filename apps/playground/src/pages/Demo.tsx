@@ -213,28 +213,32 @@ function ProductsDemo({
   resourceState: ResourceState | undefined
   isOnline: boolean
 }) {
-  const [products, setProducts]   = useState<Product[] | null>(null)
-  const [loading, setLoading]     = useState(false)
-  const [lastResult, setLastResult] = useState<'hit' | 'miss' | 'error' | null>(null)
+  const [products, setProducts]     = useState<Product[] | null>(null)
+  const [loading,  setLoading]      = useState(false)
+  const [lastResult, setLastResult] = useState<'hit' | 'miss' | 'error' | 'offline' | null>(null)
 
   async function fetch_() {
     setLoading(true)
     setLastResult(null)
     try {
-      const data = await productsResource.json()
+      const data = await productsResource.json() as Product[]
+      // resource.ts now throws on non-ok responses, so data is always the real payload.
+      // Guard defensively anyway in case something unexpected slips through.
+      if (!Array.isArray(data)) throw new Error('Unexpected response shape')
       setProducts(data)
-      // The resource.fetch() updates the store synchronously — check it immediately
+
       const entry = useEidosStore.getState().resources['/api/products']
-      const hit   = (entry?.lastEvent === 'cache-hit')
+      const hit   = entry?.lastEvent === 'cache-hit'
       setLastResult(hit ? 'hit' : 'miss')
       onEvent(
         hit ? 'cache-hit' : 'cache-updated',
         '/api/products',
         hit ? 'served from cache' : 'fetched & cached',
       )
-    } catch {
-      setLastResult('error')
-      onEvent('network-error', '/api/products')
+    } catch (err) {
+      const isOffline = String(err).includes('offline')
+      setLastResult(isOffline ? 'offline' : 'error')
+      onEvent('network-error', '/api/products', isOffline ? 'no cache yet' : 'network fail')
     } finally {
       setLoading(false)
     }
@@ -284,12 +288,19 @@ function ProductsDemo({
             <RefreshCw size={12} className="animate-spin" /> fetching…
           </div>
         )}
-        {!loading && !products && (
+        {!loading && !products && lastResult !== 'offline' && (
           <div className="flex items-center justify-center py-10 text-xs text-eidos-muted font-mono">
             no data yet — click fetch
           </div>
         )}
-        {!loading && products?.map(p => (
+        {!loading && lastResult === 'offline' && (
+          <div className="flex flex-col items-center justify-center py-8 gap-1.5">
+            <WifiOff size={18} className="text-eidos-amber" />
+            <p className="text-xs text-eidos-amber font-mono">offline — no cached response yet</p>
+            <p className="text-[10px] text-eidos-muted">fetch while online first to populate the cache</p>
+          </div>
+        )}
+        {!loading && Array.isArray(products) && products.map(p => (
           <div key={p.id} className="flex items-center justify-between px-3 py-2 rounded-lg bg-eidos-elevated border border-eidos-border text-xs animate-slide-up">
             <div className="flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-eidos-accent/40 shrink-0" />
@@ -329,16 +340,19 @@ function ProductsDemo({
   )
 }
 
-function CacheIndicator({ result }: { result: 'hit' | 'miss' | 'error' | null }) {
+function CacheIndicator({ result }: { result: 'hit' | 'miss' | 'error' | 'offline' | null }) {
   if (!result) return null
-  const cfg = {
-    hit:   { text: '⚡ cache hit',      cls: 'text-eidos-green bg-eidos-green-dim border-eidos-green/20' },
-    miss:  { text: '↑ fetched & cached', cls: 'text-eidos-accent bg-eidos-accent-dim border-eidos-accent/20' },
-    error: { text: '✕ error',           cls: 'text-eidos-red bg-eidos-red-dim border-eidos-red/20' },
-  }[result]
+  const cfg: Record<string, { text: string; cls: string }> = {
+    hit:     { text: '⚡ cache hit',       cls: 'text-eidos-green  bg-eidos-green-dim  border-eidos-green/20'  },
+    miss:    { text: '↑ fetched & cached', cls: 'text-eidos-accent bg-eidos-accent-dim border-eidos-accent/20' },
+    error:   { text: '✕ network error',   cls: 'text-eidos-red    bg-eidos-red-dim    border-eidos-red/20'    },
+    offline: { text: '⚠ offline · no cache', cls: 'text-eidos-amber bg-eidos-amber-dim border-eidos-amber/20' },
+  }
+  const c = cfg[result]
+  if (!c) return null
   return (
-    <span className={`text-[10px] font-mono px-2 py-1 rounded border animate-fade-in ${cfg.cls}`}>
-      {cfg.text}
+    <span className={`text-[10px] font-mono px-2 py-1 rounded border animate-fade-in ${c.cls}`}>
+      {c.text}
     </span>
   )
 }
