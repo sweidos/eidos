@@ -2,35 +2,27 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
 @layer base {
-  * {
-    box-sizing: border-box;
-  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
 
   html, body, #root {
     height: 100%;
-    margin: 0;
-    padding: 0;
+    background: #0a0a0f;
+    color: #f4f4f5;
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
   }
 
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  ::-webkit-scrollbar-thumb {
-    background: #1e1e3f;
-    border-radius: 3px;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    background: #2e2e5f;
-  }
+  ::-webkit-scrollbar            { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track      { background: transparent; }
+  ::-webkit-scrollbar-thumb      { background: #25252f; border-radius: 999px; }
+  ::-webkit-scrollbar-thumb:hover{ background: #38bdf820; }
+
+  ::selection { background: rgba(56,189,248,0.2); }
 }
 
 @layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+  .font-tabular { font-variant-numeric: tabular-nums; }
 }

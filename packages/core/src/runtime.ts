@@ -19,14 +19,14 @@ export async function initEidos(config: EidosConfig = {}): Promise<void> {
   const swPath = config.swPath ?? '/eidos-sw.js'
   const autoReplay = config.autoReplay ?? true
 
-  // Restore persisted queue from IndexedDB on startup so devtools can show it
+  // Restore persisted queue from IndexedDB on startup
   try {
     const persisted = await idbGetQueue()
     if (persisted.length > 0) {
       useEidosStore.getState().hydrateQueue(persisted)
     }
   } catch {
-    // IndexedDB unavailable (e.g. Firefox private browsing) — silent fallback
+    // IndexedDB unavailable (Firefox private browsing) — silent fallback
   }
 
   try {
@@ -36,23 +36,43 @@ export async function initEidos(config: EidosConfig = {}): Promise<void> {
   }
 
   if (autoReplay) {
-    window.addEventListener('online', () => {
-      // Short delay: let the connection stabilise before attempting replay
-      setTimeout(replayQueue, 800)
+    // ── Subscribe to the Zustand store instead of window.addEventListener('online')
+    //
+    // WHY: setOfflineSimulation() updates the store directly but never fires a
+    // real browser `online` event. Watching the store means we catch both:
+    //   • Real network reconnects (sw-bridge updates store on window.online)
+    //   • Simulation toggled off (setOfflineSimulation(false) → store.setOnline(true))
+    //
+    let prevIsOnline = useEidosStore.getState().isOnline
+
+    useEidosStore.subscribe((state) => {
+      const justCameOnline = state.isOnline && !prevIsOnline
+      prevIsOnline = state.isOnline
+
+      if (justCameOnline) {
+        // Small delay so the connection (or simulation reset) settles first
+        setTimeout(replayQueue, 600)
+      }
     })
+
+    // Replay any pending items that survived a page reload
+    const store = useEidosStore.getState()
+    const hasPending = store.queue.some((q) => q.status === 'pending' || q.status === 'failed')
+    if (store.isOnline && hasPending) {
+      setTimeout(replayQueue, 1200)
+    }
   }
 
   if (import.meta.env.DEV) {
     const store = useEidosStore.getState()
-    console.groupCollapsed('%c⚡ Eidos', 'color:#818cf8;font-weight:bold')
-    console.log('SW path:', swPath)
+    console.groupCollapsed('%c⚡ Eidos', 'color:#38bdf8;font-weight:bold')
+    console.log('SW path    :', swPath)
     console.log('Auto-replay:', autoReplay)
-    console.log('SW status:', store.swStatus)
+    console.log('SW status  :', store.swStatus)
     console.groupEnd()
   }
 }
 
-/** Reset internal state — intended for testing only. */
 export function _resetEidos() {
   _initialized = false
 }

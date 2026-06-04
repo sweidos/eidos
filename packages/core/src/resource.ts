@@ -8,16 +8,13 @@ import type {
   CacheStrategy,
 } from './types'
 
-// Module-level registry survives across re-renders
 const _registry = new Map<string, ResourceHandle>()
 
 export function resource<T = unknown>(
   url: string,
   config: ResourceConfig,
 ): ResourceHandle<T> {
-  if (_registry.has(url)) {
-    return _registry.get(url) as ResourceHandle<T>
-  }
+  if (_registry.has(url)) return _registry.get(url) as ResourceHandle<T>
 
   const strategy = deriveStrategy(url, config)
 
@@ -30,10 +27,8 @@ export function resource<T = unknown>(
     cacheMisses: 0,
   }
 
-  // Persist to Zustand store (drives devtools)
   useEidosStore.getState().registerResource(url, entry)
 
-  // Inform the service worker
   sendToWorker({
     type: 'EIDOS_REGISTER_RESOURCE',
     url,
@@ -47,18 +42,81 @@ export function resource<T = unknown>(
     strategy,
 
     fetch: async () => {
-      useEidosStore.getState().updateResource(url, {
-        status: 'fetching',
-        fetchedAt: Date.now(),
-      })
+      const store = useEidosStore.getState()
+      store.updateResource(url, { status: 'fetching', fetchedAt: Date.now() })
+
       try {
-        const res = await fetch(url)
-        useEidosStore.getState().updateResource(url, {
-          status: res.ok ? 'fresh' : 'error',
+        // ── Direct Cache API check ─────────────────────────────────────
+        // We read the cache in the main thread rather than waiting for
+        // an async SW postMessage. This gives instant, reliable status
+        // updates regardless of SW message timing.
+        const cache = await caches.open(strategy.cacheName).catch(() => null)
+        const cached = cache ? await cache.match(url).catch(() => null) : null
+
+        if (cached) {
+          const current = useEidosStore.getState().resources[url]
+          store.updateResource(url, {
+            status: 'fresh',
+            lastEvent: 'cache-hit',
+            cacheHits: (current?.cacheHits ?? 0) + 1,
+          })
+
+          // Background revalidation for SWR (stale-while-revalidate)
+          if (strategy.swStrategy === 'stale-while-revalidate') {
+            fetch(url)
+              .then(async (resp) => {
+                if (resp.ok && cache) {
+                  await cache.put(url, resp.clone())
+                  useEidosStore.getState().updateResource(url, {
+                    cachedAt: Date.now(),
+                    lastEvent: 'cache-updated',
+                  })
+                }
+              })
+              .catch(() => {
+                /* offline — cached version stays valid */
+              })
+          }
+
+          return cached
+        }
+
+        // ── Cache miss: fetch from network ─────────────────────────────
+        const current = useEidosStore.getState().resources[url]
+        store.updateResource(url, {
+          cacheMisses: (current?.cacheMisses ?? 0) + 1,
         })
-        return res
+
+        const response = await fetch(url)
+
+        if (response.ok) {
+          if (cache) await cache.put(url, response.clone())
+          store.updateResource(url, {
+            status: 'fresh',
+            cachedAt: Date.now(),
+            lastEvent: 'cache-updated',
+          })
+        } else {
+          store.updateResource(url, { status: 'error' })
+        }
+
+        return response
       } catch (err) {
-        useEidosStore.getState().updateResource(url, { status: 'error' })
+        // Network failure — try cache one more time as fallback
+        const cache = await caches.open(strategy.cacheName).catch(() => null)
+        const fallback = cache ? await cache.match(url).catch(() => null) : null
+
+        if (fallback) {
+          const current = useEidosStore.getState().resources[url]
+          store.updateResource(url, {
+            status: 'fresh',
+            lastEvent: 'cache-hit',
+            cacheHits: (current?.cacheHits ?? 0) + 1,
+          })
+          return fallback
+        }
+
+        store.updateResource(url, { status: 'error' })
         throw err
       }
     },
@@ -79,10 +137,19 @@ export function resource<T = unknown>(
 
     invalidate: async () => {
       sendToWorker({ type: 'EIDOS_CLEAR_CACHE', url })
+      const cache = await caches.open(strategy.cacheName).catch(() => null)
+      if (cache) {
+        const keys = await cache.keys()
+        await Promise.all(
+          keys.filter((r) => new URL(r.url).pathname === url).map((r) => cache.delete(r)),
+        )
+      }
       useEidosStore.getState().updateResource(url, {
         status: 'stale',
         cachedAt: undefined,
         lastEvent: 'cache-cleared',
+        cacheHits: 0,
+        cacheMisses: 0,
       })
     },
   }
@@ -92,25 +159,16 @@ export function resource<T = unknown>(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Strategy derivation — this is the core value proposition.
-// Intent → deterministic caching strategy.
+// Strategy derivation — intent → deterministic caching strategy
 // ─────────────────────────────────────────────────────────────────────────────
 
 function deriveStrategy(url: string, config: ResourceConfig): GeneratedStrategy {
   const explicit = config.strategy
-
-  if (config.offline) {
-    // offline: true → prefer freshness-with-resilience over pure speed
-    return buildStrategy(explicit ?? 'stale-while-revalidate', url)
-  }
-
+  if (config.offline) return buildStrategy(explicit ?? 'stale-while-revalidate', url)
   return buildStrategy(explicit ?? 'network-first', url)
 }
 
-const STRATEGY_META: Record<
-  CacheStrategy,
-  Omit<GeneratedStrategy, 'swStrategy' | 'cacheName'>
-> = {
+const STRATEGY_META: Record<CacheStrategy, Omit<GeneratedStrategy, 'swStrategy' | 'cacheName'>> = {
   'stale-while-revalidate': {
     name: 'StaleWhileRevalidate',
     reasoning:

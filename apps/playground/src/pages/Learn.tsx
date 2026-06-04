@@ -1,270 +1,177 @@
-import { BookOpen, Layers, Zap, Database, Wifi, Code2, ExternalLink } from 'lucide-react'
-import { Card, CardHeader } from '../components/Card'
-import { CodeBlock } from '../components/CodeBlock'
+import { ExternalLink } from 'lucide-react'
 
 export function Learn() {
   return (
-    <div className="max-w-3xl space-y-8 animate-fade-in">
+    <div className="max-w-3xl mx-auto p-6 space-y-8 animate-fade-in">
       <div>
-        <h2 className="text-xl font-bold text-eidos-text">How It Works</h2>
-        <p className="text-sm text-eidos-muted mt-1 leading-relaxed">
-          Eidos is a thin runtime layer. It does not replace Service Workers —
-          it generates and configures them from your intent declarations, so you
-          never write SW code directly.
+        <h2 className="text-lg font-semibold text-eidos-text mb-1">How It Works</h2>
+        <p className="text-sm text-eidos-muted leading-relaxed">
+          Eidos is a thin runtime. It doesn't replace Service Workers — it generates and
+          manages them from your intent declarations so you never write SW code directly.
         </p>
       </div>
 
-      {/* The problem */}
-      <Section icon={BookOpen} title="The Problem">
+      {/* Problem */}
+      <Section title="The problem">
         <p className="text-sm text-eidos-text-dim leading-relaxed mb-4">
-          Building offline-capable web apps today requires a working knowledge of
-          Service Workers, the Cache API, Background Sync, IndexedDB, and a
-          caching strategy library like Workbox. That's a significant surface
-          area to understand, configure, and debug — separate from your actual
-          application logic.
+          Offline-capable web apps require deep knowledge of Service Workers, the Cache API,
+          Background Sync, IndexedDB, Workbox strategies, cache versioning, and retry logic.
+          That's a large surface area unrelated to your actual business logic.
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {[
-            'Service Worker registration and lifecycle',
-            'Cache-first vs network-first vs SWR strategies',
-            'Fetch event interception and routing',
-            'IndexedDB schema design for action queues',
-            'Background Sync API and retry logic',
-            'Cache versioning and cleanup on update',
-          ].map((item) => (
-            <div key={item} className="flex items-start gap-2 text-xs text-eidos-muted">
-              <span className="text-eidos-red shrink-0 mt-0.5">✕</span>
+            'Service Worker lifecycle (install, activate, claim)',
+            'Cache-first vs network-first vs SWR strategy choice',
+            'Fetch event interception and URL pattern routing',
+            'IndexedDB schema for persistent action queues',
+            'Exponential backoff and retry on reconnect',
+            'Cache versioning and stale-entry cleanup',
+          ].map(item => (
+            <div key={item} className="flex gap-2 text-xs text-eidos-muted">
+              <span className="text-eidos-red shrink-0">✕</span>
               {item}
             </div>
           ))}
         </div>
       </Section>
 
-      {/* The vision */}
-      <Section icon={Zap} title="The Vision">
+      {/* Vision */}
+      <Section title="The solution">
         <p className="text-sm text-eidos-text-dim leading-relaxed mb-4">
-          Developers should express <strong className="text-eidos-text">what they want</strong>,
-          not how to implement it. The platform details should be an
-          implementation concern of the runtime, not the application.
+          Express <strong className="text-eidos-text">what you want</strong>, not how the browser
+          should implement it. The runtime translates intent into the correct low-level behaviour.
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <p className="text-[10px] font-mono text-eidos-muted uppercase tracking-widest mb-2">Before</p>
-            <CodeBlock
-              code={`// workbox-config.js
-registerRoute(
-  ({ url }) => url.pathname === '/api/products',
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <CodePane label="Before (Workbox)">{`registerRoute(
+  /\\/api\\/products/,
   new StaleWhileRevalidate({
     cacheName: 'api-cache',
     plugins: [
-      new ExpirationPlugin({ maxEntries: 60 }),
+      new ExpirationPlugin({
+        maxEntries: 60
+      }),
     ],
-  }),
+  })
 )
 
-// service-worker.js
-self.addEventListener('sync', (event) => {
-  if (event.tag === 'create-order') {
-    event.waitUntil(replayOrders())
-  }
-})`}
-            />
-          </div>
-          <div>
-            <p className="text-[10px] font-mono text-eidos-muted uppercase tracking-widest mb-2">After</p>
-            <CodeBlock
-              code={`// your-app.ts
-resource('/api/products', {
+self.addEventListener('sync', ev => {
+  if (ev.tag === 'create-order')
+    ev.waitUntil(replayOrders())
+})`}</CodePane>
+          <CodePane label="After (Eidos)">{`resource('/api/products', {
   offline: true,
 })
 
 action(createOrder, {
   reliability: 'neverLose',
-})`}
-            />
-          </div>
+})`}</CodePane>
         </div>
       </Section>
 
       {/* Architecture */}
-      <Section icon={Layers} title="Architecture">
-        <p className="text-sm text-eidos-text-dim leading-relaxed mb-5">
-          Eidos has three layers. The runtime (your app) declares intent. The
-          bridge relays config to the worker via{' '}
-          <code className="font-mono text-eidos-accent text-xs">postMessage</code>.
-          The worker applies the generated strategy to every matching fetch.
+      <Section title="Architecture">
+        <p className="text-sm text-eidos-text-dim leading-relaxed mb-4">
+          Three layers. Your app declares intent. The runtime translates and bridges to the
+          worker. The worker applies the strategy to every matching fetch.
         </p>
-
-        {/* Architecture diagram */}
-        <div className="rounded-xl border border-eidos-border bg-eidos-surface p-5 font-mono text-xs space-y-0">
-          <ArchLayer
-            label="Application Layer"
-            color="text-eidos-accent"
-            items={['resource(url, config)', 'action(fn, config)', 'EidosProvider']}
-            note="you write this"
-          />
-          <ArchArrow label="postMessage(EIDOS_REGISTER_RESOURCE)" />
-          <ArchLayer
-            label="Runtime Layer"
-            color="text-eidos-green"
-            items={['Strategy derivation', 'Zustand store', 'SW bridge']}
-            note="eidos/core"
-          />
-          <ArchArrow label="fetch intercept" />
-          <ArchLayer
-            label="Worker Layer"
-            color="text-eidos-amber"
-            items={['CacheFirst', 'StaleWhileRevalidate', 'NetworkFirst']}
-            note="eidos-sw.js"
-          />
-          <ArchArrow label="Cache API / IndexedDB" />
-          <ArchLayer
-            label="Storage Layer"
-            color="text-eidos-muted"
-            items={['Cache Storage', 'IndexedDB (action queue)', 'CacheStorage v1']}
-            note="browser APIs"
-          />
+        <div className="rounded-xl border border-eidos-border bg-eidos-elevated font-mono text-[11px] overflow-hidden">
+          {[
+            { label: 'Application Layer', items: ['resource(url, config)', 'action(fn, config)', 'EidosProvider'], color: 'text-eidos-accent', note: 'you write this' },
+            { label: 'Runtime Layer',     items: ['Strategy derivation', 'Zustand store', 'SW bridge'],         color: 'text-eidos-green', note: '@eidos/core' },
+            { label: 'Worker Layer',      items: ['CacheFirst', 'StaleWhileRevalidate', 'NetworkFirst'],        color: 'text-eidos-amber', note: 'eidos-sw.js' },
+            { label: 'Storage Layer',     items: ['Cache Storage (v1)', 'IndexedDB action queue'],              color: 'text-eidos-muted', note: 'browser APIs' },
+          ].map((layer, i) => (
+            <div key={layer.label}>
+              {i > 0 && (
+                <div className="flex items-center justify-center gap-2 py-1 border-y border-eidos-border bg-eidos-surface">
+                  <span className="text-eidos-border">↓</span>
+                  <span className="text-eidos-border text-[9px]">
+                    {i === 1 ? 'postMessage (EIDOS_REGISTER_RESOURCE)' : i === 2 ? 'fetch intercept' : 'Cache API / IndexedDB'}
+                  </span>
+                </div>
+              )}
+              <div className="p-3">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className={`font-semibold ${layer.color}`}>{layer.label}</span>
+                  <span className="text-eidos-border">{layer.note}</span>
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  {layer.items.map(it => (
+                    <span key={it} className="text-[10px] bg-eidos-surface border border-eidos-border px-2 py-0.5 rounded text-eidos-text-dim">{it}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </Section>
 
       {/* Resource lifecycle */}
-      <Section icon={Database} title="Resource Lifecycle">
-        <div className="space-y-3">
-          {[
-            {
-              step: 'Register',
-              code: "resource('/api/products', { offline: true })",
-              desc: 'Adds an entry to the Zustand store and sends EIDOS_REGISTER_RESOURCE to the SW.',
-            },
-            {
-              step: 'Fetch',
-              code: "productsResource.fetch()",
-              desc: 'Calls fetch(url). The SW intercepts and applies the strategy (SWR in this case).',
-            },
-            {
-              step: 'Cache',
-              code: "await cache.put(request, response.clone())",
-              desc: 'SW clones the response into Cache Storage under eidos-resources-v1.',
-            },
-            {
-              step: 'Offline',
-              code: "// SW returns cache.match(request)",
-              desc: 'When offline, the SW serves the cached response with zero network overhead.',
-            },
-            {
-              step: 'Revalidate',
-              code: "// Background fetch on reconnect",
-              desc: 'SWR kicks off a background refresh after returning the cached response.',
-            },
-          ].map(({ step, code, desc }, i) => (
-            <div key={i} className="flex gap-3 p-3 rounded-lg border border-eidos-border bg-eidos-elevated">
-              <div className="w-6 h-6 rounded-full bg-eidos-accent/20 border border-eidos-accent/30 flex items-center justify-center shrink-0 mt-0.5">
-                <span className="text-[10px] font-mono text-eidos-accent font-bold">{i + 1}</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs font-semibold text-eidos-text">{step}</span>
-                </div>
-                <code className="text-[10px] font-mono text-eidos-green block mb-1.5 truncate">{code}</code>
-                <p className="text-xs text-eidos-muted leading-relaxed">{desc}</p>
-              </div>
+      <Section title="Resource lifecycle">
+        {[
+          { step: 'Register', code: "resource('/api/products', { offline: true })", desc: 'Registers in the Zustand store and sends EIDOS_REGISTER_RESOURCE to the SW via postMessage.', color: 'text-eidos-accent' },
+          { step: 'Fetch',    code: 'productsResource.json()',                       desc: 'Checks Cache API directly in the main thread. Cache hit → returns instantly. Cache miss → fetches network, caches response.', color: 'text-eidos-accent' },
+          { step: 'Offline',  code: '// SW intercepts on page reload',               desc: 'If the page reloads while offline, the SW serves the cached response from eidos-resources-v1 without any network request.', color: 'text-eidos-amber' },
+          { step: 'Revalidate', code: '// SWR background refresh',                  desc: 'StaleWhileRevalidate always kicks off a background refresh after serving from cache, keeping data fresh.', color: 'text-eidos-green' },
+        ].map(({ step, code, desc, color }, i) => (
+          <div key={i} className="flex gap-3 p-3 rounded-lg border border-eidos-border bg-eidos-elevated mb-2">
+            <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 mt-0.5 text-[9px] font-bold font-mono ${color} border-current/30 bg-current/10`}>{i + 1}</div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-eidos-text mb-0.5">{step}</p>
+              <code className={`text-[10px] font-mono block mb-1 ${color}`}>{code}</code>
+              <p className="text-xs text-eidos-muted leading-relaxed">{desc}</p>
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </Section>
 
       {/* Action lifecycle */}
-      <Section icon={Wifi} title="Action Queue Lifecycle">
-        <div className="space-y-3">
-          {[
-            {
-              step: 'Declare',
-              code: "action(fn, { reliability: 'neverLose' })",
-              desc: 'Wraps fn and registers it in the action registry (module scope, survives reload).',
-            },
-            {
-              step: 'Call offline',
-              code: "await createOrder(payload) // offline",
-              desc: 'Detects isOnline = false, serialises fn ID + args, writes to IndexedDB.',
-            },
-            {
-              step: 'Persist',
-              code: "idb.addToQueue({ id, actionId, args })",
-              desc: 'Survives page reload. The queue is hydrated from IDB on every app start.',
-            },
-            {
-              step: 'Reconnect',
-              code: 'window "online" event → replayQueue()',
-              desc: 'Eidos reads IDB, looks up the original function, calls it with the stored args.',
-            },
-            {
-              step: 'Cleanup',
-              code: "idb.removeFromQueue(id)",
-              desc: 'On success, the item is removed from IDB and the Zustand store after a brief delay.',
-            },
-          ].map(({ step, code, desc }, i) => (
-            <div key={i} className="flex gap-3 p-3 rounded-lg border border-eidos-border bg-eidos-elevated">
-              <div className="w-6 h-6 rounded-full bg-eidos-amber/20 border border-eidos-amber/30 flex items-center justify-center shrink-0 mt-0.5">
-                <span className="text-[10px] font-mono text-eidos-amber font-bold">{i + 1}</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <span className="text-xs font-semibold text-eidos-text block mb-1">{step}</span>
-                <code className="text-[10px] font-mono text-eidos-amber block mb-1.5 truncate">{code}</code>
-                <p className="text-xs text-eidos-muted leading-relaxed">{desc}</p>
-              </div>
+      <Section title="Action queue lifecycle">
+        {[
+          { step: 'Declare', code: "action(fn, { reliability: 'neverLose' })", desc: 'Wraps fn and registers it in the action registry at module scope. Survives page reloads — the registry is rebuilt on import.', color: 'text-eidos-amber' },
+          { step: 'Offline call', code: 'createOrder(payload) // isOnline = false', desc: 'The wrapper detects isOnline = false, serialises the function ID and args, and writes to IndexedDB before returning a QueuedResult.', color: 'text-eidos-amber' },
+          { step: 'Reconnect', code: '// store isOnline transitions true', desc: 'The Zustand store subscription fires, triggering replayQueue() after 600 ms. Works for both real network reconnects and setOfflineSimulation(false).', color: 'text-eidos-green' },
+          { step: 'Replay', code: 'replayQueue() → fn(...args)', desc: 'Each pending item is looked up in the registry by action ID, called with the stored args, and removed from IDB on success.', color: 'text-eidos-green' },
+        ].map(({ step, code, desc, color }, i) => (
+          <div key={i} className="flex gap-3 p-3 rounded-lg border border-eidos-border bg-eidos-elevated mb-2">
+            <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 mt-0.5 text-[9px] font-bold font-mono ${color} border-current/30 bg-current/10`}>{i + 1}</div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-eidos-text mb-0.5">{step}</p>
+              <code className={`text-[10px] font-mono block mb-1 ${color}`}>{code}</code>
+              <p className="text-xs text-eidos-muted leading-relaxed">{desc}</p>
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </Section>
 
       {/* Limitations */}
-      <Section icon={Code2} title="Known Limitations">
-        <p className="text-sm text-eidos-text-dim leading-relaxed mb-4">
-          Eidos is an intentionally-scoped v0. These limitations are real and
-          documented so you know exactly what you're getting.
-        </p>
+      <Section title="Known limitations">
         <div className="space-y-2">
           {[
-            {
-              limit: 'GET-only resource caching',
-              detail: 'The SW only intercepts GET requests. POST/PUT/DELETE are never cached.',
-            },
-            {
-              limit: 'Pathname matching only',
-              detail: 'Resource URLs are matched by pathname. Cross-origin resources require full-URL registration.',
-            },
-            {
-              limit: 'Module-scope actions',
-              detail: 'action() must be called at module scope for replay to work after a page reload. Component-scope actions will not replay.',
-            },
-            {
-              limit: 'No TTL / cache expiry',
-              detail: 'Cached resources do not expire automatically in v0. Call resource.invalidate() to clear.',
-            },
-            {
-              limit: 'Single SW path',
-              detail: 'EidosProvider assumes /eidos-sw.js. Multiple SW registrations in one app are not supported.',
-            },
-          ].map(({ limit, detail }) => (
-            <div key={limit} className="flex gap-3 p-3 rounded-lg border border-eidos-border bg-eidos-elevated text-xs">
-              <span className="text-eidos-amber shrink-0 mt-0.5">⚠</span>
+            { l: 'GET-only resource caching', d: 'The SW only intercepts GET requests. POST/PUT/DELETE are handled by the action queue, not cached.' },
+            { l: 'Pathname matching only', d: 'Resource URLs match by pathname. Cross-origin resources require the full URL.' },
+            { l: 'Module-scope actions', d: 'action() must be called at module scope for replay to work after page reload. Component-scope actions are not replayed.' },
+            { l: 'No TTL / expiry', d: 'Cached resources never expire automatically. Call resource.invalidate() to clear.' },
+            { l: 'Single SW path', d: 'EidosProvider assumes /eidos-sw.js. Multiple SW registrations in one app are unsupported.' },
+          ].map(({ l, d }) => (
+            <div key={l} className="flex gap-2 p-3 rounded-lg border border-eidos-border bg-eidos-elevated text-xs">
+              <span className="text-eidos-amber shrink-0">⚠</span>
               <div>
-                <p className="font-semibold text-eidos-text">{limit}</p>
-                <p className="text-eidos-muted mt-0.5 leading-relaxed">{detail}</p>
+                <p className="font-semibold text-eidos-text">{l}</p>
+                <p className="text-eidos-muted mt-0.5 leading-relaxed">{d}</p>
               </div>
             </div>
           ))}
         </div>
       </Section>
 
-      {/* External links */}
-      <Card>
-        <CardHeader title="Further reading" />
-        <div className="space-y-2">
+      {/* Links */}
+      <Section title="Further reading">
+        <div className="space-y-1.5">
           {[
-            { label: 'MDN — Service Worker API', href: 'https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API' },
-            { label: 'MDN — Cache API',           href: 'https://developer.mozilla.org/en-US/docs/Web/API/Cache' },
-            { label: 'MDN — IndexedDB API',       href: 'https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API' },
+            { label: 'MDN — Service Worker API',  href: 'https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API' },
+            { label: 'MDN — Cache API',            href: 'https://developer.mozilla.org/en-US/docs/Web/API/Cache' },
+            { label: 'MDN — IndexedDB API',        href: 'https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API' },
             { label: 'Workbox — by Google',        href: 'https://developer.chrome.com/docs/workbox' },
             { label: 'web.dev — Offline cookbook', href: 'https://web.dev/articles/offline-cookbook' },
           ].map(({ label, href }) => (
@@ -273,77 +180,34 @@ action(createOrder, {
               href={href}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-between p-3 rounded-lg border border-eidos-border hover:border-eidos-accent bg-eidos-elevated hover:bg-eidos-accent-dim transition-all group text-xs"
+              className="flex items-center justify-between p-3 rounded-lg border border-eidos-border bg-eidos-elevated hover:border-eidos-accent hover:bg-eidos-accent-dim transition-all group text-xs"
             >
               <span className="text-eidos-text-dim group-hover:text-eidos-text transition-colors">{label}</span>
               <ExternalLink size={11} className="text-eidos-muted group-hover:text-eidos-accent transition-colors shrink-0" />
             </a>
           ))}
         </div>
-      </Card>
+      </Section>
     </div>
   )
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function Section({
-  icon: Icon,
-  title,
-  children,
-}: {
-  icon: React.ElementType
-  title: string
-  children: React.ReactNode
-}) {
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <Card>
-      <div className="flex items-center gap-2 mb-4">
-        <Icon size={15} className="text-eidos-accent" />
-        <h3 className="text-sm font-semibold text-eidos-text">{title}</h3>
-      </div>
+    <div>
+      <h3 className="text-sm font-semibold text-eidos-text mb-3 capitalize">{title}</h3>
       {children}
-    </Card>
-  )
-}
-
-function ArchLayer({
-  label,
-  color,
-  items,
-  note,
-}: {
-  label: string
-  color: string
-  items: string[]
-  note: string
-}) {
-  return (
-    <div className={`rounded-lg border border-eidos-border bg-eidos-elevated p-3 ${color}`}>
-      <div className="flex items-center justify-between mb-1.5">
-        <span className="font-semibold">{label}</span>
-        <span className="text-[10px] text-eidos-muted">{note}</span>
-      </div>
-      <div className="flex gap-2 flex-wrap">
-        {items.map((item) => (
-          <span
-            key={item}
-            className="text-[10px] bg-eidos-bg/50 px-2 py-0.5 rounded border border-current/20 text-eidos-text-dim"
-          >
-            {item}
-          </span>
-        ))}
-      </div>
     </div>
   )
 }
 
-function ArchArrow({ label }: { label: string }) {
+function CodePane({ label, children }: { label: string; children: string }) {
   return (
-    <div className="flex flex-col items-center py-1">
-      <div className="w-px h-3 bg-eidos-border" />
-      <span className="text-[9px] font-mono text-eidos-muted">{label}</span>
-      <div className="w-px h-3 bg-eidos-border" />
+    <div className="rounded-lg border border-eidos-border bg-eidos-elevated overflow-hidden">
+      <div className="px-3 py-1.5 border-b border-eidos-border bg-eidos-surface">
+        <span className="text-[10px] font-mono text-eidos-muted">{label}</span>
+      </div>
+      <pre className="p-3 text-[11px] font-mono text-eidos-text-dim leading-relaxed overflow-x-auto">{children}</pre>
     </div>
   )
 }
