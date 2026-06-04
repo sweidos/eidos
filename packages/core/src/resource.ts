@@ -14,7 +14,23 @@ export function resource<T = unknown>(
   url: string,
   config: ResourceConfig,
 ): ResourceHandle<T> {
-  if (_registry.has(url)) return _registry.get(url) as ResourceHandle<T>
+  if (_registry.has(url)) {
+    if (import.meta.env.DEV) {
+      const existing = _registry.get(url)!
+      const existingCfg = existing.config
+      if (
+        existingCfg.offline !== config.offline ||
+        existingCfg.strategy !== config.strategy ||
+        existingCfg.cacheName !== config.cacheName
+      ) {
+        console.warn(
+          `[eidos] resource('${url}') already registered with a different config — returning cached handle. Call resource.unregister() first to re-register.`,
+          { registered: existingCfg, ignored: config },
+        )
+      }
+    }
+    return _registry.get(url) as ResourceHandle<T>
+  }
 
   const strategy = deriveStrategy(url, config)
 
@@ -53,8 +69,14 @@ export function resource<T = unknown>(
         const cache = await caches.open(strategy.cacheName).catch(() => null)
         const cached = cache ? await cache.match(url).catch(() => null) : null
 
-        if (cached) {
-          const current = useEidosStore.getState().resources[url]
+        // Treat cache as miss if maxAge exceeded
+        const current = useEidosStore.getState().resources[url]
+        const expired =
+          config.maxAge !== undefined &&
+          current?.cachedAt !== undefined &&
+          Date.now() - current.cachedAt > config.maxAge
+
+        if (cached && !expired) {
           store.updateResource(url, {
             status: 'fresh',
             lastEvent: 'cache-hit',
@@ -81,10 +103,10 @@ export function resource<T = unknown>(
           return cached
         }
 
-        // ── Cache miss: fetch from network ─────────────────────────────
-        const current = useEidosStore.getState().resources[url]
+        // ── Cache miss (or expired): fetch from network ────────────────
+        const storeEntry = useEidosStore.getState().resources[url]
         store.updateResource(url, {
-          cacheMisses: (current?.cacheMisses ?? 0) + 1,
+          cacheMisses: (storeEntry?.cacheMisses ?? 0) + 1,
         })
 
         const response = await fetch(url)
@@ -171,8 +193,8 @@ export function resource<T = unknown>(
 
 function deriveStrategy(url: string, config: ResourceConfig): GeneratedStrategy {
   const explicit = config.strategy
-  if (config.offline) return buildStrategy(explicit ?? 'stale-while-revalidate', url)
-  return buildStrategy(explicit ?? 'network-first', url)
+  if (config.offline) return buildStrategy(explicit ?? 'stale-while-revalidate', url, config.cacheName)
+  return buildStrategy(explicit ?? 'network-first', url, config.cacheName)
 }
 
 const STRATEGY_META: Record<CacheStrategy, Omit<GeneratedStrategy, 'swStrategy' | 'cacheName'>> = {
@@ -226,10 +248,10 @@ new NetworkFirst({
   },
 }
 
-function buildStrategy(swStrategy: CacheStrategy, _url: string): GeneratedStrategy {
+function buildStrategy(swStrategy: CacheStrategy, _url: string, cacheName?: string): GeneratedStrategy {
   return {
     ...STRATEGY_META[swStrategy],
     swStrategy,
-    cacheName: 'eidos-resources-v1',
+    cacheName: cacheName ?? 'eidos-resources-v1',
   }
 }

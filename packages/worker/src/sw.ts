@@ -67,8 +67,10 @@ self.addEventListener('message', (event) => {
       break
     }
     case 'EIDOS_CLEAR_CACHE': {
-      const cacheName = `${CACHE_PREFIX}-resources-${CACHE_VERSION}`
       const targetUrl = data.url as string | undefined
+      // Use per-resource cacheName if registered; fall back to default bucket
+      const reg = targetUrl ? runtimeConfig.resources.get(targetUrl) : undefined
+      const cacheName = reg?.cacheName ?? `${CACHE_PREFIX}-resources-${CACHE_VERSION}`
       caches.open(cacheName).then(async (cache) => {
         if (targetUrl) {
           const keys = await cache.keys()
@@ -99,6 +101,12 @@ self.addEventListener('fetch', (event) => {
   const reg = runtimeConfig.resources.get(pathname)
   if (!reg) return
 
+  if (reg.strategy === 'stale-while-revalidate' && !runtimeConfig.simulateOffline) {
+    // Pass event so SWR can call event.waitUntil() on background revalidation
+    event.respondWith(staleWhileRevalidate(event, event.request, pathname, reg.cacheName))
+    return
+  }
+
   event.respondWith(handleFetch(event.request, pathname, reg))
 })
 
@@ -115,7 +123,7 @@ async function handleFetch(
     case 'cache-first':
       return cacheFirst(request, pathname, reg.cacheName)
     case 'stale-while-revalidate':
-      return staleWhileRevalidate(request, pathname, reg.cacheName)
+      return staleWhileRevalidate(null, request, pathname, reg.cacheName)
     case 'network-first':
       return networkFirst(request, pathname, reg.cacheName)
     default:
@@ -152,6 +160,7 @@ async function cacheFirst(
 }
 
 async function staleWhileRevalidate(
+  event: FetchEvent | null,
   request: Request,
   pathname: string,
   cacheName: string,
@@ -160,7 +169,7 @@ async function staleWhileRevalidate(
   const cached = await cache.match(request)
 
   // Always revalidate in background
-  const revalidate = fetch(request)
+  const revalidatePromise = fetch(request)
     .then(async (response) => {
       if (response.ok) {
         await cache.put(request, response.clone())
@@ -173,10 +182,12 @@ async function staleWhileRevalidate(
       return response
     })
     .catch(() => {
-      notifyClients({ type: 'EIDOS_NETWORK_ERROR', url: pathname })
+      notifyClients({ type: 'EIDOS_NETWORK_ERROR', url: pathname, strategy: 'stale-while-revalidate' })
     })
 
   if (cached) {
+    // Ensure background revalidation completes even if SW is about to terminate
+    event?.waitUntil(revalidatePromise)
     notifyClients({
       type: 'EIDOS_CACHE_HIT',
       url: pathname,
@@ -185,7 +196,7 @@ async function staleWhileRevalidate(
     return cached
   }
 
-  const fresh = await revalidate
+  const fresh = await revalidatePromise
   return fresh ?? offlineErrorResponse(pathname)
 }
 

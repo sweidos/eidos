@@ -1,19 +1,17 @@
 import { Wifi, WifiOff, Cpu } from 'lucide-react'
+import { NavLink } from 'react-router-dom'
 import { useEidosStatus, setOfflineSimulation, useEidosStore } from '@sweidos/eidos'
 import { useState } from 'react'
-import type { Page } from '../App'
 
-const TABS: { id: Page; label: string }[] = [
-  { id: 'demo',      label: 'demo'      },
-  { id: 'resources', label: 'resources' },
-  { id: 'actions',   label: 'actions'   },
-  { id: 'inspector', label: 'inspector' },
-  { id: 'learn',     label: 'api'       },
+const TABS = [
+  { path: '/demo',      label: 'demo'      },
+  { path: '/resources', label: 'resources' },
+  { path: '/actions',   label: 'actions'   },
+  { path: '/inspector', label: 'inspector' },
+  { path: '/learn',     label: 'api'       },
 ]
 
-interface HeaderProps { page: Page; onNavigate: (p: Page) => void }
-
-export function Header({ page, onNavigate }: HeaderProps) {
+export function Header() {
   const { isOnline, swStatus } = useEidosStatus()
   const pendingCount = useEidosStore(s => s.queue.filter(q => q.status === 'pending').length)
   const [simulating, setSimulating] = useState(false)
@@ -71,31 +69,28 @@ export function Header({ page, onNavigate }: HeaderProps) {
         </div>
       </div>
 
-      {/* Tab navigation — green left-border for active, monospace labels */}
+      {/* Tab navigation */}
       <div className="flex items-stretch px-4 h-9 gap-0">
-        {TABS.map(tab => {
-          const active = page === tab.id
-          return (
-            <button
-              key={tab.id}
-              onClick={() => onNavigate(tab.id)}
-              className={`
-                relative px-4 text-xs transition-colors duration-150 cursor-pointer
-                flex items-center gap-1.5 border-b-2
-                ${active
-                  ? 'text-eidos-accent border-eidos-accent'
-                  : 'text-eidos-muted border-transparent hover:text-eidos-text-dim'}
-              `}
-            >
-              {tab.label}
-              {tab.id === 'actions' && pendingCount > 0 && (
-                <span className="text-2xs bg-eidos-amber text-eidos-bg px-1 font-bold">
-                  {pendingCount}
-                </span>
-              )}
-            </button>
-          )
-        })}
+        {TABS.map(tab => (
+          <NavLink
+            key={tab.path}
+            to={tab.path}
+            className={({ isActive }) => `
+              relative px-4 text-xs transition-colors duration-150 cursor-pointer
+              flex items-center gap-1.5 border-b-2
+              ${isActive
+                ? 'text-eidos-accent border-eidos-accent'
+                : 'text-eidos-muted border-transparent hover:text-eidos-text-dim'}
+            `}
+          >
+            {tab.label}
+            {tab.path === '/actions' && pendingCount > 0 && (
+              <span className="text-2xs bg-eidos-amber text-eidos-bg px-1 font-bold">
+                {pendingCount}
+              </span>
+            )}
+          </NavLink>
+        ))}
       </div>
     </header>
   )
