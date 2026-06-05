@@ -8,6 +8,14 @@ export const productsResource = resource<Product[]>('/api/products', {
   offline: true,
 })
 
+// Demonstrates maxAge — CacheFirst with 30-second TTL.
+// After 30s the entry is treated as stale and re-fetched from network.
+export const ordersHistoryResource = resource<Order[]>('/api/orders-history', {
+  offline: true,
+  strategy: 'cache-first',
+  maxAge: 30_000,
+})
+
 // ── Actions ───────────────────────────────────────────────────────────────────
 
 export const createOrder = action(

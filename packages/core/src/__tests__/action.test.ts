@@ -1,0 +1,171 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { action, replayQueue } from '../action'
+import { useEidosStore } from '../store'
+import { idbClearQueue, idbGetQueue } from '../idb'
+
+beforeEach(async () => {
+  useEidosStore.setState({ isOnline: true, swStatus: 'idle', resources: {}, queue: [] })
+  await idbClearQueue()
+  vi.clearAllMocks()
+})
+
+// ── best-effort ───────────────────────────────────────────────────────────────
+
+describe('best-effort', () => {
+  it('calls fn directly and returns result', async () => {
+    const fn = vi.fn().mockResolvedValue({ id: 'ok' })
+    const wrapped = action(fn, { reliability: 'best-effort', name: 'bf-test' })
+    const result = await wrapped('arg1')
+    expect(fn).toHaveBeenCalledWith('arg1')
+    expect(result).toEqual({ id: 'ok' })
+  })
+
+  it('propagates error without queuing', async () => {
+    const fn = vi.fn().mockRejectedValue(new Error('boom'))
+    const wrapped = action(fn, { reliability: 'best-effort', name: 'bf-err' })
+    await expect(wrapped()).rejects.toThrow('boom')
+    // Nothing persisted to IDB
+    const queue = await idbGetQueue()
+    expect(queue).toHaveLength(0)
+  })
+})
+
+// ── neverLose — online path ───────────────────────────────────────────────────
+
+describe('neverLose online', () => {
+  it('calls fn and returns result when online', async () => {
+    const fn = vi.fn().mockResolvedValue({ id: 'order-1' })
+    const wrapped = action(fn, { reliability: 'neverLose', name: 'nl-online' })
+    const result = await wrapped({ qty: 1 })
+    expect(fn).toHaveBeenCalledWith({ qty: 1 })
+    expect(result).toEqual({ id: 'order-1' })
+  })
+
+  it('queues to IDB when online fn throws', async () => {
+    const fn = vi.fn().mockRejectedValue(new Error('server error'))
+    const wrapped = action(fn, { reliability: 'neverLose', name: 'nl-online-fail' })
+    const result = await wrapped({ qty: 2 })
+    expect(result).toMatchObject({ queued: true })
+    const queue = await idbGetQueue()
+    expect(queue).toHaveLength(1)
+    expect(queue[0].actionName).toBe('nl-online-fail')
+  })
+})
+
+// ── neverLose — offline path ──────────────────────────────────────────────────
+
+describe('neverLose offline', () => {
+  beforeEach(() => {
+    useEidosStore.setState({ isOnline: false, swStatus: 'active', resources: {}, queue: [] })
+  })
+
+  it('returns QueuedResult without calling fn', async () => {
+    const fn = vi.fn().mockResolvedValue({ id: 'should-not-call' })
+    const wrapped = action(fn, { reliability: 'neverLose', name: 'nl-offline' })
+    const result = await wrapped({ qty: 3 })
+    expect(fn).not.toHaveBeenCalled()
+    expect(result).toMatchObject({ queued: true, id: expect.any(String) })
+  })
+
+  it('persists args to IDB', async () => {
+    const fn = vi.fn()
+    const wrapped = action(fn, { reliability: 'neverLose', name: 'nl-persist' })
+    await wrapped({ productId: 5, qty: 2 })
+    const queue = await idbGetQueue()
+    expect(queue).toHaveLength(1)
+    expect(queue[0].args).toEqual([{ productId: 5, qty: 2 }])
+    expect(queue[0].status).toBe('pending')
+    expect(queue[0].maxRetries).toBe(3)
+  })
+
+  it('respects custom maxRetries', async () => {
+    const fn = vi.fn()
+    const wrapped = action(fn, { reliability: 'neverLose', name: 'nl-retries', maxRetries: 10 })
+    await wrapped()
+    const queue = await idbGetQueue()
+    expect(queue[0].maxRetries).toBe(10)
+  })
+
+  it('updates Zustand store queue', async () => {
+    const fn = vi.fn()
+    const wrapped = action(fn, { reliability: 'neverLose', name: 'nl-store' })
+    await wrapped('x')
+    const storeQueue = useEidosStore.getState().queue
+    expect(storeQueue).toHaveLength(1)
+    expect(storeQueue[0].status).toBe('pending')
+  })
+})
+
+// ── replayQueue ───────────────────────────────────────────────────────────────
+
+describe('replayQueue', () => {
+  it('no-ops when offline', async () => {
+    useEidosStore.setState({ isOnline: false, swStatus: 'active', resources: {}, queue: [] })
+    const fn = vi.fn().mockResolvedValue({})
+    const wrapped = action(fn, { reliability: 'neverLose', name: 'rq-offline-guard' })
+
+    // Queue something first (while offline)
+    await wrapped('data')
+
+    // replayQueue should bail early
+    await replayQueue()
+    expect(fn).not.toHaveBeenCalled()
+  })
+
+  it('replays pending items when online', async () => {
+    const fn = vi.fn().mockResolvedValue({ ok: true })
+    const wrapped = action(fn, { reliability: 'neverLose', name: 'rq-replay' })
+
+    // Queue while offline
+    useEidosStore.setState({ isOnline: false, swStatus: 'active', resources: {}, queue: [] })
+    await wrapped('payload')
+
+    // Come back online and replay
+    useEidosStore.setState({ isOnline: true })
+    await replayQueue()
+
+    expect(fn).toHaveBeenCalledWith('payload')
+  })
+
+  it('skips items with nextRetryAt in the future', async () => {
+    const fn = vi.fn().mockResolvedValue({})
+    const wrapped = action(fn, { reliability: 'neverLose', name: 'rq-backoff-skip' })
+
+    useEidosStore.setState({ isOnline: false, swStatus: 'active', resources: {}, queue: [] })
+    await wrapped('data')
+
+    // Manually set nextRetryAt to the future
+    const queue = await idbGetQueue()
+    const { idbUpdateQueueItem } = await import('../idb')
+    await idbUpdateQueueItem(queue[0].id, { nextRetryAt: Date.now() + 60_000 })
+    useEidosStore.getState().updateQueueItem(queue[0].id, { nextRetryAt: Date.now() + 60_000 })
+
+    useEidosStore.setState({ isOnline: true })
+    await replayQueue()
+
+    // fn should NOT have been called — backoff not expired
+    expect(fn).not.toHaveBeenCalled()
+  })
+
+  it('marks item failed after maxRetries exceeded', async () => {
+    let calls = 0
+    const fn = vi.fn().mockImplementation(async () => {
+      calls++
+      throw new Error('always fails')
+    })
+    const wrapped = action(fn, { reliability: 'neverLose', name: 'rq-max-retries', maxRetries: 1 })
+
+    useEidosStore.setState({ isOnline: false, swStatus: 'active', resources: {}, queue: [] })
+    await wrapped('x')
+
+    useEidosStore.setState({ isOnline: true })
+
+    // First replay — retryCount goes to 1 = maxRetries, status → failed
+    await replayQueue()
+
+    const queue = await idbGetQueue()
+    const item = queue.find(q => q.actionName === 'rq-max-retries')
+    expect(item?.status).toBe('failed')
+    expect(item?.retryCount).toBe(1)
+  })
+})
