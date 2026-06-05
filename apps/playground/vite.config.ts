@@ -32,6 +32,21 @@ function mockApiPlugin(): Plugin {
         },
       )
 
+      server.middlewares.use('/api/orders-history', (_req: IncomingMessage, res: ServerResponse) => {
+        // Longer delay (600ms) makes cache-first benefit obvious
+        setTimeout(() => {
+          const history = Array.from({ length: 5 }, (_, i) => ({
+            id: `ORD-HIST-${i + 1}`,
+            status: 'delivered',
+            items: { productId: i + 1, quantity: 1, customerName: 'Demo User' },
+            createdAt: new Date(Date.now() - i * 86_400_000).toISOString(),
+          }))
+          res.setHeader('Content-Type', 'application/json')
+          res.setHeader('Cache-Control', 'no-store')
+          res.end(JSON.stringify(history))
+        }, 600)
+      })
+
       server.middlewares.use('/api/orders', (req: IncomingMessage, res: ServerResponse) => {
         if (req.method !== 'POST') return
         let body = ''

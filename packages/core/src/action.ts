@@ -36,13 +36,13 @@ export function action<TArgs extends any[], TReturn>(
 
     if (config.reliability === 'neverLose') {
       if (!isOnline) {
-        return persistAndQueue(actionId, fn.name || actionId, args, config)
+        return persistAndQueue(actionId, actionId, args, config)
       }
       // Online + neverLose: execute, queue on failure
       try {
         return await fn(...args)
       } catch {
-        return persistAndQueue(actionId, fn.name || actionId, args, config)
+        return persistAndQueue(actionId, actionId, args, config)
       }
     }
 

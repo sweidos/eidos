@@ -190,22 +190,28 @@ function ProductsDemo({
   resourceEntry: ResourceEntry | undefined
   isOnline: boolean
 }) {
-  const [products, setProducts]     = useState<Product[] | null>(null)
-  const [loading,  setLoading]      = useState(false)
-  const [result,   setResult]       = useState<'hit' | 'miss' | 'offline' | 'error' | null>(null)
+  const [products, setProducts] = useState<Product[] | null>(null)
+  const [loading,  setLoading]  = useState(false)
+  const [result,   setResult]   = useState<'hit' | 'miss' | 'offline' | 'error' | null>(null)
+  const [elapsed,  setElapsed]  = useState<number | null>(null)
 
   async function fetch_() {
     setLoading(true)
     setResult(null)
+    setElapsed(null)
+    const t0 = performance.now()
     try {
       const data = await productsResource.json() as Product[]
+      const ms   = Math.round(performance.now() - t0)
       if (!Array.isArray(data)) throw new Error('unexpected shape')
       setProducts(data)
+      setElapsed(ms)
       const entry = useEidosStore.getState().resources['/api/products']
       const hit   = entry?.lastEvent === 'cache-hit'
       setResult(hit ? 'hit' : 'miss')
-      onEmit(hit ? 'HIT' : 'STORE', `/api/products → ${hit ? 'served from cache' : 'fetched & cached'}`)
+      onEmit(hit ? 'HIT' : 'STORE', `/api/products → ${hit ? 'cache hit' : 'fetched & cached'} · ${ms}ms`)
     } catch (err) {
+      setElapsed(Math.round(performance.now() - t0))
       const offline = String(err).includes('offline')
       setResult(offline ? 'offline' : 'error')
       onEmit('ERR', `/api/products → ${offline ? 'offline · no cache yet' : String(err)}`)
@@ -218,6 +224,7 @@ function ProductsDemo({
     await productsResource.invalidate()
     setProducts(null)
     setResult(null)
+    setElapsed(null)
     onEmit('INFO', '/api/products cache cleared')
   }
 
@@ -230,6 +237,15 @@ function ProductsDemo({
           <span className="text-2xs text-eidos-muted border border-eidos-border px-1.5 py-0.5">
             StaleWhileRevalidate
           </span>
+          {elapsed !== null && (
+            <span className={`text-2xs font-tabular font-bold px-1.5 py-0.5 border animate-fade-in ${
+              result === 'hit'
+                ? 'text-eidos-accent border-eidos-accent/40 bg-eidos-accent-dim'
+                : 'text-eidos-blue border-eidos-blue/40 bg-eidos-blue-dim'
+            }`}>
+              {elapsed}ms
+            </span>
+          )}
         </div>
         {result && <ResultBadge r={result} />}
       </div>
@@ -239,7 +255,7 @@ function ProductsDemo({
         <span className="text-eidos-muted">resource</span>(<span className="text-eidos-accent">'/api/products'</span>, {'{ '}
         <span className="text-eidos-text-dim">offline</span>: <span className="text-eidos-accent">true</span>
         {' }'})<br />
-        <span className="text-eidos-border">// → StaleWhileRevalidate · eidos-resources-v1</span>
+        <span className="text-eidos-border">// → StaleWhileRevalidate · no maxAge</span>
       </div>
 
       {/* Product list */}
@@ -296,7 +312,8 @@ function ProductsDemo({
       </div>
 
       <div className="mt-2 text-2xs text-eidos-muted font-tabular">
-        {resourceEntry?.cacheHits ?? 0} hits · {resourceEntry?.cachedAt ? `cached ${new Date(resourceEntry.cachedAt).toLocaleTimeString('en', { hour12: false })}` : 'not cached yet'}
+        {resourceEntry?.cacheHits ?? 0} hits · {resourceEntry?.cacheMisses ?? 0} misses
+        {resourceEntry?.cachedAt ? ` · cached ${new Date(resourceEntry.cachedAt).toLocaleTimeString('en', { hour12: false })}` : ' · not cached yet'}
         {!isOnline && ' · offline mode active'}
       </div>
     </div>
