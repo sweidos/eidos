@@ -1,7 +1,8 @@
-# @sweidos/eidos
+# Eidos
 
 [![npm](https://img.shields.io/npm/v/@sweidos/eidos)](https://www.npmjs.com/package/@sweidos/eidos)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/iamadi11/eidos/blob/main/LICENSE)
+[![CI](https://github.com/iamadi11/eidos/actions/workflows/deploy.yml/badge.svg)](https://github.com/iamadi11/eidos/actions/workflows/deploy.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 > Describe intent. The runtime figures out how.
 
@@ -19,11 +20,45 @@ const createOrder = action(orderApi.create, { reliability: 'neverLose' })
 
 No service worker file to write. No cache strategy to configure. No retry logic to implement.
 
-**[→ Live playground](https://playground-iamadi11s-projects.vercel.app)** · **[GitHub](https://github.com/iamadi11/eidos)**
+**[→ Live playground](https://playground-iamadi11s-projects.vercel.app)**
 
 ---
 
-## Install
+## The Problem
+
+Building offline-capable apps today requires deep knowledge of:
+
+- Service Worker registration and lifecycle management
+- Cache API strategies (cache-first, network-first, stale-while-revalidate)
+- Fetch event interception and URL routing
+- IndexedDB schema design for persistent queues
+- Exponential backoff and retry logic
+- Cache versioning and stale entry cleanup
+
+Every team re-implements this surface area from scratch.
+
+## The Solution
+
+```ts
+// Before — workbox-config.js + service-worker.js (40+ lines)
+registerRoute(
+  ({ url }) => url.pathname === '/api/products',
+  new StaleWhileRevalidate({ cacheName: 'api-cache', plugins: [...] }),
+)
+self.addEventListener('sync', event => {
+  if (event.tag === 'create-order') event.waitUntil(replayOrders())
+})
+
+// After — eidos (2 lines)
+resource('/api/products', { offline: true })
+action(createOrder, { reliability: 'neverLose' })
+```
+
+---
+
+## Quick Start
+
+### 1. Install
 
 ```bash
 npm install @sweidos/eidos
@@ -31,17 +66,15 @@ npm install @sweidos/eidos
 pnpm add @sweidos/eidos
 ```
 
-Then copy the compiled service worker into your `public/` directory:
+### 2. Add the service worker
 
 ```bash
 cp node_modules/@sweidos/eidos/dist/eidos-sw.js public/eidos-sw.js
 ```
 
----
+> **Vite users** — automate this with the [Vite plugin snippet](#vite-plugin).
 
-## Quick Start
-
-**1. Wrap your app:**
+### 3. Wrap your app
 
 ```tsx
 import { EidosProvider } from '@sweidos/eidos'
@@ -54,11 +87,12 @@ createRoot(document.getElementById('root')!).render(
 )
 ```
 
-**2. Declare resources and actions at module scope:**
+### 4. Declare resources and actions at module scope
 
 ```ts
 // src/lib/eidos.ts
-// Module scope is required — actions must register before page reload for replay.
+// Module scope is required — actions must be registered before page reload
+// for queue replay to work.
 import { resource, action } from '@sweidos/eidos'
 
 export const products = resource('/api/products', {
@@ -78,7 +112,7 @@ export const createOrder = action(
 )
 ```
 
-**3. Use in components:**
+### 5. Use in components
 
 ```tsx
 // TanStack Query
@@ -91,7 +125,7 @@ const data = await products.json<Product[]>()
 const result = await createOrder({ productId: 1, qty: 2 })
 
 if ('queued' in result) {
-  // Persisted to IndexedDB — replays automatically on reconnect
+  // Persisted to IndexedDB — will replay automatically on reconnect
   console.log(result.message)
 }
 ```
@@ -101,6 +135,8 @@ if ('queued' in result) {
 ## API Reference
 
 ### `resource(url, config)`
+
+Registers a URL as an offline-capable resource. Returns a `ResourceHandle`.
 
 ```ts
 const handle = resource('/api/products', {
@@ -122,58 +158,70 @@ const handle = resource('/api/products', {
 **Handle methods:**
 
 ```ts
-handle.fetch()       // Promise<Response>
-handle.json<T>()     // Promise<T>
+handle.fetch()       // Promise<Response> — fetches, respects maxAge
+handle.json<T>()     // Promise<T> — fetch() + response.json()
 handle.query<T>()    // { queryKey, queryFn } — TanStack Query compatible
-handle.prefetch()    // Promise<void>
+handle.prefetch()    // Promise<void> — warm the cache
 handle.invalidate()  // Promise<void> — evict cached entries
-handle.unregister()  // void — remove from SW + registry
+handle.unregister()  // void — remove from SW registry (required to re-register with different config)
+```
+
+**Handle properties:**
+
+```ts
+handle.url           // '/api/products'
+handle.config        // the config you passed in
+handle.strategy      // { name, swStrategy, cacheName, reasoning, behavior, equivalentCode }
 ```
 
 ---
 
 ### `action(fn, config)`
 
+Wraps any async function with reliability guarantees. The wrapped function is a drop-in replacement.
+
 ```ts
 const createOrder = action(
   async (payload: OrderPayload): Promise<Order> => { /* your fn */ },
   {
-    reliability: 'neverLose',  // or 'best-effort'
+    reliability: 'neverLose',  // persist to IndexedDB + replay on reconnect
     maxRetries?: number,        // default: 3
-    name?: string,              // explicit registry key — required for anonymous fns
+    name?: string,              // label in devtools
   }
 )
 
 const result = await createOrder(payload)
-// → Order  when online and successful
-// → { queued: true, id, message }  when offline or network fails (neverLose only)
+// → Order when successful
+// → { queued: true, id, message } when offline or network fails
 ```
 
 **Reliability modes:**
 
 | Mode | Behaviour |
 |------|-----------|
-| `best-effort` | Call directly. No persistence, no retry. |
-| `neverLose` | Persist to IndexedDB before executing. Replay on reconnect with exponential backoff. |
+| `best-effort` | Execute directly. No persistence, no retry. |
+| `neverLose` | Persist args to IndexedDB before executing. Replay on reconnect with exponential backoff. |
 
-**Exponential backoff:** Failed `neverLose` actions are retried at `2s × 2^retryCount` intervals (capped at 5 min, ±20% jitter). Items not yet due are skipped on each replay pass.
+**Exponential backoff:** `neverLose` actions that fail are retried with `2s × 2^retryCount` delay (capped at 5 min, ±20% jitter). Items not yet due are skipped on each replay pass.
 
 ---
 
 ### `replayQueue()`
 
+Manually trigger queue replay. Called automatically on reconnect when `autoReplay: true`.
+
 ```ts
 import { replayQueue } from '@sweidos/eidos'
 
+// Manual trigger — e.g. after a user clicks "Retry"
 await replayQueue()
-// Skips items where nextRetryAt > Date.now() (backoff not yet expired)
 ```
-
-Called automatically on reconnect when `autoReplay: true` (the default).
 
 ---
 
 ### `EidosProvider`
+
+React root component. Registers the SW and initialises the runtime.
 
 ```tsx
 <EidosProvider
@@ -191,31 +239,114 @@ Called automatically on reconnect when `autoReplay: true` (the default).
 ```ts
 import { useEidosStatus, useEidosResource, useEidosQueue } from '@sweidos/eidos'
 
+// Online status + SW lifecycle — cheap subscription, safe in headers
 const { isOnline, swStatus, swError } = useEidosStatus()
 
+// Live cache state for a single resource URL
 const entry = useEidosResource('/api/products')
-// → { status, cacheHits, cacheMisses, cachedAt, strategy, config, ... }
+// entry → { status, cacheHits, cacheMisses, cachedAt, strategy, config, ... }
 
+// The full action queue, reactive
 const queue = useEidosQueue()
-// → ActionQueueItem[] — reactive, updates on every status change
+
+// Full Zustand store — use sparingly
+const state = useEidos()
 ```
 
 ---
 
 ### `setOfflineSimulation(enabled)`
 
+Toggle offline simulation without physically disconnecting the network.
+
 ```ts
 import { setOfflineSimulation } from '@sweidos/eidos'
 
-setOfflineSimulation(true)   // SW serves only cached responses, isOnline = false
-setOfflineSimulation(false)  // restore — triggers replayQueue() after 600ms
+setOfflineSimulation(true)   // SW serves only cached responses
+setOfflineSimulation(false)  // restore normal behaviour
+```
+
+---
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────┐
+│  Application Layer                           │
+│  resource() · action() · EidosProvider       │  ← you write this
+└────────────────┬────────────────────────────┘
+                 │ EIDOS_REGISTER_RESOURCE (postMessage)
+┌────────────────▼────────────────────────────┐
+│  Runtime Layer  (@sweidos/eidos)             │
+│  Strategy derivation · Zustand store         │
+│  SW bridge · IDB queue · exponential backoff │
+└────────────────┬────────────────────────────┘
+                 │ fetch intercept
+┌────────────────▼────────────────────────────┐
+│  Worker Layer   (eidos-sw.js)                │
+│  CacheFirst · StaleWhileRevalidate           │
+│  NetworkFirst · Offline simulation           │
+└────────────────┬────────────────────────────┘
+                 │ Cache API · IndexedDB
+┌────────────────▼────────────────────────────┐
+│  Storage Layer                               │
+│  Cache Storage · IndexedDB (action queue)    │
+└─────────────────────────────────────────────┘
+```
+
+### SW message protocol
+
+**App → SW:**
+
+| Message | Purpose |
+|---------|---------|
+| `EIDOS_REGISTER_RESOURCE` | Register a fetch-intercept rule |
+| `EIDOS_UNREGISTER_RESOURCE` | Remove a rule |
+| `EIDOS_CLEAR_CACHE` | Evict cache entries for a URL |
+| `EIDOS_SIMULATE_OFFLINE` | Toggle offline simulation mode |
+| `EIDOS_PING` | Health check |
+
+**SW → App:**
+
+| Message | Purpose |
+|---------|---------|
+| `EIDOS_CACHE_HIT` | Cached response was served |
+| `EIDOS_CACHE_UPDATED` | Cache entry refreshed from network |
+| `EIDOS_NETWORK_ERROR` | Network request failed |
+| `EIDOS_CACHE_CLEARED` | Cache was cleared |
+
+---
+
+## Repository Structure
+
+```
+eidos/
+├── api/                    Vercel serverless functions (demo endpoints)
+├── packages/
+│   ├── core/               @sweidos/eidos npm package
+│   │   └── src/
+│   │       ├── types.ts
+│   │       ├── resource.ts     resource() — caching + handle
+│   │       ├── action.ts       action() + exponential backoff queue replay
+│   │       ├── runtime.ts      initEidos + SW registration
+│   │       ├── store.ts        Zustand store
+│   │       ├── sw-bridge.ts    postMessage channel
+│   │       ├── idb.ts          IndexedDB CRUD wrapper
+│   │       └── react/          EidosProvider + hooks
+│   └── worker/             SW typed source
+│       └── src/sw.ts       → compiles to eidos-sw.js
+├── apps/
+│   └── playground/         Interactive demo dashboard
+│       └── public/
+│           └── eidos-sw.js compiled service worker
+└── .github/workflows/      CI/CD — deploy + npm release on push to main
 ```
 
 ---
 
 ## Vite Plugin
 
-Auto-copy the SW on build:
+Automatically copy `eidos-sw.js` into `public/` on build:
 
 ```ts
 // vite.config.ts
@@ -241,11 +372,38 @@ function eidosPlugin() {
 
 | Limitation | Detail |
 |------------|--------|
-| GET-only caching | SW intercepts `GET` only. `POST`/`PUT`/`DELETE` are not cached (but are queued via `action()`). |
-| Pathname matching | Resources match by pathname. `/api/products?page=2` uses the same SW rule as `/api/products` but caches separately. |
-| Module-scope actions | `action()` must run at module scope so functions are registered before a page reload triggers replay. |
-| Single SW | `EidosProvider` assumes one SW at `/eidos-sw.js`. |
-| Main-thread replay | Queue replay runs in the main thread, not Background Sync API. The page must be open for replay to fire. |
+| GET-only caching | SW intercepts `GET` only. `POST`/`PUT`/`DELETE` are not cached (but *are* queued via `action()`). |
+| Pathname matching | Resources match by pathname. `/api/products?page=2` and `/api/products` share the same SW rule but are cached separately. |
+| Module-scope actions | `action()` must be called at module scope so functions are registered before a page reload triggers queue replay. |
+| Single SW | `EidosProvider` assumes one SW at `/eidos-sw.js`. Multiple registrations are unsupported. |
+
+---
+
+## Roadmap
+
+- [x] Cache TTL / `maxAge` expiration
+- [x] Exponential backoff with jitter for queue replay
+- [x] Per-resource `cacheName` override
+- [x] `resource.unregister()` for cleanup
+- [ ] URL pattern matching (wildcards, regex)
+- [ ] Cross-origin resource support
+- [ ] Background Sync API integration
+- [ ] Vite plugin (first-class, published separately)
+- [ ] Vue / Svelte bindings
+- [ ] TanStack Query integration package
+
+---
+
+## Contributing
+
+```bash
+pnpm install          # install all workspace deps
+pnpm dev              # run playground at localhost:3000
+pnpm type-check       # typecheck all packages
+pnpm --filter @sweidos/eidos build   # build core package
+```
+
+The project uses pnpm workspaces. TypeScript strict mode throughout.
 
 ---
 
