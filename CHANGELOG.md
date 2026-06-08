@@ -6,6 +6,23 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.0.10] — 2026-06-08
+
+### Added
+
+- **`useEidosAction(id)`** — new hook that subscribes to a single queue item by ID. Only re-renders when that specific item changes, making it more efficient than `useEidosQueue().find(id)` (which re-renders on any queue mutation):
+  ```ts
+  import { useEidosAction } from '@sweidos/eidos'
+
+  const result = await createOrder(payload) // { queued: true, id: 'abc123', ... }
+  const item = useEidosAction(result.id)
+  // item?.status → 'pending' | 'replaying' | 'succeeded' | 'failed'
+  // undefined once removed from the queue
+  ```
+  Complements `useEidosResource(url)` — same pattern for actions.
+
+---
+
 ## [1.0.9] — 2026-06-08
 
 ### Changed

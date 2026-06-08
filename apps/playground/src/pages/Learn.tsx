@@ -333,6 +333,20 @@ await clearQueue()
 // Each item: { id, actionId, actionName, args, queuedAt,
 //              retryCount, maxRetries, status, error?, completedAt? }`}</Pre>
 
+      <H3>useEidosAction(id)</H3>
+      <P>Live state for a single queue item by ID. Only re-renders when <em>that specific item</em> changes — cheaper than <Code>useEidosQueue().find(id)</Code> which re-renders on any queue mutation.</P>
+      <Pre>{`import { useEidosAction } from '@sweidos/eidos'
+
+// Returned when the action is called with reliability: 'neverLose'
+const result = await createOrder(payload)
+// { queued: true, id: 'abc123', message: '...' }
+
+// In a component:
+const item = useEidosAction(result.id)
+// item: ActionQueueItem | undefined
+// item?.status → 'pending' | 'replaying' | 'succeeded' | 'failed'
+// undefined once the item is removed from the queue`}</Pre>
+
       <H3>useEidosStore(selector)</H3>
       <P>Direct access to the reactive store. Use a selector to subscribe to only what you need.</P>
       <Pre>{`import { useEidosStore } from '@sweidos/eidos'

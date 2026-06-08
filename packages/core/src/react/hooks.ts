@@ -16,6 +16,15 @@ export function useEidosQueue() {
 }
 
 /**
+ * Live state for a single queue item by ID. Only re-renders when that specific
+ * item changes — cheaper than `useEidosQueue().find(id)` which re-renders on
+ * any queue mutation.
+ */
+export function useEidosAction(id: string) {
+  return useEidosStore((s) => s.queue.find((item) => item.id === id))
+}
+
+/**
  * Online + SW status — cheap subscription, safe to use in header components.
  * Three separate primitive selectors so each only triggers a re-render when
  * its own value changes (no object-reference churn from a combined selector).

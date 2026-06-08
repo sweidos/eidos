@@ -9,7 +9,7 @@ export { initEidos } from './runtime'
 
 // React bindings
 export { EidosProvider } from './react/Provider'
-export { useEidos, useEidosResource, useEidosQueue, useEidosStatus } from './react/hooks'
+export { useEidos, useEidosResource, useEidosQueue, useEidosAction, useEidosStatus } from './react/hooks'
 
 // Package version — exported so host apps can display it without importing package.json
 export { VERSION } from './version'
