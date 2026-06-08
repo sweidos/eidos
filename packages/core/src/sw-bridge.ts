@@ -1,6 +1,10 @@
 import { useEidosStore } from './store'
 
 let _registration: ServiceWorkerRegistration | null = null
+// Messages sent before the SW activates are buffered here and flushed once
+// the SW is ready. Covers resource registrations, cache clears, offline
+// simulation — anything sent at module scope before EidosProvider mounts.
+let _pendingMessages: Record<string, unknown>[] = []
 
 export function getSwRegistration() {
   return _registration
@@ -29,10 +33,7 @@ export async function registerServiceWorker(swPath: string): Promise<void> {
     window.addEventListener('online', () => store.setOnline(true))
     window.addEventListener('offline', () => store.setOnline(false))
 
-    // resource() is called at module scope — before the SW is ready.
-    // Re-send every registration now that the SW is active so it can
-    // start intercepting fetches immediately.
-    flushResourceRegistrations()
+    flushPendingMessages()
   } catch (err) {
     store.setSwStatus('error', String(err))
   }
@@ -59,7 +60,11 @@ function waitForActivation(reg: ServiceWorkerRegistration): Promise<void> {
 
 export function sendToWorker(message: Record<string, unknown>): void {
   const sw = _registration?.active
-  if (sw) sw.postMessage(message)
+  if (sw) {
+    sw.postMessage(message)
+  } else {
+    _pendingMessages.push(message)
+  }
 }
 
 function onSwMessage(event: MessageEvent): void {
@@ -104,17 +109,9 @@ export function setOfflineSimulation(enabled: boolean): void {
   useEidosStore.getState().setOnline(!enabled)
 }
 
-// Sends EIDOS_REGISTER_RESOURCE for every resource already in the store.
-// Called once after the SW activates to handle the common case where
-// resource() is declared at module scope before the SW is ready.
-function flushResourceRegistrations(): void {
-  const { resources } = useEidosStore.getState()
-  Object.values(resources).forEach((entry) => {
-    sendToWorker({
-      type: 'EIDOS_REGISTER_RESOURCE',
-      url: entry.url,
-      strategy: entry.strategy.swStrategy,
-      cacheName: entry.strategy.cacheName,
-    })
-  })
+function flushPendingMessages(): void {
+  const sw = _registration?.active
+  if (!sw) return
+  for (const msg of _pendingMessages) sw.postMessage(msg)
+  _pendingMessages = []
 }

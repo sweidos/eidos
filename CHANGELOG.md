@@ -6,6 +6,14 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.0.3] — 2026-06-08
+
+### Fixed
+
+- **Pre-activation message buffer** — `sendToWorker` now queues any message sent before the SW is active and flushes the buffer on activation. Previously only resource registrations were re-sent (via `flushResourceRegistrations`); calls to `invalidate()`, `setOfflineSimulation()`, or any other SW message at module scope were silently dropped. The old `flushResourceRegistrations` helper is removed — buffering covers it generically.
+
+---
+
 ## [1.0.2] — 2026-06-08
 
 ### Fixed
