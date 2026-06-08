@@ -6,6 +6,14 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.0.4] — 2026-06-08
+
+### Fixed
+
+- **`replayQueue` concurrency lock** — concurrent calls (e.g. two rapid `online` events or a manual call overlapping an auto-replay) previously both read the same pending items before either marked them `replaying`, risking double-execution of `neverLose` actions. A `_replaying` flag now gates entry so only one replay pass runs at a time; subsequent calls are no-ops until the pass completes.
+
+---
+
 ## [1.0.3] — 2026-06-08
 
 ### Fixed

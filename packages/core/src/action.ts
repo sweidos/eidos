@@ -106,9 +106,20 @@ function backoffMs(retryCount: number): number {
   return base * (0.8 + Math.random() * 0.4)
 }
 
+let _replaying = false
+
 export async function replayQueue(): Promise<void> {
   const store = useEidosStore.getState()
-  if (!store.isOnline) return
+  if (!store.isOnline || _replaying) return
+  _replaying = true
+  try {
+    await _doReplayQueue(store)
+  } finally {
+    _replaying = false
+  }
+}
+
+async function _doReplayQueue(store: ReturnType<typeof useEidosStore.getState>): Promise<void> {
 
   const queue = await idbGetQueue()
   const now = Date.now()
