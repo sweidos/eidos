@@ -61,12 +61,15 @@ export function resource<T = unknown>(
       const store = useEidosStore.getState()
       store.updateResource(url, { status: 'fetching', fetchedAt: Date.now() })
 
+      // Open cache once and reuse across try/catch — avoids a redundant
+      // caches.open() call in the error fallback path.
+      const cache = await caches.open(strategy.cacheName).catch(() => null)
+
       try {
         // ── Direct Cache API check ─────────────────────────────────────
         // We read the cache in the main thread rather than waiting for
         // an async SW postMessage. This gives instant, reliable status
         // updates regardless of SW message timing.
-        const cache = await caches.open(strategy.cacheName).catch(() => null)
         const cached = cache ? await cache.match(url).catch(() => null) : null
 
         // Treat cache as miss if maxAge exceeded
@@ -132,7 +135,6 @@ export function resource<T = unknown>(
         )
       } catch (err) {
         // Network failure — try cache one more time as fallback
-        const cache = await caches.open(strategy.cacheName).catch(() => null)
         const fallback = cache ? await cache.match(url).catch(() => null) : null
 
         if (fallback) {
@@ -170,7 +172,9 @@ export function resource<T = unknown>(
       if (cache) {
         const keys = await cache.keys()
         await Promise.all(
-          keys.filter((r) => new URL(r.url).pathname === url).map((r) => cache.delete(r)),
+          keys
+            .filter((r) => r.url === url || new URL(r.url).pathname === url)
+            .map((r) => cache.delete(r)),
         )
       }
       useEidosStore.getState().updateResource(url, {

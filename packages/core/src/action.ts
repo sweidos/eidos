@@ -17,7 +17,7 @@ import type {
 const _actionRegistry = new Map<string, ActionFn<any[], any>>()
 
 function uid() {
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
+  return crypto.randomUUID()
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -118,42 +118,44 @@ export async function replayQueue(): Promise<void> {
       (!item.nextRetryAt || item.nextRetryAt <= now),
   )
 
-  for (const item of pending) {
-    const fn = _actionRegistry.get(item.actionId)
-    if (!fn) continue
+  await Promise.allSettled(
+    pending.map(async (item) => {
+      const fn = _actionRegistry.get(item.actionId)
+      if (!fn) return
 
-    store.updateQueueItem(item.id, { status: 'replaying' })
-    await idbUpdateQueueItem(item.id, { status: 'replaying' })
+      store.updateQueueItem(item.id, { status: 'replaying' })
+      await idbUpdateQueueItem(item.id, { status: 'replaying' })
 
-    try {
-      await fn(...(item.args as unknown[]))
-      const completedAt = Date.now()
-      store.updateQueueItem(item.id, { status: 'succeeded', completedAt })
-      await idbUpdateQueueItem(item.id, { status: 'succeeded', completedAt })
+      try {
+        await fn(...(item.args as unknown[]))
+        const completedAt = Date.now()
+        store.updateQueueItem(item.id, { status: 'succeeded', completedAt })
+        await idbUpdateQueueItem(item.id, { status: 'succeeded', completedAt })
 
-      // Remove from queue after a delay so the UI can show the success state
-      setTimeout(() => {
-        store.removeQueueItem(item.id)
-        idbRemoveFromQueue(item.id)
-      }, 3000)
-    } catch (err) {
-      const retryCount = item.retryCount + 1
-      if (retryCount >= item.maxRetries) {
-        store.updateQueueItem(item.id, {
-          status: 'failed',
-          error: String(err),
-          retryCount,
-        })
-        await idbUpdateQueueItem(item.id, {
-          status: 'failed',
-          error: String(err),
-          retryCount,
-        })
-      } else {
-        const nextRetryAt = Date.now() + backoffMs(retryCount)
-        store.updateQueueItem(item.id, { status: 'pending', retryCount, nextRetryAt })
-        await idbUpdateQueueItem(item.id, { status: 'pending', retryCount, nextRetryAt })
+        // Remove from queue after a delay so the UI can show the success state
+        setTimeout(() => {
+          store.removeQueueItem(item.id)
+          idbRemoveFromQueue(item.id)
+        }, 3000)
+      } catch (err) {
+        const retryCount = item.retryCount + 1
+        if (retryCount >= item.maxRetries) {
+          store.updateQueueItem(item.id, {
+            status: 'failed',
+            error: String(err),
+            retryCount,
+          })
+          await idbUpdateQueueItem(item.id, {
+            status: 'failed',
+            error: String(err),
+            retryCount,
+          })
+        } else {
+          const nextRetryAt = Date.now() + backoffMs(retryCount)
+          store.updateQueueItem(item.id, { status: 'pending', retryCount, nextRetryAt })
+          await idbUpdateQueueItem(item.id, { status: 'pending', retryCount, nextRetryAt })
+        }
       }
-    }
-  }
+    }),
+  )
 }
