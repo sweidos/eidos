@@ -78,9 +78,11 @@ function ResourceRow({ entry }: { entry: ResourceEntry }) {
     <div>
       <button
         onClick={() => setOpen(v => !v)}
+        aria-expanded={open}
+        aria-label={`${open ? 'Collapse' : 'Expand'} details for ${entry.url}`}
         className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-eidos-surface transition-colors cursor-pointer text-xs"
       >
-        <span className="text-eidos-accent font-bold w-4">{open ? '▼' : '▶'}</span>
+        <span className="text-eidos-accent font-bold w-4" aria-hidden="true">{open ? '▼' : '▶'}</span>
         <span className="text-eidos-text flex-1 font-bold">{entry.url}</span>
         <span className="text-eidos-muted border border-eidos-border px-2 py-0.5 text-2xs">{entry.strategy.name}</span>
         <span className={`w-16 text-2xs ${statusColor}`}>{entry.status}</span>

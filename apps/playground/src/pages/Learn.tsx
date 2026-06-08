@@ -6,7 +6,7 @@ import { ExternalLink, ChevronDown, ChevronRight } from 'lucide-react'
 function H2({ id, children }: { id: string; children: React.ReactNode }) {
   return (
     <h2 id={id} className="text-base font-semibold text-eidos-text mt-10 mb-3 flex items-center gap-2 scroll-mt-4">
-      <a href={`#${id}`} className="text-eidos-border hover:text-eidos-accent transition-colors">#</a>
+      <a href={`#${id}`} aria-label={`Link to ${String(id)} section`} className="text-eidos-border hover:text-eidos-accent transition-colors" tabIndex={-1}>#</a>
       {children}
     </h2>
   )
@@ -80,12 +80,13 @@ function Collapse({ title, children }: { title: string; children: React.ReactNod
     <div className="border border-eidos-border rounded-lg overflow-hidden mb-3">
       <button
         onClick={() => setOpen(v => !v)}
+        aria-expanded={open}
         className="w-full flex items-center gap-2 px-4 py-3 text-sm font-medium text-eidos-text hover:bg-eidos-elevated transition-colors text-left"
       >
         {open ? <ChevronDown size={13} className="shrink-0 text-eidos-accent" /> : <ChevronRight size={13} className="shrink-0 text-eidos-muted" />}
         {title}
       </button>
-      {open && <div className="border-t border-eidos-border p-4 bg-eidos-elevated/30">{children}</div>}
+      {open && <div className="border-t border-eidos-border p-4 bg-eidos-elevated/30" role="region">{children}</div>}
     </div>
   )
 }
@@ -263,9 +264,11 @@ if ('queued' in result) {
         catches both real network reconnects and <Code>setOfflineSimulation(false)</Code>.
       </P>
       <Pre>{`import { replayQueue } from '@sweidos/eidos'
+import type { ReplayResult } from '@sweidos/eidos'
 
-// Manual trigger (autoReplay: false)
-await replayQueue()
+// Returns a result summary — or ignore the return value like before
+const result: ReplayResult = await replayQueue()
+// { attempted: 3, succeeded: 2, failed: 0, retrying: 1, skipped: 0 }
 
 // Replay fires automatically when online state changes.
 // Configure EidosProvider to disable:
@@ -425,6 +428,16 @@ const productEntry = useEidosStore(s => s.resources['/api/products'])`}</Pre>
   readonly queued:  true
   readonly id:      string
   readonly message: string
+}`}</Pre>
+      </Collapse>
+
+      <Collapse title="ReplayResult">
+        <Pre>{`interface ReplayResult {
+  attempted: number  // items where fn was found and called
+  succeeded: number  // resolved successfully
+  failed:    number  // maxRetries exceeded, stays in queue
+  retrying:  number  // failed, will retry later (nextRetryAt set)
+  skipped:   number  // fn not in registry (module not imported yet)
 }`}</Pre>
       </Collapse>
 
