@@ -6,6 +6,33 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.0.2] — 2026-06-08
+
+### Fixed
+
+- **`useEidosStatus` spurious re-renders** — selector now uses `useShallow`; components no longer re-render when unrelated store state changes (cache hits, resource updates, queue mutations)
+- **Runtime subscriber leak** — `useEidosStore.subscribe()` return value is now stored and called by `_resetEidos()`, preventing listener accumulation on HMR and in test suites
+- **`network-first` main-thread bypass** — `resource.fetch()` was doing cache-first logic for all strategies; `network-first` resources now go directly to the network and only fall back to cache on failure, matching the declared intent
+- **`NetworkFirst` SW strategy hangs on slow networks** — fetch is now aborted after 3 seconds (`AbortSignal.timeout(3000)`), matching the `networkTimeoutSeconds: 3` advertised in the strategy's `equivalentCode`
+
+---
+
+## [1.0.1] — 2026-06-08
+
+### Changed
+
+- **`replayQueue` runs in parallel** — pending actions are now replayed concurrently via `Promise.allSettled` instead of sequentially; a queue of N items no longer takes N × round-trip time to drain
+
+### Fixed
+
+- **SW activation timeout** — `waitForActivation` now resolves after 10 seconds regardless, preventing a silent hang when another browser tab holds an older SW version open
+- **`resource.fetch()` double cache open** — `caches.open()` was called twice on network failure (once in `try`, once in `catch`); cache handle is now hoisted and reused
+- **`resource.invalidate()` full-URL mismatch** — cache keys were matched by pathname only; now also matches exact URL (`r.url === url`), fixing invalidation when the resource was registered with an absolute URL
+- **`idbUpdateQueueItem` silent no-op** — missing item in IDB now logs a dev-mode warning instead of silently skipping the `put`, surfacing store/IDB divergence early
+- **Queue item IDs** — `uid()` switched from `Date.now() + Math.random()` to `crypto.randomUUID()` for guaranteed uniqueness
+
+---
+
 ## [1.0.0] — 2026-06-05
 
 First stable release.
