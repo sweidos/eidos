@@ -145,6 +145,15 @@ const handle = resource('/api/products', {
   cacheName?: string,      // custom Cache Storage bucket (default: 'eidos-resources-v1')
   maxAge?: number,         // TTL in ms — expired entries are re-fetched from network
 })
+
+// URL patterns — SW intercepts all matching requests automatically
+resource('/api/products/*',   { offline: true })  // single segment: /api/products/123
+resource('/api/products/**',  { offline: true })  // multi-segment:  /api/products/123/reviews
+resource('/api/users/:id',    { offline: true })  // named segment:  /api/users/abc
+
+// Cross-origin resources — pass the full URL (including origin)
+resource('https://api.example.com/products', { offline: true })
+resource('https://cdn.example.com/assets/*', { offline: true })  // patterns work too
 ```
 
 **Auto-selected strategy:**
@@ -284,6 +293,79 @@ useEidosOnDrain(() => toast.success('All offline actions synced!'))
 // Full store snapshot — use sparingly, prefer the narrower hooks above
 const state = useEidos()
 ```
+
+---
+
+### Vue / Svelte / Vanilla JS Stores
+
+Framework-agnostic reactive stores — no React dependency, zero extra peer deps. These implement the [Svelte store contract](https://svelte.dev/docs/svelte-components#script-4-prefix-stores-with-$-to-access-their-values) (`subscribe(run): unsubscribe`) so they work natively with Svelte's `$` prefix. They also wire up cleanly in Vue composables and plain JS.
+
+```ts
+import {
+  eidosQueue, eidosStatus, eidosQueueStats,
+  eidosResource, eidosAction, eidosStore,
+} from '@sweidos/eidos'
+```
+
+**Svelte:**
+
+```svelte
+<script>
+  import { eidosQueue, eidosStatus, eidosQueueStats, eidosResource } from '@sweidos/eidos'
+  // Use $ prefix — Svelte auto-subscribes and unsubscribes
+</script>
+
+<p>Online: {$eidosStatus.isOnline}</p>
+<p>Pending: {$eidosQueueStats.pending}</p>
+<p>Cache hits: {$eidosResource('/api/products')?.cacheHits ?? 0}</p>
+
+{#each $eidosQueue as item}
+  <div>{item.actionName} — {item.status}</div>
+{/each}
+```
+
+**Vue (Composition API):**
+
+```ts
+import { ref, onUnmounted } from 'vue'
+import { eidosStatus, eidosQueue } from '@sweidos/eidos'
+
+export function useEidosStatusVue() {
+  const status = ref(eidosStatus.getState())
+  const unsub  = eidosStatus.subscribe((v) => { status.value = v })
+  onUnmounted(unsub)
+  return status
+}
+
+export function useEidosQueueVue() {
+  const queue = ref(eidosQueue.getState())
+  const unsub = eidosQueue.subscribe((v) => { queue.value = v })
+  onUnmounted(unsub)
+  return queue
+}
+```
+
+**Vanilla JS:**
+
+```ts
+import { eidosStatus, eidosResource } from '@sweidos/eidos'
+
+const unsub = eidosStatus.subscribe(({ isOnline }) => {
+  document.title = isOnline ? 'App' : 'App (offline)'
+})
+
+// Read current value once without subscribing
+const hits = eidosResource('/api/products').getState()?.cacheHits ?? 0
+```
+
+| Store | Type | Emits when |
+|-------|------|-----------|
+| `eidosQueue` | `ActionQueueItem[]` | Any queue mutation |
+| `eidosStatus` | `{ isOnline, swStatus, swError }` | Online or SW status changes |
+| `eidosQueueStats` | `{ pending, failed, replaying, total }` | Any queue mutation |
+| `eidosResource(url)` | `ResourceEntry \| undefined` | Resource registered or updated |
+| `eidosAction(id)` | `ActionQueueItem \| undefined` | Item status changes or removal |
+| `eidosStore` | `EidosStore` | Any state change |
 
 ---
 
@@ -428,7 +510,7 @@ function eidosPlugin() {
 | Limitation | Detail |
 |------------|--------|
 | GET-only caching | SW intercepts `GET` only. `POST`/`PUT`/`DELETE` are not cached (but *are* queued via `action()`). |
-| Pathname matching | Resources match by pathname. `/api/products?page=2` and `/api/products` share the same SW rule but are cached separately. |
+| Query string ignored | Resources match by pathname (or full URL for cross-origin). `/api/products?page=2` and `/api/products` share the same SW rule but are cached as separate entries. |
 | Module-scope actions | `action()` must be called at module scope so functions are registered before a page reload triggers queue replay. |
 | Single SW | `EidosProvider` assumes one SW at `/eidos-sw.js`. Multiple registrations are unsupported. |
 
@@ -440,11 +522,11 @@ function eidosPlugin() {
 - [x] Exponential backoff with jitter for queue replay
 - [x] Per-resource `cacheName` override
 - [x] `resource.unregister()` for cleanup
-- [ ] URL pattern matching (wildcards, regex)
-- [ ] Cross-origin resource support
+- [x] URL pattern matching (`*`, `**`, `:param`)
+- [x] Cross-origin resource support
 - [ ] Background Sync API integration
 - [ ] Vite plugin (first-class, published separately)
-- [ ] Vue / Svelte bindings
+- [x] Vue / Svelte bindings (framework-agnostic reactive stores)
 - [ ] TanStack Query integration package
 
 ---
