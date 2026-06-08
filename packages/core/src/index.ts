@@ -4,7 +4,7 @@
 
 // Public API
 export { resource } from './resource'
-export { action, replayQueue } from './action'
+export { action, replayQueue, clearQueue } from './action'
 export { initEidos } from './runtime'
 
 // React bindings

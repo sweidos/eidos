@@ -4,6 +4,7 @@ import {
   idbGetPendingItems,
   idbUpdateQueueItem,
   idbRemoveFromQueue,
+  idbClearQueue,
 } from './idb'
 import type {
   ActionConfig,
@@ -175,4 +176,10 @@ async function _doReplayQueue(store: ReturnType<typeof useEidosStore.getState>):
       }
     }),
   )
+}
+
+/** Remove all items from the action queue (IDB + in-memory store). */
+export async function clearQueue(): Promise<void> {
+  await idbClearQueue()
+  useEidosStore.getState().hydrateQueue([])
 }
