@@ -14,6 +14,8 @@ const CACHE_PREFIX = 'eidos'
 interface ResourceRegistration {
   strategy: 'cache-first' | 'stale-while-revalidate' | 'network-first'
   cacheName: string
+  /** Compiled from the URL pattern sent by the app; undefined for exact-URL registrations. */
+  pattern?: RegExp
 }
 
 const runtimeConfig = {
@@ -51,11 +53,14 @@ self.addEventListener('message', (event) => {
 
   switch (data.type) {
     case 'EIDOS_REGISTER_RESOURCE': {
-      runtimeConfig.resources.set(data.url as string, {
+      const url = data.url as string
+      const patternSrc = data.pattern as string | undefined
+      runtimeConfig.resources.set(url, {
         strategy: data.strategy as ResourceRegistration['strategy'],
         cacheName: (data.cacheName as string) ?? `${CACHE_PREFIX}-resources-${CACHE_VERSION}`,
+        ...(patternSrc !== undefined && { pattern: new RegExp(patternSrc) }),
       })
-      event.source?.postMessage({ type: 'EIDOS_RESOURCE_REGISTERED', url: data.url })
+      event.source?.postMessage({ type: 'EIDOS_RESOURCE_REGISTERED', url })
       break
     }
     case 'EIDOS_UNREGISTER_RESOURCE': {
@@ -74,9 +79,19 @@ self.addEventListener('message', (event) => {
       caches.open(cacheName).then(async (cache) => {
         if (targetUrl) {
           const keys = await cache.keys()
+          const isCrossOrigin = targetUrl.startsWith('http')
           await Promise.all(
             keys
-              .filter((req) => new URL(req.url).pathname === targetUrl)
+              .filter((req) => {
+                const reqUrl = req.url
+                const p = new URL(reqUrl).pathname
+                if (reg?.pattern) {
+                  // Cross-origin patterns compile from absolute URL; test against full URL.
+                  // Same-origin patterns compile from pathname; test against pathname.
+                  return reg.pattern.test(isCrossOrigin ? reqUrl : p)
+                }
+                return isCrossOrigin ? reqUrl === targetUrl : p === targetUrl
+              })
               .map((req) => cache.delete(req)),
           )
         } else {
@@ -97,8 +112,26 @@ self.addEventListener('message', (event) => {
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return
 
-  const pathname = new URL(event.request.url).pathname
-  const reg = runtimeConfig.resources.get(pathname)
+  const requestUrl = event.request.url
+  const pathname = new URL(requestUrl).pathname
+
+  // Fast path: try full URL (cross-origin) then pathname (same-origin) — O(1)
+  let reg = runtimeConfig.resources.get(requestUrl) ?? runtimeConfig.resources.get(pathname)
+
+  // Slow path: pattern match — iterate registrations with compiled regexes
+  if (!reg) {
+    for (const [key, registration] of runtimeConfig.resources) {
+      if (!registration.pattern) continue
+      // Cross-origin patterns are keyed by absolute URL; match against full request URL.
+      // Same-origin patterns are keyed by pathname; match against pathname only.
+      const target = key.startsWith('http') ? requestUrl : pathname
+      if (registration.pattern.test(target)) {
+        reg = registration
+        break
+      }
+    }
+  }
+
   if (!reg) return
 
   if (reg.strategy === 'stale-while-revalidate' && !runtimeConfig.simulateOffline) {

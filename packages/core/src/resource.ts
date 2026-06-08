@@ -10,6 +10,49 @@ import type {
 
 const _registry = new Map<string, ResourceHandle>()
 
+// ── URL pattern helpers ───────────────────────────────────────────────────────
+
+/** Returns true if `url` contains wildcard or :param segments. */
+function isPattern(url: string): boolean {
+  return url.includes('*') || /:[^/]+/.test(url)
+}
+
+/**
+ * Converts a URL pattern to a regex source string for SW fetch matching.
+ *  `**`     → multi-segment wildcard  (`.+`)
+ *  `*`      → single-segment wildcard (`[^/]+`)
+ *  `:param` → named single segment    (`[^/]+`)
+ *
+ * Special regex characters in the pattern (e.g. `.`) are escaped first so
+ * they match literally.
+ *
+ * @example
+ *   patternToRegexStr('/api/products/*')      // '^/api/products/[^/]+$'
+ *   patternToRegexStr('/api/products/**')     // '^/api/products/.+$'
+ *   patternToRegexStr('/api/users/:id')       // '^/api/users/[^/]+$'
+ */
+function patternToRegexStr(pattern: string): string {
+  // Escape all regex-special chars except `*`, `/`, `:` (handled below)
+  const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&')
+  return (
+    '^' +
+    escaped
+      .replace(/\*\*/g, '.+')       // ** → multi-segment wildcard
+      .replace(/\*/g, '[^/]+')      // * → single-segment wildcard
+      .replace(/:[^/]+/g, '[^/]+')  // :param → single-segment wildcard
+    + '$'
+  )
+}
+
+function _patternError(url: string, method: string): Error {
+  return new Error(
+    `[eidos] resource('${url}') is a URL pattern — ${method}() is not supported on pattern handles. ` +
+    `The SW intercepts matching requests automatically; call fetch(specificUrl) directly in your app code.`,
+  )
+}
+
+// ── resource() ────────────────────────────────────────────────────────────────
+
 export function resource<T = unknown>(
   url: string,
   config: ResourceConfig,
@@ -33,6 +76,7 @@ export function resource<T = unknown>(
   }
 
   const strategy = deriveStrategy(url, config)
+  const regexStr = isPattern(url) ? patternToRegexStr(url) : undefined
 
   const entry: ResourceEntry = {
     url,
@@ -50,6 +94,7 @@ export function resource<T = unknown>(
     url,
     strategy: strategy.swStrategy,
     cacheName: strategy.cacheName,
+    ...(regexStr !== undefined && { pattern: regexStr }),
   })
 
   const handle: ResourceHandle<T> = {
@@ -58,6 +103,8 @@ export function resource<T = unknown>(
     strategy,
 
     fetch: async () => {
+      if (isPattern(url)) throw _patternError(url, 'fetch')
+
       const store = useEidosStore.getState()
       store.updateResource(url, { status: 'fetching', fetchedAt: Date.now() })
 
@@ -159,16 +206,21 @@ export function resource<T = unknown>(
     },
 
     json: async () => {
+      if (isPattern(url)) throw _patternError(url, 'json')
       const res = await handle.fetch()
       return res.json() as Promise<T>
     },
 
-    query: () => ({
-      queryKey: ['eidos', url] as [string, string],
-      queryFn: () => handle.json(),
-    }),
+    query: () => {
+      if (isPattern(url)) throw _patternError(url, 'query')
+      return {
+        queryKey: ['eidos', url] as [string, string],
+        queryFn: () => handle.json(),
+      }
+    },
 
     prefetch: async () => {
+      if (isPattern(url)) throw _patternError(url, 'prefetch')
       await handle.fetch()
     },
 
@@ -177,19 +229,33 @@ export function resource<T = unknown>(
       const cache = await caches.open(strategy.cacheName).catch(() => null)
       if (cache) {
         const keys = await cache.keys()
+        const patternRe = regexStr ? new RegExp(regexStr) : null
+        const isCrossOrigin = url.startsWith('http')
         await Promise.all(
           keys
-            .filter((r) => r.url === url || new URL(r.url).pathname === url)
+            .filter((r) => {
+              const rUrl = r.url
+              const p = new URL(rUrl).pathname
+              if (patternRe) {
+                // Cross-origin patterns were compiled from absolute URLs; test full URL.
+                return patternRe.test(isCrossOrigin ? rUrl : p)
+              }
+              return isCrossOrigin ? rUrl === url : (rUrl === url || p === url)
+            })
             .map((r) => cache.delete(r)),
         )
       }
-      useEidosStore.getState().updateResource(url, {
-        status: 'stale',
-        cachedAt: undefined,
-        lastEvent: 'cache-cleared',
-        cacheHits: 0,
-        cacheMisses: 0,
-      })
+      // For exact-URL resources update the store entry; patterns don't have a
+      // single entry to update (individual URLs are not tracked per-pattern).
+      if (!isPattern(url)) {
+        useEidosStore.getState().updateResource(url, {
+          status: 'stale',
+          cachedAt: undefined,
+          lastEvent: 'cache-cleared',
+          cacheHits: 0,
+          cacheMisses: 0,
+        })
+      }
     },
 
     unregister: () => {
