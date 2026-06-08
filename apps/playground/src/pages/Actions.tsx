@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
-import { useEidosStore, replayQueue } from '@sweidos/eidos'
+import { useEidosQueue, useEidosStatus, replayQueue } from '@sweidos/eidos'
 import type { ActionQueueItem } from '@sweidos/eidos'
 
 export function Actions() {
-  const queue    = useEidosStore(s => s.queue)
-  const isOnline = useEidosStore(s => s.isOnline)
+  const queue              = useEidosQueue()
+  const { isOnline }       = useEidosStatus()
   const [busy, setBusy] = useState(false)
 
   const pending   = queue.filter(q => q.status === 'pending')

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { RefreshCw, ShoppingCart, CheckCircle, WifiOff, ArrowRight, Clock, Zap, ArrowUp, AlertTriangle, X } from 'lucide-react'
-import { useEidosStore, replayQueue } from '@sweidos/eidos'
+import { useEidosQueue, useEidosStatus, useEidosResource, useEidosStore, replayQueue } from '@sweidos/eidos'
 import type { ActionQueueItem, ResourceEntry } from '@sweidos/eidos'
 import { productsResource, createOrder, type Product } from '../lib/eidos'
 
@@ -33,10 +33,9 @@ export function Demo() {
   const navigate = useNavigate()
   const [events, setEvents]   = useState<SwEvent[]>([])
   const evRef                  = useRef<SwEvent[]>([])
-  const queue                  = useEidosStore(s => s.queue)
-  const isOnline               = useEidosStore(s => s.isOnline)
-  const swStatus               = useEidosStore(s => s.swStatus)
-  const resourceEntry          = useEidosStore(s => s.resources['/api/products'])
+  const queue                      = useEidosQueue()
+  const { isOnline, swStatus }     = useEidosStatus()
+  const resourceEntry              = useEidosResource('/api/products')
 
   // Queue events
   const prevQLen = useRef(0)
