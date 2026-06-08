@@ -149,6 +149,41 @@ describe('hydrateQueue', () => {
   })
 })
 
+// ── useEidosQueueStats selector ───────────────────────────────────────────────
+
+describe('useEidosQueueStats selector (via store)', () => {
+  it('returns zero counts for empty queue', () => {
+    const q = useEidosStore.getState().queue
+    const pending   = q.filter((i) => i.status === 'pending').length
+    const failed    = q.filter((i) => i.status === 'failed').length
+    const replaying = q.filter((i) => i.status === 'replaying').length
+    expect(pending).toBe(0)
+    expect(failed).toBe(0)
+    expect(replaying).toBe(0)
+    expect(q.length).toBe(0)
+  })
+
+  it('counts pending and failed independently', () => {
+    useEidosStore.getState().addQueueItem({ ...makeItem('p1'), status: 'pending' })
+    useEidosStore.getState().addQueueItem({ ...makeItem('p2'), status: 'pending' })
+    useEidosStore.getState().addQueueItem({ ...makeItem('f1'), status: 'failed' })
+    useEidosStore.getState().addQueueItem({ ...makeItem('r1'), status: 'replaying' })
+
+    const q = useEidosStore.getState().queue
+    expect(q.filter((i) => i.status === 'pending').length).toBe(2)
+    expect(q.filter((i) => i.status === 'failed').length).toBe(1)
+    expect(q.filter((i) => i.status === 'replaying').length).toBe(1)
+    expect(q.length).toBe(4)
+  })
+
+  it('total decreases when item removed', () => {
+    useEidosStore.getState().addQueueItem(makeItem('rem'))
+    expect(useEidosStore.getState().queue.length).toBe(1)
+    useEidosStore.getState().removeQueueItem('rem')
+    expect(useEidosStore.getState().queue.length).toBe(0)
+  })
+})
+
 // ── useEidosAction selector ────────────────────────────────────────────────────
 
 describe('useEidosAction selector (via store)', () => {

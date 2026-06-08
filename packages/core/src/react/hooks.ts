@@ -35,3 +35,16 @@ export function useEidosStatus() {
   const swError = useEidosStore((s) => s.swError)
   return { isOnline, swStatus, swError }
 }
+
+/**
+ * Queue counts — four independent primitive selectors. Re-renders only when a
+ * count changes, not on every queue mutation. Use for badges and status bars
+ * instead of `useEidosQueue()` when you only need numbers, not full items.
+ */
+export function useEidosQueueStats() {
+  const pending   = useEidosStore((s) => s.queue.filter((q) => q.status === 'pending').length)
+  const failed    = useEidosStore((s) => s.queue.filter((q) => q.status === 'failed').length)
+  const replaying = useEidosStore((s) => s.queue.filter((q) => q.status === 'replaying').length)
+  const total     = useEidosStore((s) => s.queue.length)
+  return { pending, failed, replaying, total }
+}

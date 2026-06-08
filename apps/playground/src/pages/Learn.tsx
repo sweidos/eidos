@@ -333,6 +333,20 @@ await clearQueue()
 // Each item: { id, actionId, actionName, args, queuedAt,
 //              retryCount, maxRetries, status, error?, completedAt? }`}</Pre>
 
+      <H3>useEidosQueueStats()</H3>
+      <P>Count-only subscription — returns <Code>{`{ pending, failed, replaying, total }`}</Code>. Four independent primitive selectors so each count only triggers a re-render when it changes. Use for badges and status bars instead of <Code>useEidosQueue()</Code> when you only need numbers, not full items.</P>
+      <Pre>{`import { useEidosQueueStats } from '@sweidos/eidos'
+
+const { pending, failed, replaying, total } = useEidosQueueStats()
+// pending   — items waiting for next replay pass
+// failed    — maxRetries exceeded, needs user attention
+// replaying — currently in-flight
+// total     — all items in queue
+
+// Example: header badge
+{pending > 0 && <span>{pending}</span>}
+{failed  > 0 && <span className="text-red-400">{failed} failed</span>}`}</Pre>
+
       <H3>useEidosAction(id)</H3>
       <P>Live state for a single queue item by ID. Only re-renders when <em>that specific item</em> changes — cheaper than <Code>useEidosQueue().find(id)</Code> which re-renders on any queue mutation.</P>
       <Pre>{`import { useEidosAction } from '@sweidos/eidos'

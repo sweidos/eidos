@@ -1,6 +1,6 @@
 import { Wifi, WifiOff, Cpu } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
-import { useEidosStatus, setOfflineSimulation, useEidosStore, VERSION } from '@sweidos/eidos'
+import { useEidosStatus, useEidosQueueStats, setOfflineSimulation, VERSION } from '@sweidos/eidos'
 import { useState } from 'react'
 
 const TABS = [
@@ -13,7 +13,7 @@ const TABS = [
 
 export function Header() {
   const { isOnline, swStatus } = useEidosStatus()
-  const pendingCount = useEidosStore(s => s.queue.filter(q => q.status === 'pending').length)
+  const { pending: pendingCount, failed: failedCount } = useEidosQueueStats()
   const [simulating, setSimulating] = useState(false)
 
   function toggleSim() {
@@ -84,8 +84,13 @@ export function Header() {
             `}
           >
             {tab.label}
+            {tab.path === '/actions' && failedCount > 0 && (
+              <span className="text-2xs bg-eidos-red text-white px-1 font-bold" aria-label={`${failedCount} failed`}>
+                {failedCount}
+              </span>
+            )}
             {tab.path === '/actions' && pendingCount > 0 && (
-              <span className="text-2xs bg-eidos-amber text-eidos-bg px-1 font-bold">
+              <span className="text-2xs bg-eidos-amber text-eidos-bg px-1 font-bold" aria-label={`${pendingCount} pending`}>
                 {pendingCount}
               </span>
             )}

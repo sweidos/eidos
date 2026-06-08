@@ -6,6 +6,25 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.0.11] — 2026-06-08
+
+### Added
+
+- **`useEidosQueueStats()`** — count-only queue hook returning `{ pending, failed, replaying, total }`. Four independent primitive selectors, each re-rendering only when its count changes. Cheaper than `useEidosQueue()` for badge/status-bar components that only need numbers:
+  ```ts
+  import { useEidosQueueStats } from '@sweidos/eidos'
+
+  const { pending, failed, replaying, total } = useEidosQueueStats()
+  ```
+
+### Fixed (playground)
+
+- **Skip link** — `<a href="#main-content">` before the header lets keyboard users jump past navigation in one keystroke. Visually hidden until focused (Tailwind `sr-only focus:not-sr-only`).
+- **Smooth scroll** — `html { scroll-behavior: smooth }` added to `index.css`, so anchor links in the API docs (Learn page) scroll smoothly. Overridden to `auto` for `prefers-reduced-motion: reduce` (already set).
+- **Failed badge** — Actions tab now shows a red `failed` count badge alongside the existing amber `pending` badge, powered by `useEidosQueueStats()`.
+
+---
+
 ## [1.0.10] — 2026-06-08
 
 ### Added

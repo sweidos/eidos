@@ -75,6 +75,9 @@ export default defineConfig({
       // During dev: resolve 'eidos' directly to TypeScript source for hot-reload
       '@sweidos/eidos': resolve(__dirname, '../../packages/core/src/index.ts'),
     },
+    // Force one React copy — prevents "invalid hook call" when core/src imports
+    // from packages/core/node_modules/react vs the playground's root React.
+    dedupe: ['react', 'react-dom'],
   },
   server: {
     port: 3000,
