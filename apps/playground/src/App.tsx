@@ -9,9 +9,15 @@ import { Learn } from './pages/Learn'
 export function App() {
   return (
     <BrowserRouter>
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:px-3 focus:py-1.5 focus:text-xs focus:bg-eidos-accent focus:text-eidos-bg focus:font-bold"
+      >
+        Skip to main content
+      </a>
       <div className="flex flex-col h-screen overflow-hidden bg-eidos-bg">
         <Header />
-        <main className="flex-1 overflow-y-auto">
+        <main id="main-content" className="flex-1 overflow-y-auto">
           <Routes>
             <Route path="/" element={<Navigate to="/demo" replace />} />
             <Route path="/demo"      element={<Demo />} />
