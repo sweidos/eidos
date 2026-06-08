@@ -19,6 +19,10 @@ export { setOfflineSimulation } from './sw-bridge'
 export { useEidosStore } from './store'
 export type { EidosStore } from './store'
 
+// Framework-agnostic reactive stores (Svelte / Vue / vanilla JS)
+export { eidosStore, eidosQueue, eidosStatus, eidosQueueStats, eidosResource, eidosAction } from './stores'
+export type { EidosReadable } from './stores'
+
 // Types
 export type {
   ResourceConfig,
