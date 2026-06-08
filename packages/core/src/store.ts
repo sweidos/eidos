@@ -1,4 +1,3 @@
-import { useSyncExternalStore } from 'react'
 import type { EidosState, ResourceEntry, ActionQueueItem } from './types'
 
 export interface EidosStore extends EidosState {
@@ -81,23 +80,13 @@ function _subscribe(listener: Listener) {
   return () => { _listeners.delete(listener) }
 }
 
-// useSyncExternalStore-based hook — drop-in replacement for zustand's useStore.
-// Supports both bare call (full state) and selector call.
-function _useStore(): EidosStore
-function _useStore<T>(selector: (state: EidosStore) => T): T
-function _useStore<T = EidosStore>(selector?: (state: EidosStore) => T): T {
-  const fn = selector ?? ((s: EidosStore) => s as unknown as T)
-  return useSyncExternalStore(_subscribe, () => fn(_getState()))
+export const useEidosStore = {
+  getState: _getState,
+  subscribe: _subscribe,
+  // Test/devtools helper — merges partial state, preserves action methods.
+  setState: (partial: Partial<EidosStore> | ((s: EidosStore) => Partial<EidosStore>)) => {
+    const update = typeof partial === 'function' ? partial(_state) : partial
+    _state = { ..._state, ...update }
+    _notify()
+  },
 }
-
-_useStore.getState = _getState
-_useStore.subscribe = _subscribe
-
-// Test/devtools helper — merges partial state, preserves action methods.
-_useStore.setState = (partial: Partial<EidosStore> | ((s: EidosStore) => Partial<EidosStore>)) => {
-  const update = typeof partial === 'function' ? partial(_state) : partial
-  _state = { ..._state, ...update }
-  _notify()
-}
-
-export const useEidosStore = _useStore
