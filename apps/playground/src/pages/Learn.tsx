@@ -105,6 +105,7 @@ export function Learn() {
             ['#resource',     'resource()'],
             ['#action',       'action()'],
             ['#replay',       'replayQueue()'],
+            ['#clear',        'clearQueue()'],
             ['#provider',     'EidosProvider'],
             ['#hooks',        'Hooks'],
             ['#types',        'Types'],
@@ -277,6 +278,18 @@ await replayQueue()
   → 'succeeded'   (fn resolved, removed from IDB after 3s)
   → 'failed'      (maxRetries exceeded, stays in IDB for inspection)
   → 'pending'     (retry count incremented, will attempt again)`}</Pre>
+
+      {/* ── clearQueue() ─────────────────────────────────────────────────────── */}
+      <H2 id="clear">clearQueue()</H2>
+      <P>
+        Removes all items from the action queue — both IndexedDB and the in-memory store.
+        Useful for "clear all failed" UI controls and test teardown.
+      </P>
+      <Pre>{`import { clearQueue } from '@sweidos/eidos'
+
+await clearQueue()
+// → IDB action-queue store emptied
+// → in-memory queue reset to []`}</Pre>
 
       {/* ── EidosProvider ────────────────────────────────────────────────────── */}
       <H2 id="provider">EidosProvider</H2>

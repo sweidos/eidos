@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { RefreshCw, ShoppingCart, CheckCircle, WifiOff, ArrowRight, Clock } from 'lucide-react'
+import { RefreshCw, ShoppingCart, CheckCircle, WifiOff, ArrowRight, Clock, Zap, ArrowUp, AlertTriangle, X } from 'lucide-react'
 import { useEidosStore, replayQueue } from '@sweidos/eidos'
 import type { ActionQueueItem, ResourceEntry } from '@sweidos/eidos'
 import { productsResource, createOrder, type Product } from '../lib/eidos'
@@ -322,14 +322,14 @@ function ProductsDemo({
 
 function ResultBadge({ r }: { r: 'hit' | 'miss' | 'offline' | 'error' }) {
   const cfg = {
-    hit:     { text: '⚡ cache hit',       cls: 'text-eidos-accent border-eidos-accent/40 bg-eidos-accent-dim' },
-    miss:    { text: '↑ fetched & cached', cls: 'text-eidos-blue border-eidos-blue/40 bg-eidos-blue-dim' },
-    offline: { text: '⚠ offline · no cache', cls: 'text-eidos-amber border-eidos-amber/40 bg-eidos-amber-dim' },
-    error:   { text: '✕ error',            cls: 'text-eidos-red border-eidos-red/40 bg-eidos-red-dim' },
+    hit:     { icon: <Zap size={9} />,           text: 'cache hit',       cls: 'text-eidos-accent border-eidos-accent/40 bg-eidos-accent-dim' },
+    miss:    { icon: <ArrowUp size={9} />,        text: 'fetched & cached', cls: 'text-eidos-blue border-eidos-blue/40 bg-eidos-blue-dim' },
+    offline: { icon: <AlertTriangle size={9} />,  text: 'offline · no cache', cls: 'text-eidos-amber border-eidos-amber/40 bg-eidos-amber-dim' },
+    error:   { icon: <X size={9} />,              text: 'error',            cls: 'text-eidos-red border-eidos-red/40 bg-eidos-red-dim' },
   }[r]
   return (
-    <span className={`text-2xs border px-2 py-0.5 animate-fade-in ${cfg.cls}`}>
-      {cfg.text}
+    <span className={`flex items-center gap-1 text-2xs border px-2 py-0.5 animate-fade-in ${cfg.cls}`}>
+      {cfg.icon}{cfg.text}
     </span>
   )
 }
@@ -406,7 +406,7 @@ function OrdersDemo({
       <div className="min-h-[80px] mb-4">
         {pending.length === 0 ? (
           <div className="flex items-center justify-center h-20 text-2xs text-eidos-muted">
-            {isOnline ? 'simulate offline · submit an order' : '⚡ offline · orders will queue to IDB'}
+            {isOnline ? 'simulate offline · submit an order' : 'offline · orders will queue to IDB'}
           </div>
         ) : (
           <div className="border border-eidos-border divide-y divide-eidos-border">

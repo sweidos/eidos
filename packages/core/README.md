@@ -219,6 +219,18 @@ await replayQueue()
 
 ---
 
+### `clearQueue()`
+
+Remove all items from the action queue (IndexedDB + in-memory store). Useful for "clear all failed" UI controls and test teardown.
+
+```ts
+import { clearQueue } from '@sweidos/eidos'
+
+await clearQueue()
+```
+
+---
+
 ### `EidosProvider`
 
 React root component. Registers the SW and initialises the runtime.

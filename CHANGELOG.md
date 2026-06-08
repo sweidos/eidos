@@ -6,6 +6,23 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.0.8] — 2026-06-08
+
+### Added
+
+- **`clearQueue()`** — new exported function that removes all items from the action queue (both IndexedDB and the in-memory store). Useful for "clear all failed" UI controls and test teardown.
+  ```ts
+  import { clearQueue } from '@sweidos/eidos'
+  await clearQueue()
+  ```
+
+### Fixed (playground)
+
+- **`prefers-reduced-motion` respected** — all animations (`fade-in`, `slide-right`, `pulse`, `blink`) are disabled via a global `@media (prefers-reduced-motion: reduce)` rule in `index.css`.
+- **Emoji icons replaced** — `ResultBadge` in the demo used emoji/unicode characters (`⚡`, `↑`, `⚠`, `✕`) as visual indicators. Replaced with Lucide SVG icons (`Zap`, `ArrowUp`, `AlertTriangle`, `X`) per accessibility best practices.
+
+---
+
 ## [1.0.7] — 2026-06-08
 
 ### Added
