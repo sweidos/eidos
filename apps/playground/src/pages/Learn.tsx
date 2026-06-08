@@ -104,6 +104,8 @@ export function Learn() {
             ['#install',      'Installation'],
             ['#setup',        'Quick Setup'],
             ['#resource',     'resource()'],
+            ['#patterns',     'URL Patterns'],
+            ['#cross-origin', 'Cross-Origin'],
             ['#action',       'action()'],
             ['#replay',       'replayQueue()'],
             ['#clear',        'clearQueue()'],
@@ -111,6 +113,7 @@ export function Learn() {
             ['#hooks',        'Hooks'],
             ['#types',        'Types'],
             ['#strategies',   'Strategies'],
+            ['#svelte-vue',   'Svelte / Vue / JS'],
             ['#simulation',   'Offline Simulation'],
             ['#architecture', 'Architecture'],
             ['#limitations',  'Limitations'],
@@ -207,6 +210,72 @@ products.unregister()`}</Pre>
       <Pre>{`products.url        // '/api/products'
 products.config     // { offline: true }
 products.strategy   // GeneratedStrategy object (see Types)`}</Pre>
+
+      <H2 id="patterns">URL patterns</H2>
+      <P>
+        Pass a pattern instead of an exact URL to cache entire route families automatically.
+        The SW intercepts every matching request — no individual registrations needed.
+        Three wildcard syntaxes are supported:
+      </P>
+      <Table headers={['Syntax', 'Matches', 'Example pattern']}>
+        <PropRow name="*"       type="single path segment" def="/api/products/123"           desc="Matches any non-slash characters between two slashes." />
+        <PropRow name="**"      type="multiple segments"   def="/api/products/123/reviews"   desc="Matches any characters including slashes." />
+        <PropRow name=":param"  type="named single segment" def="/api/users/abc"             desc="Named placeholder — equivalent to * but documents intent." />
+      </Table>
+      <Pre label="src/lib/eidos.ts">{`// Register once — all product detail pages are intercepted automatically
+resource('/api/products/*', { offline: true })
+// → /api/products/1, /api/products/abc all cached by StaleWhileRevalidate
+
+resource('/api/users/:id/orders', { offline: true })
+// → /api/users/alice/orders, /api/users/bob/orders
+
+resource('/api/v2/**', { offline: true })
+// → /api/v2/anything/nested/deeply
+
+// Your fetch() calls — no code change required, the SW handles it
+const res = await fetch('/api/products/123')   // ← intercepted + cached
+const { data } = useQuery({
+  queryKey: ['product', id],
+  queryFn:  () => fetch(\`/api/products/\${id}\`).then(r => r.json()),
+})
+
+// invalidate() clears all entries matching the pattern
+await productPattern.invalidate()`}</Pre>
+      <P>
+        Pattern handles do <strong className="text-eidos-text">not</strong> support{' '}
+        <Code>fetch()</Code>, <Code>json()</Code>, <Code>query()</Code>, or{' '}
+        <Code>prefetch()</Code> — these methods throw since there is no single URL to target.
+        Use your own <Code>fetch()</Code> calls; the SW caches them transparently.
+        <Code>invalidate()</Code> and <Code>unregister()</Code> work normally.
+      </P>
+
+      {/* ── Cross-origin ─────────────────────────────────────────────────────── */}
+      <H2 id="cross-origin">Cross-Origin Resources</H2>
+      <P>
+        Pass a <strong className="text-eidos-text">full URL</strong> (including origin) to intercept
+        requests to external APIs and CDNs. The SW matches against the complete request URL, so
+        same-origin and cross-origin resources can coexist in the same registry.
+      </P>
+      <Pre label="src/lib/eidos.ts">{`// Same-origin — pathname only
+resource('/api/products', { offline: true })
+
+// Cross-origin — full URL with origin
+resource('https://api.example.com/products',    { offline: true })
+resource('https://cdn.example.com/config.json', { offline: false, strategy: 'cache-first' })
+
+// Cross-origin patterns work too
+resource('https://api.example.com/products/*',  { offline: true })
+resource('https://cdn.example.com/assets/**',   { offline: true })
+
+// Your fetch() calls — unchanged
+const res = await fetch('https://api.example.com/products/123')  // ← intercepted + cached`}</Pre>
+      <P>
+        Cross-origin intercepts require the SW to control the page (standard requirement for all
+        SW-managed fetches). No CORS changes are needed — the SW proxies the request transparently.
+        Pattern handles for cross-origin URLs follow the same rules as same-origin patterns:{' '}
+        <Code>fetch()</Code> / <Code>json()</Code> / <Code>query()</Code> throw; <Code>invalidate()</Code>{' '}
+        and <Code>unregister()</Code> work normally.
+      </P>
 
       {/* ── action() ─────────────────────────────────────────────────────────── */}
       <H2 id="action">action(fn, config)</H2>
@@ -372,20 +441,107 @@ useEidosOnDrain(() => {
 // Also works with notification libraries, analytics, etc.
 useEidosOnDrain(() => analytics.track('queue_drained'))`}</Pre>
 
-      <H3>useEidosStore(selector)</H3>
-      <P>Direct access to the reactive store. Use a selector to subscribe to only what you need.</P>
+      <H3>useEidosStore (devtools)</H3>
+      <P>Plain store object for devtools, tests, and non-React code. Not a hook — use the named hooks above for reactive subscriptions inside components.</P>
       <Pre>{`import { useEidosStore } from '@sweidos/eidos'
 
-const isOnline    = useEidosStore(s => s.isOnline)
-const pendingCount = useEidosStore(s =>
-  s.queue.filter(q => q.status === 'pending').length
-)
-const productEntry = useEidosStore(s => s.resources['/api/products'])`}</Pre>
+// Read state once (non-reactive — snapshot only)
+const isOnline = useEidosStore.getState().isOnline
+const queue    = useEidosStore.getState().queue
+
+// Subscribe manually (for Vue / Svelte bindings or vanilla JS)
+const unsub = useEidosStore.subscribe(() => {
+  const state = useEidosStore.getState()
+  // re-render or update external UI
+})
+unsub() // remove listener
+
+// Test / devtools helper — merge partial state
+useEidosStore.setState({ isOnline: false })`}</Pre>
 
       <H3>useEidos()</H3>
       <P>Returns the entire store. Prefer the narrower hooks above — this causes a re-render on any state change.</P>
       <Pre>{`const state = useEidos()
 // state: EidosStore (full state + all action setters)`}</Pre>
+
+      {/* ── Svelte / Vue / Vanilla JS ────────────────────────────────────────── */}
+      <H2 id="svelte-vue">Svelte / Vue / Vanilla JS</H2>
+      <P>
+        Eidos ships framework-agnostic reactive stores that implement the{' '}
+        <a href="https://svelte.dev/docs/svelte-components#script-4-prefix-stores-with-$-to-access-their-values"
+           target="_blank" rel="noopener noreferrer" className="text-eidos-accent hover:underline">
+          Svelte store contract
+        </a>{' '}
+        — no extra peer deps, no React required.
+        Import from the same package; tree-shaking removes what you don't use.
+      </P>
+
+      <H3>Available stores</H3>
+      <Table headers={['Export', 'Type', 'Notes']}>
+        <PropRow name="eidosQueue"      type="ActionQueueItem[]"                      desc="Full action queue. Re-notifies on every mutation." />
+        <PropRow name="eidosStatus"     type="{ isOnline, swStatus, swError }"        desc="Online + SW lifecycle. Cheap subscription." />
+        <PropRow name="eidosQueueStats" type="{ pending, failed, replaying, total }"  desc="Queue counts. Compare fields in subscriber to skip work." />
+        <PropRow name="eidosResource(url)" type="ResourceEntry | undefined"           desc="Live cache state for one URL." />
+        <PropRow name="eidosAction(id)" type="ActionQueueItem | undefined"            desc="Single queue item. undefined after removal." />
+        <PropRow name="eidosStore"      type="EidosStore"                             desc="Full snapshot. Prefer narrower stores." />
+      </Table>
+
+      <H3>Svelte</H3>
+      <P>Use the <Code>$</Code> prefix — Svelte auto-subscribes and auto-unsubscribes.</P>
+      <Pre label="Component.svelte">{`<script>
+  import { eidosQueue, eidosStatus, eidosQueueStats, eidosResource } from '@sweidos/eidos'
+</script>
+
+<p>Online: {$eidosStatus.isOnline ? 'yes' : 'no'}</p>
+<p>Pending: {$eidosQueueStats.pending}</p>
+<p>Cache hits: {$eidosResource('/api/products')?.cacheHits ?? 0}</p>
+
+{#each $eidosQueue as item (item.id)}
+  <div>{item.actionName} — {item.status}</div>
+{/each}`}</Pre>
+
+      <H3>Vue (Composition API)</H3>
+      <P>Wrap the store in a <Code>ref</Code> and clean up in <Code>onUnmounted</Code>.</P>
+      <Pre label="composables/useEidos.ts">{`import { ref, onUnmounted } from 'vue'
+import { eidosStatus, eidosQueue, eidosQueueStats } from '@sweidos/eidos'
+
+export function useEidosStatusVue() {
+  const status = ref(eidosStatus.getState())
+  const unsub  = eidosStatus.subscribe((v) => { status.value = v })
+  onUnmounted(unsub)
+  return status
+}
+
+export function useEidosQueueVue() {
+  const queue = ref(eidosQueue.getState())
+  const unsub = eidosQueue.subscribe((v) => { queue.value = v })
+  onUnmounted(unsub)
+  return queue
+}`}</Pre>
+      <Pre label="Component.vue">{`<script setup>
+import { useEidosStatusVue, useEidosQueueVue } from './composables/useEidos'
+const status = useEidosStatusVue()
+const queue  = useEidosQueueVue()
+</script>
+
+<template>
+  <p>Online: {{ status.isOnline }}</p>
+  <div v-for="item in queue" :key="item.id">{{ item.actionName }}</div>
+</template>`}</Pre>
+
+      <H3>Vanilla JS</H3>
+      <Pre>{`import { eidosStatus, eidosResource } from '@sweidos/eidos'
+
+// subscribe() returns an unsubscribe function
+const unsub = eidosStatus.subscribe(({ isOnline }) => {
+  document.title = isOnline ? 'App' : 'App (offline)'
+})
+
+// Read current value once without subscribing
+const hits = eidosResource('/api/products').getState()?.cacheHits ?? 0
+
+// Unsubscribe when done
+unsub()`}</Pre>
 
       {/* ── Types ────────────────────────────────────────────────────────────── */}
       <H2 id="types">Types</H2>
@@ -609,7 +765,7 @@ setOfflineSimulation(false)  // go back online
       <div className="space-y-2 mb-8">
         {[
           { l: 'GET-only SW interception', d: 'The SW fetch handler ignores non-GET methods. POST/PUT/DELETE actions go through the action queue, not SW caching.' },
-          { l: 'Pathname matching only', d: 'Resources are matched by URL pathname. /api/products matches http://localhost:3000/api/products but not https://api.example.com/products. Use the full URL string for cross-origin resources.' },
+          { l: 'Query string ignored', d: 'Resources match by pathname for same-origin, or full URL for cross-origin. The query string is not part of the match key — /api/products?page=2 and /api/products share the same SW rule but are cached as separate entries.' },
           { l: 'Module-scope actions required', d: 'action() must execute at module import time for replay to work after page reload. Actions declared inside components or event handlers are not available in the replay registry.' },
           { l: 'maxAge is client-side only', d: 'The maxAge TTL is enforced in the main thread. The SW still serves the cached response to other tabs or after a page reload until invalidate() is called.' },
           { l: 'Single SW registration', d: 'EidosProvider assumes one /eidos-sw.js per origin. Registering multiple service workers from the same provider is unsupported.' },
