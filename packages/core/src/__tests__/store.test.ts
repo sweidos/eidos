@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { useEidosStore } from '../store'
 import type { ResourceEntry, ActionQueueItem } from '../types'
 
-// Reset Zustand store before each test
+// Reset store before each test
 beforeEach(() => {
   useEidosStore.setState({
     isOnline: true,
@@ -146,5 +146,37 @@ describe('hydrateQueue', () => {
     useEidosStore.getState().hydrateQueue(hydrated)
     const ids = useEidosStore.getState().queue.map(q => q.id)
     expect(ids).toEqual(['new1', 'new2'])
+  })
+})
+
+// ── useEidosAction selector ────────────────────────────────────────────────────
+
+describe('useEidosAction selector (via store)', () => {
+  it('returns the item with matching id', () => {
+    useEidosStore.getState().addQueueItem(makeItem('alpha'))
+    useEidosStore.getState().addQueueItem(makeItem('beta'))
+    const item = useEidosStore.getState().queue.find((q) => q.id === 'alpha')
+    expect(item?.id).toBe('alpha')
+    expect(item?.actionName).toBe('testAction')
+  })
+
+  it('returns undefined for unknown id', () => {
+    useEidosStore.getState().addQueueItem(makeItem('x'))
+    const item = useEidosStore.getState().queue.find((q) => q.id === 'zzz')
+    expect(item).toBeUndefined()
+  })
+
+  it('reflects item updates', () => {
+    useEidosStore.getState().addQueueItem(makeItem('upd'))
+    useEidosStore.getState().updateQueueItem('upd', { status: 'succeeded' })
+    const item = useEidosStore.getState().queue.find((q) => q.id === 'upd')
+    expect(item?.status).toBe('succeeded')
+  })
+
+  it('returns undefined after item is removed', () => {
+    useEidosStore.getState().addQueueItem(makeItem('gone'))
+    useEidosStore.getState().removeQueueItem('gone')
+    const item = useEidosStore.getState().queue.find((q) => q.id === 'gone')
+    expect(item).toBeUndefined()
   })
 })

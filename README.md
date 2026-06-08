@@ -257,7 +257,7 @@ React root component. Registers the SW and initialises the runtime.
 ### React Hooks
 
 ```ts
-import { useEidosStatus, useEidosResource, useEidosQueue } from '@sweidos/eidos'
+import { useEidosStatus, useEidosResource, useEidosQueue, useEidosAction } from '@sweidos/eidos'
 
 // Online status + SW lifecycle — cheap subscription, safe in headers
 const { isOnline, swStatus, swError } = useEidosStatus()
@@ -268,6 +268,12 @@ const entry = useEidosResource('/api/products')
 
 // The full action queue, reactive
 const queue = useEidosQueue()
+
+// Live state for a single queue item — only re-renders when that item changes
+const result = await createOrder(payload) // { queued: true, id: 'abc123', ... }
+const item = useEidosAction(result.id)
+// item → ActionQueueItem | undefined
+// item?.status → 'pending' | 'replaying' | 'succeeded' | 'failed'
 
 // Full store snapshot — use sparingly, prefer the narrower hooks above
 const state = useEidos()
