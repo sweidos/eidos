@@ -247,7 +247,7 @@ if ('queued' in result) {
 
       <H3>Function registry</H3>
       <P>
-        <Code>action()</Code> registers the wrapped function using <Code>config.name ?? fn.name</Code> as
+        <Code>action()</Code> registers the wrapped function using <Code>config.name || fn.name</Code> as
         the key. On page reload, module-scope <Code>action()</Code> calls re-register the function so
         <Code>replayQueue()</Code> can call it with the stored args. <strong className="text-eidos-text">Always
         set <Code>name</Code> explicitly for anonymous functions</strong> to ensure stable registry keys.
@@ -257,7 +257,7 @@ if ('queued' in result) {
       <H2 id="replay">replayQueue()</H2>
       <P>
         Reads the IndexedDB action queue and calls each pending action with its stored arguments.
-        No-op when offline. Called automatically via a Zustand store subscription whenever
+        No-op when offline. Called automatically via a store subscription whenever
         <Code>isOnline</Code> transitions from <Code>false</Code> to <Code>true</Code> — this
         catches both real network reconnects and <Code>setOfflineSimulation(false)</Code>.
       </P>
@@ -318,7 +318,7 @@ await replayQueue()
 //              retryCount, maxRetries, status, error?, completedAt? }`}</Pre>
 
       <H3>useEidosStore(selector)</H3>
-      <P>Direct access to the Zustand store. Use a selector to subscribe to only what you need.</P>
+      <P>Direct access to the reactive store. Use a selector to subscribe to only what you need.</P>
       <Pre>{`import { useEidosStore } from '@sweidos/eidos'
 
 const isOnline    = useEidosStore(s => s.isOnline)
@@ -394,7 +394,7 @@ const productEntry = useEidosStore(s => s.resources['/api/products'])`}</Pre>
       <Collapse title="ActionQueueItem">
         <Pre>{`interface ActionQueueItem {
   id:           string
-  actionId:     string   // registry key (= config.name ?? fn.name)
+  actionId:     string   // registry key (= config.name || fn.name)
   actionName:   string   // display label
   args:         unknown[]
   queuedAt:     number   // epoch ms
@@ -482,7 +482,7 @@ const productEntry = useEidosStore(s => s.resources['/api/products'])`}</Pre>
       <P>
         <Code>setOfflineSimulation(enabled)</Code> lets you test offline behaviour without
         actually disconnecting. It does two things simultaneously: sets{' '}
-        <Code>isOnline = !enabled</Code> in the Zustand store (so action() and replayQueue()
+        <Code>isOnline = !enabled</Code> in the store (so action() and replayQueue()
         behave correctly) and sends <Code>EIDOS_SIMULATE_OFFLINE</Code> to the service worker
         (so fetch interception returns cached responses only).
       </P>
@@ -508,9 +508,9 @@ setOfflineSimulation(false)  // go back online
                              │ postMessage(EIDOS_SIMULATE_OFFLINE)
 ┌────────────────────────────▼────────────────────────────┐
 │  Runtime Layer  (@sweidos/eidos)                            │
-│  Strategy derivation  Zustand store  SW bridge           │  ← npm package
-│  IDB queue (idbAddToQueue / idbGetQueue)                 │
-│  flushResourceRegistrations() on SW activation          │
+│  Strategy derivation · reactive store · SW bridge           │  ← npm package
+│  IDB queue · status-index scan (idbGetPendingItems)     │
+│  Pre-activation message buffer · flushed on SW active   │
 └────────────────────────────┬────────────────────────────┘
                              │ fetch event intercept
 ┌────────────────────────────▼────────────────────────────┐
