@@ -15,7 +15,9 @@
     "lint": "pnpm -r lint",
     "clean": "pnpm -r exec -- rm -rf dist node_modules .turbo",
     "publish:dry": "pnpm --filter @sweidos/eidos publish --dry-run",
-    "publish:core": "pnpm --filter @sweidos/eidos publish --access public"
+    "publish:core": "pnpm --filter @sweidos/eidos publish --access public",
+    "test:e2e": "pnpm --filter @eidos/e2e test",
+    "test:e2e:watch": "pnpm --filter @eidos/e2e test:watch"
   },
   "devDependencies": {
     "typescript": "^5.4.5"

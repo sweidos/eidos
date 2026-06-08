@@ -1,0 +1,20 @@
+{
+  "name": "@eidos/e2e",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui"
+  },
+  "dependencies": {
+    "@browserbasehq/stagehand": "^1.13.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "dotenv": "^16.4.5",
+    "typescript": "^5.4.5",
+    "vitest": "^2.1.9"
+  }
+}
