@@ -6,6 +6,20 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.0.6] — 2026-06-08
+
+### Changed
+
+- **Removed `zustand` dependency** — the store is now implemented with React's native `useSyncExternalStore` (React 18+). No external state library needed. Zero new dependencies introduced.
+- **Bundle size −47%** — `dist/eidos.es.js` drops from 35 kB → 18.6 kB (gzip: 7.9 kB → 5.0 kB). The package previously bundled all of zustand; the replacement store is ~40 lines.
+- **`useEidosStatus` re-render model improved** — now uses three independent primitive selectors instead of a single combined selector with `useShallow`. Each field (`isOnline`, `swStatus`, `swError`) only triggers a re-render in its own subscription.
+
+### Migration
+
+No API changes. If your app imports `zustand` only because Eidos pulled it in as a transitive dependency, you can now remove it from your own `package.json`.
+
+---
+
 ## [1.0.5] — 2026-06-08
 
 ### Fixed

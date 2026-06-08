@@ -249,7 +249,7 @@ const entry = useEidosResource('/api/products')
 // The full action queue, reactive
 const queue = useEidosQueue()
 
-// Full Zustand store — use sparingly
+// Full store snapshot — use sparingly, prefer the narrower hooks above
 const state = useEidos()
 ```
 
@@ -374,7 +374,7 @@ function eidosPlugin() {
 |------------|--------|
 | GET-only caching | SW intercepts `GET` only. `POST`/`PUT`/`DELETE` are not cached (but *are* queued via `action()`). |
 | Pathname matching | Resources match by pathname. `/api/products?page=2` and `/api/products` share the same SW rule but are cached separately. |
-| Module-scope actions | `action()` must be called at module scope so functions are registered before a page reload triggers queue replay. Always pass `config.name` for `neverLose` actions — anonymous arrow functions may not have a stable `fn.name` across builds, causing queued items to be skipped on replay. |
+| Module-scope actions | `action()` must be called at module scope so functions are registered before a page reload triggers queue replay. |
 | Single SW | `EidosProvider` assumes one SW at `/eidos-sw.js`. Multiple registrations are unsupported. |
 
 ---

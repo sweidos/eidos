@@ -1,4 +1,3 @@
-import { useShallow } from 'zustand/react/shallow'
 import { useEidosStore } from '../store'
 
 /** Full Eidos store — prefer the narrower hooks below for performance. */
@@ -16,13 +15,14 @@ export function useEidosQueue() {
   return useEidosStore((s) => s.queue)
 }
 
-/** Online + SW status — cheap subscription, safe to use in header components. */
+/**
+ * Online + SW status — cheap subscription, safe to use in header components.
+ * Three separate primitive selectors so each only triggers a re-render when
+ * its own value changes (no object-reference churn from a combined selector).
+ */
 export function useEidosStatus() {
-  return useEidosStore(
-    useShallow((s) => ({
-      isOnline: s.isOnline,
-      swStatus: s.swStatus,
-      swError: s.swError,
-    })),
-  )
+  const isOnline = useEidosStore((s) => s.isOnline)
+  const swStatus = useEidosStore((s) => s.swStatus)
+  const swError = useEidosStore((s) => s.swError)
+  return { isOnline, swStatus, swError }
 }
