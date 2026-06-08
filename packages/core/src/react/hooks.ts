@@ -1,19 +1,27 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useSyncExternalStore } from 'react'
 import { useEidosStore } from '../store'
+import type { EidosStore } from '../store'
+
+function useStore(): EidosStore
+function useStore<T>(selector: (state: EidosStore) => T): T
+function useStore<T = EidosStore>(selector?: (state: EidosStore) => T): T {
+  const fn = selector ?? ((s: EidosStore) => s as unknown as T)
+  return useSyncExternalStore(useEidosStore.subscribe, () => fn(useEidosStore.getState()))
+}
 
 /** Full Eidos store — prefer the narrower hooks below for performance. */
 export function useEidos() {
-  return useEidosStore()
+  return useStore()
 }
 
 /** Live state for a single registered resource URL. */
 export function useEidosResource(url: string) {
-  return useEidosStore((s) => s.resources[url])
+  return useStore((s) => s.resources[url])
 }
 
 /** The current action queue. */
 export function useEidosQueue() {
-  return useEidosStore((s) => s.queue)
+  return useStore((s) => s.queue)
 }
 
 /**
@@ -22,7 +30,7 @@ export function useEidosQueue() {
  * any queue mutation.
  */
 export function useEidosAction(id: string) {
-  return useEidosStore((s) => s.queue.find((item) => item.id === id))
+  return useStore((s) => s.queue.find((item) => item.id === id))
 }
 
 /**
@@ -31,9 +39,9 @@ export function useEidosAction(id: string) {
  * its own value changes (no object-reference churn from a combined selector).
  */
 export function useEidosStatus() {
-  const isOnline = useEidosStore((s) => s.isOnline)
-  const swStatus = useEidosStore((s) => s.swStatus)
-  const swError = useEidosStore((s) => s.swError)
+  const isOnline = useStore((s) => s.isOnline)
+  const swStatus = useStore((s) => s.swStatus)
+  const swError = useStore((s) => s.swError)
   return { isOnline, swStatus, swError }
 }
 
@@ -43,10 +51,10 @@ export function useEidosStatus() {
  * instead of `useEidosQueue()` when you only need numbers, not full items.
  */
 export function useEidosQueueStats() {
-  const pending   = useEidosStore((s) => s.queue.filter((q) => q.status === 'pending').length)
-  const failed    = useEidosStore((s) => s.queue.filter((q) => q.status === 'failed').length)
-  const replaying = useEidosStore((s) => s.queue.filter((q) => q.status === 'replaying').length)
-  const total     = useEidosStore((s) => s.queue.length)
+  const pending   = useStore((s) => s.queue.filter((q) => q.status === 'pending').length)
+  const failed    = useStore((s) => s.queue.filter((q) => q.status === 'failed').length)
+  const replaying = useStore((s) => s.queue.filter((q) => q.status === 'replaying').length)
+  const total     = useStore((s) => s.queue.length)
   return { pending, failed, replaying, total }
 }
 
@@ -59,7 +67,7 @@ export function useEidosQueueStats() {
  * useEidosOnDrain(() => toast.success('All offline actions synced!'))
  */
 export function useEidosOnDrain(callback: () => void) {
-  const total    = useEidosStore((s) => s.queue.length)
+  const total    = useStore((s) => s.queue.length)
   const prevRef  = useRef(0)
   const callbackRef = useRef(callback)
   callbackRef.current = callback
