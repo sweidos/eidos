@@ -12,6 +12,7 @@ import type {
   ActionFn,
   ActionQueueItem,
   QueuedResult,
+  ReplayResult,
 } from './types'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -117,18 +118,20 @@ function backoffMs(retryCount: number): number {
 
 let _replaying = false
 
-export async function replayQueue(): Promise<void> {
+export async function replayQueue(): Promise<ReplayResult> {
   const store = useEidosStore.getState()
-  if (!store.isOnline || _replaying) return
+  if (!store.isOnline || _replaying) {
+    return { attempted: 0, succeeded: 0, failed: 0, retrying: 0, skipped: 0 }
+  }
   _replaying = true
   try {
-    await _doReplayQueue(store)
+    return await _doReplayQueue(store)
   } finally {
     _replaying = false
   }
 }
 
-async function _doReplayQueue(store: ReturnType<typeof useEidosStore.getState>): Promise<void> {
+async function _doReplayQueue(store: ReturnType<typeof useEidosStore.getState>): Promise<ReplayResult> {
 
   const candidates = await idbGetPendingItems()
   const now = Date.now()
@@ -136,10 +139,12 @@ async function _doReplayQueue(store: ReturnType<typeof useEidosStore.getState>):
     (item) => !item.nextRetryAt || item.nextRetryAt <= now,
   )
 
-  await Promise.allSettled(
-    pending.map(async (item) => {
+  const result: ReplayResult = { attempted: 0, succeeded: 0, failed: 0, retrying: 0, skipped: 0 }
+
+  const outcomes = await Promise.allSettled(
+    pending.map(async (item): Promise<'succeeded' | 'failed' | 'retrying' | 'skipped'> => {
       const fn = _actionRegistry.get(item.actionId)
-      if (!fn) return
+      if (!fn) return 'skipped'
 
       store.updateQueueItem(item.id, { status: 'replaying' })
       await idbUpdateQueueItem(item.id, { status: 'replaying' })
@@ -155,27 +160,30 @@ async function _doReplayQueue(store: ReturnType<typeof useEidosStore.getState>):
           store.removeQueueItem(item.id)
           idbRemoveFromQueue(item.id)
         }, 3000)
+        return 'succeeded'
       } catch (err) {
         const retryCount = item.retryCount + 1
         if (retryCount >= item.maxRetries) {
-          store.updateQueueItem(item.id, {
-            status: 'failed',
-            error: String(err),
-            retryCount,
-          })
-          await idbUpdateQueueItem(item.id, {
-            status: 'failed',
-            error: String(err),
-            retryCount,
-          })
+          store.updateQueueItem(item.id, { status: 'failed', error: String(err), retryCount })
+          await idbUpdateQueueItem(item.id, { status: 'failed', error: String(err), retryCount })
+          return 'failed'
         } else {
           const nextRetryAt = Date.now() + backoffMs(retryCount)
           store.updateQueueItem(item.id, { status: 'pending', retryCount, nextRetryAt })
           await idbUpdateQueueItem(item.id, { status: 'pending', retryCount, nextRetryAt })
+          return 'retrying'
         }
       }
     }),
   )
+
+  for (const o of outcomes) {
+    const outcome = o.status === 'fulfilled' ? o.value : 'failed'
+    if (outcome === 'skipped') { result.skipped++ }
+    else { result.attempted++; result[outcome]++ }
+  }
+
+  return result
 }
 
 /** Remove all items from the action queue (IDB + in-memory store). */

@@ -94,6 +94,20 @@ export interface QueuedResult {
   readonly message: string
 }
 
+/** Summary returned by replayQueue(). */
+export interface ReplayResult {
+  /** Items where the registered function was found and called. */
+  attempted: number
+  /** Items that resolved successfully. */
+  succeeded: number
+  /** Items that failed and have no retries remaining (status: 'failed'). */
+  failed: number
+  /** Items that failed but will be retried later (nextRetryAt set). */
+  retrying: number
+  /** Items whose actionId had no registered function — likely not yet imported. */
+  skipped: number
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type ActionFn<TArgs extends any[], TReturn> = (...args: TArgs) => Promise<TReturn>
 

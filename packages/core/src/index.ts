@@ -29,6 +29,7 @@ export type {
   ActionHandle,
   ActionQueueItem,
   QueuedResult,
+  ReplayResult,
   EidosState,
   CacheStrategy,
 } from './types'

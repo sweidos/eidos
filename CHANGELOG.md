@@ -6,6 +6,32 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.0.9] — 2026-06-08
+
+### Changed
+
+- **`replayQueue()` now returns `ReplayResult`** — the function previously returned `Promise<void>`. It now returns a summary of what happened:
+  ```ts
+  const result = await replayQueue()
+  // { attempted: 3, succeeded: 2, failed: 0, retrying: 1, skipped: 0 }
+  ```
+  Backwards-compatible — callers that ignore the return value are unaffected.
+
+### Added
+
+- **`ReplayResult` type exported** — import it for typed result handling:
+  ```ts
+  import type { ReplayResult } from '@sweidos/eidos'
+  ```
+
+### Fixed (playground accessibility)
+
+- **`aria-expanded` on accordion buttons** — `ResourceRow` (Resources page) and `Collapse` (API docs) now expose correct expanded/collapsed state to assistive technologies.
+- **`aria-label` on section anchor links** — `#` permalink anchors in the API docs now have accessible labels.
+- **`role="region"` on collapsible panels** — expanded Collapse panels are semantically marked as regions.
+
+---
+
 ## [1.0.8] — 2026-06-08
 
 ### Added

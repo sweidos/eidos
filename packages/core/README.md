@@ -208,13 +208,21 @@ const result = await createOrder(payload)
 
 ### `replayQueue()`
 
-Manually trigger queue replay. Called automatically on reconnect when `autoReplay: true`.
+Manually trigger queue replay. Called automatically on reconnect when `autoReplay: true`. Returns a `ReplayResult` summary.
 
 ```ts
 import { replayQueue } from '@sweidos/eidos'
+import type { ReplayResult } from '@sweidos/eidos'
 
 // Manual trigger — e.g. after a user clicks "Retry"
-await replayQueue()
+const result: ReplayResult = await replayQueue()
+// { attempted: 3, succeeded: 2, failed: 0, retrying: 1, skipped: 0 }
+//
+// attempted — items where the fn was found and called
+// succeeded — resolved successfully
+// failed    — maxRetries exceeded, stays in queue
+// retrying  — failed, will retry later (nextRetryAt set)
+// skipped   — fn not in registry (module not imported yet)
 ```
 
 ---
