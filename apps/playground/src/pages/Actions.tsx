@@ -81,7 +81,7 @@ if ('queued' in result) {
   // → args persisted to IndexedDB
 }
 
-// 3. On reconnect — Zustand store subscription fires replayQueue()
+// 3. On reconnect — store subscription fires replayQueue()
 //    automatically (600ms debounce). Covers real reconnects AND
 //    setOfflineSimulation(false).
 
