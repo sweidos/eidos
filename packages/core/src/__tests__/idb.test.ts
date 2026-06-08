@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import {
   idbAddToQueue,
   idbGetQueue,
+  idbGetPendingItems,
   idbUpdateQueueItem,
   idbRemoveFromQueue,
   idbClearQueue,
@@ -92,6 +93,26 @@ describe('idbClearQueue', () => {
     await idbAddToQueue(makeItem('y'))
     await idbClearQueue()
     expect(await idbGetQueue()).toHaveLength(0)
+  })
+})
+
+describe('idbGetPendingItems', () => {
+  it('returns only pending and failed items', async () => {
+    await idbAddToQueue(makeItem('p1', { status: 'pending' }))
+    await idbAddToQueue(makeItem('f1', { status: 'failed' }))
+    await idbAddToQueue(makeItem('s1', { status: 'succeeded' }))
+    await idbAddToQueue(makeItem('r1', { status: 'replaying' }))
+
+    const items = await idbGetPendingItems()
+    const ids = items.map(i => i.id)
+    expect(ids).toContain('p1')
+    expect(ids).toContain('f1')
+    expect(ids).not.toContain('s1')
+    expect(ids).not.toContain('r1')
+  })
+
+  it('returns empty array when queue is empty', async () => {
+    expect(await idbGetPendingItems()).toHaveLength(0)
   })
 })
 

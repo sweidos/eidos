@@ -1,6 +1,6 @@
 import { Wifi, WifiOff, Cpu } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
-import { useEidosStatus, setOfflineSimulation, useEidosStore } from '@sweidos/eidos'
+import { useEidosStatus, setOfflineSimulation, useEidosStore, VERSION } from '@sweidos/eidos'
 import { useState } from 'react'
 
 const TABS = [
@@ -30,7 +30,7 @@ export function Header() {
         <div className="flex items-center gap-3">
           <span className="text-eidos-accent font-bold text-sm tracking-tight">eidos</span>
           <span className="text-eidos-border">·</span>
-          <span className="text-2xs text-eidos-muted">@sweidos/eidos v0.1.0</span>
+          <span className="text-2xs text-eidos-muted">@sweidos/eidos v{VERSION}</span>
         </div>
 
         {/* Status chips */}

@@ -6,6 +6,20 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.0.7] — 2026-06-08
+
+### Added
+
+- **`VERSION` export** — `@sweidos/eidos` now exports a `VERSION` constant so host apps can display the package version without importing `package.json`.
+- **`idbGetPendingItems()`** — internal IDB helper that uses the `status` index to fetch only `pending`/`failed` items. `replayQueue` now calls this instead of `idbGetQueue()` + JS-side filter, avoiding a full table scan when many items have already succeeded.
+
+### Changed
+
+- **Performance** — `replayQueue` reads only actionable items from IDB via index scan, not the full queue.
+- README: added **Performance** section documenting bundle size, re-render model, parallel replay, IDB index scan, network timeout, pre-activation buffer, and concurrency safety.
+
+---
+
 ## [1.0.6] — 2026-06-08
 
 ### Changed

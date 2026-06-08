@@ -37,18 +37,19 @@ export async function initEidos(config: EidosConfig = {}): Promise<void> {
   }
 
   if (autoReplay) {
-    // ── Subscribe to the Zustand store instead of window.addEventListener('online')
+    // ── Subscribe to the store instead of window.addEventListener('online')
     //
     // WHY: setOfflineSimulation() updates the store directly but never fires a
-    // real browser `online` event. Watching the store means we catch both:
+    // real browser `online` event. Watching the store catches both:
     //   • Real network reconnects (sw-bridge updates store on window.online)
     //   • Simulation toggled off (setOfflineSimulation(false) → store.setOnline(true))
     //
     let prevIsOnline = useEidosStore.getState().isOnline
 
-    _unsubscribe = useEidosStore.subscribe((state) => {
-      const justCameOnline = state.isOnline && !prevIsOnline
-      prevIsOnline = state.isOnline
+    _unsubscribe = useEidosStore.subscribe(() => {
+      const { isOnline } = useEidosStore.getState()
+      const justCameOnline = isOnline && !prevIsOnline
+      prevIsOnline = isOnline
 
       if (justCameOnline) {
         // Small delay so the connection (or simulation reset) settles first
