@@ -249,7 +249,7 @@ const entry = useEidosResource('/api/products')
 // The full action queue, reactive
 const queue = useEidosQueue()
 
-// Full store snapshot — use sparingly, prefer the narrower hooks above
+// Full Zustand store — use sparingly
 const state = useEidos()
 ```
 
