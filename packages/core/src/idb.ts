@@ -60,7 +60,11 @@ export async function idbUpdateQueueItem(
     const store = tx.objectStore(QUEUE_STORE)
     const get = store.get(id)
     get.onsuccess = () => {
-      if (get.result) store.put({ ...get.result, ...update })
+      if (get.result) {
+        store.put({ ...get.result, ...update })
+      } else if (import.meta.env.DEV) {
+        console.warn(`[eidos] idbUpdateQueueItem: item "${id}" not found — store/IDB may have diverged`)
+      }
     }
     tx.oncomplete = () => resolve()
     tx.onerror = () => reject(tx.error)

@@ -43,8 +43,13 @@ function waitForActivation(reg: ServiceWorkerRegistration): Promise<void> {
     if (reg.active) { resolve(); return }
     const sw = reg.installing ?? reg.waiting
     if (!sw) { resolve(); return }
+
+    // Resolve after 10s regardless — another tab may be blocking activation
+    const timer = setTimeout(resolve, 10_000)
+
     sw.addEventListener('statechange', function handler() {
       if (sw.state === 'activated') {
+        clearTimeout(timer)
         sw.removeEventListener('statechange', handler)
         resolve()
       }
