@@ -85,11 +85,9 @@ function _subscribe(listener: Listener) {
 // Supports both bare call (full state) and selector call.
 function _useStore(): EidosStore
 function _useStore<T>(selector: (state: EidosStore) => T): T
-function _useStore<T>(selector?: (state: EidosStore) => T): EidosStore | T {
-  return useSyncExternalStore(
-    _subscribe,
-    selector ? () => selector(_getState()) : _getState,
-  )
+function _useStore<T = EidosStore>(selector?: (state: EidosStore) => T): T {
+  const fn = selector ?? ((s: EidosStore) => s as unknown as T)
+  return useSyncExternalStore(_subscribe, () => fn(_getState()))
 }
 
 _useStore.getState = _getState

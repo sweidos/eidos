@@ -1,7 +1,7 @@
 import { useEidosStore } from './store'
 import {
   idbAddToQueue,
-  idbGetQueue,
+  idbGetPendingItems,
   idbUpdateQueueItem,
   idbRemoveFromQueue,
 } from './idb'
@@ -129,12 +129,10 @@ export async function replayQueue(): Promise<void> {
 
 async function _doReplayQueue(store: ReturnType<typeof useEidosStore.getState>): Promise<void> {
 
-  const queue = await idbGetQueue()
+  const candidates = await idbGetPendingItems()
   const now = Date.now()
-  const pending = queue.filter(
-    (item) =>
-      (item.status === 'pending' || item.status === 'failed') &&
-      (!item.nextRetryAt || item.nextRetryAt <= now),
+  const pending = candidates.filter(
+    (item) => !item.nextRetryAt || item.nextRetryAt <= now,
   )
 
   await Promise.allSettled(

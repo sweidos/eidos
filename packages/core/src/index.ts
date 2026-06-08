@@ -11,6 +11,9 @@ export { initEidos } from './runtime'
 export { EidosProvider } from './react/Provider'
 export { useEidos, useEidosResource, useEidosQueue, useEidosStatus } from './react/hooks'
 
+// Package version — exported so host apps can display it without importing package.json
+export { VERSION } from './version'
+
 // Devtools helpers
 export { setOfflineSimulation } from './sw-bridge'
 export { useEidosStore } from './store'
