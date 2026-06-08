@@ -1,10 +1,9 @@
 import { useState } from 'react'
-import { useEidosStore } from '@sweidos/eidos'
+import { useEidos } from '@sweidos/eidos'
 import type { ResourceEntry } from '@sweidos/eidos'
 
 export function Resources() {
-  const resources = useEidosStore(s => s.resources)
-  const entries   = Object.values(resources)
+  const entries = Object.values(useEidos().resources)
 
   return (
     <div className="max-w-4xl mx-auto p-5 animate-fade-in">
