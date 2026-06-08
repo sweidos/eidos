@@ -215,3 +215,30 @@ describe('useEidosAction selector (via store)', () => {
     expect(item).toBeUndefined()
   })
 })
+
+// ── useEidosOnDrain trigger logic (via store) ─────────────────────────────────
+// The hook itself uses useEffect which needs a React host — we test the
+// underlying store transition that the hook reacts to.
+
+describe('useEidosOnDrain trigger condition (store level)', () => {
+  it('queue transitions from non-empty to empty', () => {
+    useEidosStore.getState().addQueueItem(makeItem('drain1'))
+    expect(useEidosStore.getState().queue.length).toBe(1)
+    useEidosStore.getState().removeQueueItem('drain1')
+    expect(useEidosStore.getState().queue.length).toBe(0)
+  })
+
+  it('queue draining multiple items to zero', () => {
+    useEidosStore.getState().addQueueItem(makeItem('d1'))
+    useEidosStore.getState().addQueueItem(makeItem('d2'))
+    useEidosStore.getState().hydrateQueue([])
+    expect(useEidosStore.getState().queue.length).toBe(0)
+  })
+
+  it('no drain event when queue was already empty', () => {
+    // start at 0 — removing when empty stays 0, no transition
+    expect(useEidosStore.getState().queue.length).toBe(0)
+    useEidosStore.getState().removeQueueItem('nonexistent')
+    expect(useEidosStore.getState().queue.length).toBe(0)
+  })
+})

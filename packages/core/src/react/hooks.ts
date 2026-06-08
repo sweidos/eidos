@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { useEidosStore } from '../store'
 
 /** Full Eidos store — prefer the narrower hooks below for performance. */
@@ -47,4 +48,26 @@ export function useEidosQueueStats() {
   const replaying = useEidosStore((s) => s.queue.filter((q) => q.status === 'replaying').length)
   const total     = useEidosStore((s) => s.queue.length)
   return { pending, failed, replaying, total }
+}
+
+/**
+ * Calls `callback` once each time the action queue drains from non-empty → 0.
+ * Stable callback reference not required — always calls the latest version.
+ * Use for "all offline actions synced!" toasts.
+ *
+ * @example
+ * useEidosOnDrain(() => toast.success('All offline actions synced!'))
+ */
+export function useEidosOnDrain(callback: () => void) {
+  const total    = useEidosStore((s) => s.queue.length)
+  const prevRef  = useRef(0)
+  const callbackRef = useRef(callback)
+  callbackRef.current = callback
+
+  useEffect(() => {
+    if (prevRef.current > 0 && total === 0) {
+      callbackRef.current()
+    }
+    prevRef.current = total
+  }, [total])
 }

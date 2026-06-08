@@ -266,10 +266,15 @@ function ProductsDemo({
           </div>
         )}
         {!loading && result === 'offline' && (
-          <div className="flex flex-col items-center justify-center py-8 gap-1.5 text-center">
+          <div role="alert" className="flex flex-col items-center justify-center py-8 gap-1.5 text-center">
             <WifiOff size={16} className="text-eidos-amber" />
             <div className="text-2xs text-eidos-amber">offline · no cached response yet</div>
             <div className="text-2xs text-eidos-muted">fetch while online first to populate the cache</div>
+          </div>
+        )}
+        {!loading && result === 'error' && (
+          <div role="alert" className="flex flex-col items-center justify-center py-8 gap-1.5 text-center">
+            <div className="text-2xs text-eidos-red">fetch failed · check network or try again</div>
           </div>
         )}
         {!loading && !products && result !== 'offline' && (
@@ -394,7 +399,7 @@ function OrdersDemo({
 
       {/* Result */}
       {result && (
-        <div className={`flex items-center gap-2 text-2xs border px-3 py-2 mb-3 ${
+        <div role="alert" className={`flex items-center gap-2 text-2xs border px-3 py-2 mb-3 ${
           result.ok ? 'border-eidos-accent/40 text-eidos-accent bg-eidos-accent-dim' : 'border-eidos-amber/40 text-eidos-amber bg-eidos-amber-dim'
         }`}>
           {result.ok ? <CheckCircle size={11} /> : <Clock size={11} />}

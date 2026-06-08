@@ -361,6 +361,17 @@ const item = useEidosAction(result.id)
 // item?.status → 'pending' | 'replaying' | 'succeeded' | 'failed'
 // undefined once the item is removed from the queue`}</Pre>
 
+      <H3>useEidosOnDrain(callback)</H3>
+      <P>Calls <Code>callback</Code> once each time the action queue drains from non-empty → 0. Always calls the latest callback version — no stale closure issues. Use for "all synced" toasts or side-effects after queue replay.</P>
+      <Pre>{`import { useEidosOnDrain } from '@sweidos/eidos'
+
+useEidosOnDrain(() => {
+  toast.success('All offline actions synced!')
+})
+
+// Also works with notification libraries, analytics, etc.
+useEidosOnDrain(() => analytics.track('queue_drained'))`}</Pre>
+
       <H3>useEidosStore(selector)</H3>
       <P>Direct access to the reactive store. Use a selector to subscribe to only what you need.</P>
       <Pre>{`import { useEidosStore } from '@sweidos/eidos'
