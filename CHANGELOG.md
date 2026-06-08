@@ -6,6 +6,15 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.0.5] — 2026-06-08
+
+### Fixed
+
+- **`action()` anonymous-function `actionId` collision** — `??` was used to derive `actionId`, meaning an empty-string `fn.name` (anonymous arrow function) passed through as `''`, causing all unnamed actions to share the same registry key and overwrite each other. Switched to `||` so empty string correctly falls through to `uid()`.
+- **Dev warning for unstable `neverLose` action names** — if no `config.name` is provided and `fn.name` is empty, a console warning is emitted in development. Without a stable name, queued items cannot be replayed after a page reload.
+
+---
+
 ## [1.0.4] — 2026-06-08
 
 ### Fixed
