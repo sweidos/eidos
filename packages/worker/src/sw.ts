@@ -208,7 +208,9 @@ async function networkFirst(
   const cache = await caches.open(cacheName)
 
   try {
-    const response = await fetch(request)
+    // 3s timeout matches the networkTimeoutSeconds advertised in the strategy
+    // metadata — slow/stalled requests fall back to cache instead of hanging.
+    const response = await fetch(request, { signal: AbortSignal.timeout(3000) })
     if (response.ok) {
       await cache.put(request, response.clone())
       notifyClients({ type: 'EIDOS_CACHE_UPDATED', url: pathname, strategy: 'network-first' })
