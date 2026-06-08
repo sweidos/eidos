@@ -66,51 +66,57 @@ export function resource<T = unknown>(
       const cache = await caches.open(strategy.cacheName).catch(() => null)
 
       try {
-        // ── Direct Cache API check ─────────────────────────────────────
-        // We read the cache in the main thread rather than waiting for
-        // an async SW postMessage. This gives instant, reliable status
-        // updates regardless of SW message timing.
-        const cached = cache ? await cache.match(url).catch(() => null) : null
+        // ── network-first: skip cache check, go straight to network ───
+        // For cache-first / SWR the cache check below is correct. For
+        // network-first, reading cache first and returning early would
+        // contradict the strategy — fresh data is the priority.
+        if (strategy.swStrategy !== 'network-first') {
+          // ── Direct Cache API check ───────────────────────────────────
+          // We read the cache in the main thread rather than waiting for
+          // an async SW postMessage. This gives instant, reliable status
+          // updates regardless of SW message timing.
+          const cached = cache ? await cache.match(url).catch(() => null) : null
 
-        // Treat cache as miss if maxAge exceeded
-        const current = useEidosStore.getState().resources[url]
-        const expired =
-          config.maxAge !== undefined &&
-          current?.cachedAt !== undefined &&
-          Date.now() - current.cachedAt > config.maxAge
+          // Treat cache as miss if maxAge exceeded
+          const current = useEidosStore.getState().resources[url]
+          const expired =
+            config.maxAge !== undefined &&
+            current?.cachedAt !== undefined &&
+            Date.now() - current.cachedAt > config.maxAge
 
-        if (cached && !expired) {
-          store.updateResource(url, {
-            status: 'fresh',
-            lastEvent: 'cache-hit',
-            cacheHits: (current?.cacheHits ?? 0) + 1,
-          })
+          if (cached && !expired) {
+            store.updateResource(url, {
+              status: 'fresh',
+              lastEvent: 'cache-hit',
+              cacheHits: (current?.cacheHits ?? 0) + 1,
+            })
 
-          // Background revalidation for SWR (stale-while-revalidate)
-          if (strategy.swStrategy === 'stale-while-revalidate') {
-            fetch(url)
-              .then(async (resp) => {
-                if (resp.ok && cache) {
-                  await cache.put(url, resp.clone())
-                  useEidosStore.getState().updateResource(url, {
-                    cachedAt: Date.now(),
-                    lastEvent: 'cache-updated',
-                  })
-                }
-              })
-              .catch(() => {
-                /* offline — cached version stays valid */
-              })
+            // Background revalidation for SWR (stale-while-revalidate)
+            if (strategy.swStrategy === 'stale-while-revalidate') {
+              fetch(url)
+                .then(async (resp) => {
+                  if (resp.ok && cache) {
+                    await cache.put(url, resp.clone())
+                    useEidosStore.getState().updateResource(url, {
+                      cachedAt: Date.now(),
+                      lastEvent: 'cache-updated',
+                    })
+                  }
+                })
+                .catch(() => {
+                  /* offline — cached version stays valid */
+                })
+            }
+
+            return cached
           }
 
-          return cached
+          // Cache miss (or expired)
+          const storeEntry = useEidosStore.getState().resources[url]
+          store.updateResource(url, {
+            cacheMisses: (storeEntry?.cacheMisses ?? 0) + 1,
+          })
         }
-
-        // ── Cache miss (or expired): fetch from network ────────────────
-        const storeEntry = useEidosStore.getState().resources[url]
-        store.updateResource(url, {
-          cacheMisses: (storeEntry?.cacheMisses ?? 0) + 1,
-        })
 
         const response = await fetch(url)
 
