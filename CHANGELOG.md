@@ -6,6 +6,22 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.0.12] — 2026-06-09
+
+### Added
+
+- **`useEidosOnDrain(callback)`** — fires `callback` once each time the action queue transitions from non-empty → 0. Always calls the latest callback version (stable ref pattern — no stale closures). Use for "all synced!" toasts:
+  ```ts
+  import { useEidosOnDrain } from '@sweidos/eidos'
+  useEidosOnDrain(() => toast.success('All offline actions synced!'))
+  ```
+
+### Fixed (playground accessibility)
+
+- **`role="alert"` on error/offline states** — products fetch errors (`offline · no cached response yet`, `fetch failed`) and order results now have `role="alert"` so screen readers announce them immediately. Previously all error feedback was visual-only with no AT announcement.
+
+---
+
 ## [1.0.11] — 2026-06-08
 
 ### Added
