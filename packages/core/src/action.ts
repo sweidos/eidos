@@ -25,7 +25,15 @@ export function action<TArgs extends any[], TReturn>(
   fn: ActionFn<TArgs, TReturn>,
   config: ActionConfig,
 ): ActionHandle<TArgs, TReturn> {
-  const actionId = config.name ?? fn.name ?? uid()
+  // || not ?? — fn.name can be '' (anonymous arrow fn) which ?? treats as a
+  // valid value, causing all anonymous actions to share actionId ''.
+  const actionId = config.name || fn.name || uid()
+
+  if (import.meta.env.DEV && config.reliability === 'neverLose' && !config.name && !fn.name) {
+    console.warn(
+      `[eidos] action() registered with neverLose but no stable name was found (fn.name="${fn.name}"). Pass config.name so queued items survive a page reload and can be replayed.`,
+    )
+  }
 
   // Registering here means the function is available for replay after
   // the user refreshes the page (actions are defined at module scope).
