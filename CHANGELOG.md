@@ -6,6 +6,54 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.0.16] — 2026-06-09
+
+### Changed
+
+- README and Learn docs updated — added cross-origin usage examples, URL pattern syntax table, Vue/Svelte/vanilla stores section; roadmap updated to reflect shipped features.
+
+---
+
+## [1.0.15] — 2026-06-09
+
+### Added
+
+- **URL pattern matching** — `resource()` now accepts wildcard and named-parameter patterns. The pattern is compiled to a regex and sent to the SW, which tests the pathname (or full URL for cross-origin) on every intercepted fetch:
+  ```ts
+  resource('/api/products/*',   { offline: true })  // single segment
+  resource('/api/products/**',  { offline: true })  // multi-segment
+  resource('/api/users/:id',    { offline: true })  // named segment
+  ```
+  `fetch()`/`json()`/`query()`/`prefetch()` throw on pattern handles (no single URL to fetch); `invalidate()` and `unregister()` still work.
+
+- **Cross-origin resource support** — pass a full URL (with origin) to register a cross-origin resource. The SW fast-path checks the full request URL before falling back to pathname matching:
+  ```ts
+  resource('https://api.example.com/products', { offline: true })
+  resource('https://cdn.example.com/assets/*', { offline: true })
+  ```
+
+---
+
+## [1.0.14] — 2026-06-09
+
+### Added
+
+- **Framework-agnostic reactive stores** — `stores.ts` exports six `EidosReadable<T>` stores that implement the Svelte store contract (`subscribe(run): unsubscribe`). Zero extra dependencies; usable in Svelte (native `$` prefix), Vue composables, or plain JS:
+  ```ts
+  import { eidosQueue, eidosStatus, eidosQueueStats, eidosResource, eidosAction, eidosStore } from '@sweidos/eidos'
+  ```
+  `EidosReadable` type is exported from the package index.
+
+---
+
+## [1.0.13] — 2026-06-09
+
+### Changed
+
+- **`store.ts` decoupled from React** — the store is now a plain JS event emitter with zero React imports. `useEidosStore` is exported as `{ getState, subscribe, setState }` instead of a callable hook. The React 18 `useSyncExternalStore` subscription lives in `react/hooks.ts`, making the store usable outside React contexts.
+
+---
+
 ## [1.0.12] — 2026-06-09
 
 ### Added
