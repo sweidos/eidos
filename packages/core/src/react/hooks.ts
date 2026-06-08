@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow'
 import { useEidosStore } from '../store'
 
 /** Full Eidos store — prefer the narrower hooks below for performance. */
@@ -17,9 +18,11 @@ export function useEidosQueue() {
 
 /** Online + SW status — cheap subscription, safe to use in header components. */
 export function useEidosStatus() {
-  return useEidosStore((s) => ({
-    isOnline: s.isOnline,
-    swStatus: s.swStatus,
-    swError: s.swError,
-  }))
+  return useEidosStore(
+    useShallow((s) => ({
+      isOnline: s.isOnline,
+      swStatus: s.swStatus,
+      swError: s.swError,
+    })),
+  )
 }

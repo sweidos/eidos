@@ -11,6 +11,7 @@ export interface EidosConfig {
 }
 
 let _initialized = false
+let _unsubscribe: (() => void) | null = null
 
 export async function initEidos(config: EidosConfig = {}): Promise<void> {
   if (_initialized) return
@@ -45,7 +46,7 @@ export async function initEidos(config: EidosConfig = {}): Promise<void> {
     //
     let prevIsOnline = useEidosStore.getState().isOnline
 
-    useEidosStore.subscribe((state) => {
+    _unsubscribe = useEidosStore.subscribe((state) => {
       const justCameOnline = state.isOnline && !prevIsOnline
       prevIsOnline = state.isOnline
 
@@ -74,5 +75,7 @@ export async function initEidos(config: EidosConfig = {}): Promise<void> {
 }
 
 export function _resetEidos() {
+  _unsubscribe?.()
+  _unsubscribe = null
   _initialized = false
 }
