@@ -9,14 +9,31 @@
   "keywords": [
     "service-worker",
     "offline",
+    "offline-first",
     "pwa",
     "cache",
+    "cache-api",
     "indexeddb",
     "background-sync",
-    "offline-first",
-    "react"
+    "react",
+    "svelte",
+    "vue",
+    "react-native",
+    "queue",
+    "optimistic-ui",
+    "network-resilience"
   ],
-  "homepage": "https://github.com/iamadi11/eidos",
+  "homepage": "https://sweidos.vercel.app/overview",
+  "bugs": {
+    "url": "https://github.com/iamadi11/eidos/issues"
+  },
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/iamadi11"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/iamadi11/eidos.git",

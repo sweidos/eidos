@@ -325,9 +325,18 @@ function deriveStrategy(url: string, config: ResourceConfig): GeneratedStrategy 
   return buildStrategy(explicit ?? 'network-first', url, config.cacheName)
 }
 
-const STRATEGY_META: Record<CacheStrategy, Omit<GeneratedStrategy, 'swStrategy' | 'cacheName'>> = {
+// Strategy display names — always included (tiny, used by devtools).
+const STRATEGY_NAMES: Record<CacheStrategy, string> = {
+  'stale-while-revalidate': 'StaleWhileRevalidate',
+  'cache-first': 'CacheFirst',
+  'network-first': 'NetworkFirst',
+}
+
+// Heavy descriptive strings — stripped from production bundles by Vite's
+// import.meta.env.DEV dead-code elimination. Only the names above ship in prod.
+type StrategyDevInfo = Pick<GeneratedStrategy, 'reasoning' | 'behavior' | 'equivalentCode'>
+const _STRATEGY_DEV_META: Record<CacheStrategy, StrategyDevInfo> = {
   'stale-while-revalidate': {
-    name: 'StaleWhileRevalidate',
     reasoning:
       'offline: true signals resilience. SWR returns cached data instantly while revalidating in the background — the best tradeoff between speed and freshness for offline-capable resources.',
     behavior: [
@@ -343,7 +352,6 @@ new StaleWhileRevalidate({
 })`,
   },
   'cache-first': {
-    name: 'CacheFirst',
     reasoning:
       'cache-first maximises speed and offline availability. Network is consulted only on cache miss. Best for static or infrequently-updated data.',
     behavior: [
@@ -359,7 +367,6 @@ new CacheFirst({
 })`,
   },
   'network-first': {
-    name: 'NetworkFirst',
     reasoning:
       'network-first prioritises fresh data. Cache acts as a safety net when offline. Best for frequently-updated resources where stale data causes problems.',
     behavior: [
@@ -377,10 +384,16 @@ new NetworkFirst({
 }
 
 function buildStrategy(swStrategy: CacheStrategy, _url: string, cacheName?: string): GeneratedStrategy {
+  const meta = _STRATEGY_DEV_META[swStrategy]
   return {
-    ...STRATEGY_META[swStrategy],
+    name: STRATEGY_NAMES[swStrategy],
     swStrategy,
     cacheName: cacheName ?? 'eidos-resources-v1',
+    // reasoning + behavior are rendered by the playground UI from live ResourceEntry objects —
+    // keep them in all builds. equivalentCode is a static code block only used in DEV tools.
+    reasoning: meta.reasoning,
+    behavior: meta.behavior,
+    equivalentCode: import.meta.env.DEV ? meta.equivalentCode : '',
   }
 }
 

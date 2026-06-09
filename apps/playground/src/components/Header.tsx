@@ -1,4 +1,4 @@
-import { Wifi, WifiOff, Cpu } from 'lucide-react'
+import { Wifi, WifiOff, Cpu, Github, ExternalLink } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { useEidosStatus, useEidosQueueStats, setOfflineSimulation, VERSION } from '@sweidos/eidos'
 import { useState } from 'react'
@@ -30,7 +30,30 @@ export function Header() {
         <div className="flex items-center gap-3">
           <span className="text-sm font-bold tracking-[0.22em] text-eidos-accent">eidos</span>
           <span className="hidden text-eidos-border sm:inline">·</span>
-          <span className="text-2xs text-eidos-muted">@sweidos/eidos v{VERSION}</span>
+          <span className="text-2xs text-eidos-muted">v{VERSION}</span>
+          <div className="hidden items-center gap-1.5 sm:flex">
+            <a
+              href="https://github.com/iamadi11/eidos"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="GitHub repository"
+              className="inline-flex items-center gap-1 text-2xs text-eidos-muted transition-colors hover:text-eidos-text"
+            >
+              <Github size={11} />
+              <span className="hidden md:inline">GitHub</span>
+            </a>
+            <span className="text-eidos-border">·</span>
+            <a
+              href="https://www.npmjs.com/package/@sweidos/eidos"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="npm package"
+              className="inline-flex items-center gap-1 text-2xs text-eidos-muted transition-colors hover:text-eidos-text"
+            >
+              <ExternalLink size={10} />
+              <span className="hidden md:inline">npm</span>
+            </a>
+          </div>
         </div>
 
         {/* Status chips */}

@@ -1,11 +1,11 @@
 {
-  "name": "Eidos — Service Worker Runtime",
+  "name": "Eidos — Offline-first made declarative",
   "short_name": "Eidos",
-  "description": "Stop writing service workers. Declare intent, Eidos handles the rest.",
-  "start_url": "/",
+  "description": "Declare intent. Eidos generates the Service Worker, cache strategies, and offline queue.",
+  "start_url": "/overview",
   "display": "standalone",
-  "background_color": "#0a0a0f",
-  "theme_color": "#38bdf8",
+  "background_color": "#0F172A",
+  "theme_color": "#22C55E",
   "icons": [
     { "src": "/favicon.svg", "type": "image/svg+xml", "sizes": "any" }
   ]

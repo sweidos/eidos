@@ -86,33 +86,27 @@ export async function idbRemoveFromQueue(id: string): Promise<void> {
 // table scan when the queue has many succeeded/replaying entries.
 export async function idbGetPendingItems(): Promise<ActionQueueItem[]> {
   const db = await openDB()
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(QUEUE_STORE, 'readonly')
-    const index = tx.objectStore(QUEUE_STORE).index('status')
-    const results: ActionQueueItem[] = []
 
-    let done = 0
-    function finish(err?: DOMException | null) {
-      if (err) { reject(err); return }
-      if (++done === 2) resolve(results)
-    }
+  function cursorToArray(status: string): Promise<ActionQueueItem[]> {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(QUEUE_STORE, 'readonly')
+      const index = tx.objectStore(QUEUE_STORE).index('status')
+      const items: ActionQueueItem[] = []
+      const req = index.openCursor(IDBKeyRange.only(status))
+      req.onsuccess = (e) => {
+        const cursor = (e.target as IDBRequest<IDBCursorWithValue>).result
+        if (cursor) { items.push(cursor.value as ActionQueueItem); cursor.continue() }
+        else resolve(items)
+      }
+      req.onerror = () => reject(req.error)
+    })
+  }
 
-    const pendingReq = index.openCursor(IDBKeyRange.only('pending'))
-    pendingReq.onsuccess = (e) => {
-      const cursor = (e.target as IDBRequest<IDBCursorWithValue>).result
-      if (cursor) { results.push(cursor.value as ActionQueueItem); cursor.continue() }
-      else finish()
-    }
-    pendingReq.onerror = () => finish(pendingReq.error)
-
-    const failedReq = index.openCursor(IDBKeyRange.only('failed'))
-    failedReq.onsuccess = (e) => {
-      const cursor = (e.target as IDBRequest<IDBCursorWithValue>).result
-      if (cursor) { results.push(cursor.value as ActionQueueItem); cursor.continue() }
-      else finish()
-    }
-    failedReq.onerror = () => finish(failedReq.error)
-  })
+  const [pending, failed] = await Promise.all([
+    cursorToArray('pending'),
+    cursorToArray('failed'),
+  ])
+  return [...pending, ...failed]
 }
 
 export async function idbClearQueue(): Promise<void> {

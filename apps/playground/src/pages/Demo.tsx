@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, memo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { RefreshCw, ShoppingCart, CheckCircle, WifiOff, ArrowRight, Clock, Zap, ArrowUp, AlertTriangle, X } from 'lucide-react'
+import { RefreshCw, ShoppingCart, CheckCircle, WifiOff, ArrowRight, Clock, Zap, ArrowUp, AlertTriangle, X, Github } from 'lucide-react'
 import { useEidosQueue, useEidosQueueStats, useEidosStatus, useEidosResource, useEidosStore, replayQueue } from '@sweidos/eidos'
 import type { ResourceEntry } from '@sweidos/eidos'
 import { Card, CardHeader } from '../components/Card'
@@ -135,12 +135,9 @@ export function Demo() {
   const evRef = useRef<SwEvent[]>([])
   const { isOnline, swStatus } = useEidosStatus()
   const resourceEntry = useEidosResource('/api/products')
-  // Use stats hook (1 subscription + 1 loop) rather than full queue subscription.
-  // Demo no longer re-renders on every queue item mutation — only on count changes.
   const { pending: pendingCount, replaying: replayingCount, total: queueTotal } = useEidosQueueStats()
   const completedCount = queueTotal - pendingCount - replayingCount
 
-  // Stable emit ref so memo'd children don't re-render when Demo re-renders
   const emit = useCallback((kind: SwEvent['kind'], msg: string) => {
     const e: SwEvent = { id: uid(), time: now(), kind, msg }
     evRef.current = [e, ...evRef.current].slice(0, 80)
@@ -189,6 +186,16 @@ export function Demo() {
               <code className="font-mono text-eidos-text-dim">pnpm add @sweidos/eidos</code>
             </div>
 
+            {/* Framework support */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-2xs text-eidos-muted">works with</span>
+              {['React', 'Next.js', 'Svelte', 'Vue', 'React Native', 'Vanilla JS'].map(f => (
+                <span key={f} className="rounded-full border border-eidos-border px-2 py-0.5 text-2xs text-eidos-text-dim">
+                  {f}
+                </span>
+              ))}
+            </div>
+
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => navigate('/docs')}
@@ -202,20 +209,14 @@ export function Demo() {
               >
                 View action queue
               </button>
-            </div>
-
-            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-              {([
-                { label: 'network',        value: isOnline ? 'online' : 'offline', tone: isOnline ? 'text-eidos-accent' : 'text-eidos-amber' },
-                { label: 'service worker', value: swStatus,                        tone: 'text-eidos-text' },
-                { label: 'cache hits',     value: resourceEntry?.cacheHits ?? 0,   tone: 'text-eidos-accent' },
-                { label: 'queued',         value: pendingCount,                    tone: 'text-eidos-amber' },
-              ] as const).map(stat => (
-                <div key={stat.label} className="rounded-xl border border-eidos-border bg-eidos-bg/50 px-3 py-2">
-                  <div className="text-[10px] uppercase tracking-[0.24em] text-eidos-muted">{stat.label}</div>
-                  <div className={`mt-1 text-sm font-semibold ${stat.tone}`}>{stat.value}</div>
-                </div>
-              ))}
+              <a
+                href="https://github.com/iamadi11/eidos"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-eidos-border px-4 py-2 text-xs font-medium text-eidos-text-dim transition-colors hover:border-eidos-elevated hover:text-eidos-text cursor-pointer"
+              >
+                <Github size={11} /> GitHub
+              </a>
             </div>
           </div>
 
@@ -262,6 +263,8 @@ export function Demo() {
       </Card>
 
       <ExamplesGrid />
+
+      <EliminatesCard />
 
       <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div className="space-y-4">
@@ -332,6 +335,79 @@ const ExamplesGrid = memo(function ExamplesGrid() {
           </Card>
         ))}
       </div>
+    </section>
+  )
+})
+
+// ── Eliminates Card — static, memoized ───────────────────────────────────────
+
+const MANUAL = [
+  'Service worker registration + lifecycle',
+  'Fetch event interception + URL routing',
+  'Cache strategy selection per route',
+  'IndexedDB schema + CRUD helpers',
+  'Exponential backoff + jitter math',
+  'Reconnect listener + replay trigger',
+  'Background Sync tag registration',
+  'Cache versioning + stale cleanup',
+] as const
+
+const EIDOS_API = [
+  { token: 'resource(url, { offline: true })', note: 'cache strategy auto-selected' },
+  { token: "action(fn, { reliability: 'neverLose' })", note: 'queue + replay included' },
+] as const
+
+const EliminatesCard = memo(function EliminatesCard() {
+  return (
+    <section>
+      <div className="mb-3">
+        <p className="text-[10px] uppercase tracking-[0.24em] text-eidos-muted">what eidos replaces</p>
+        <h2 className="text-sm font-semibold text-eidos-text md:text-base">
+          Eight manual concerns reduced to two declarations
+        </h2>
+      </div>
+
+      <Card className="overflow-hidden p-0">
+        <div className="grid divide-y divide-eidos-border md:grid-cols-2 md:divide-x md:divide-y-0">
+          {/* Without */}
+          <div className="p-5">
+            <div className="mb-3 flex items-center gap-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-eidos-red" />
+              <span className="text-xs font-semibold text-eidos-text">Without Eidos</span>
+              <span className="ml-auto text-2xs text-eidos-muted">~200 lines across 3 files</span>
+            </div>
+            <ul className="space-y-2">
+              {MANUAL.map(item => (
+                <li key={item} className="flex items-start gap-2 text-xs text-eidos-text-dim">
+                  <span className="mt-1 h-1 w-1 shrink-0 rounded-full bg-eidos-border" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* With Eidos */}
+          <div className="p-5">
+            <div className="mb-3 flex items-center gap-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-eidos-accent" />
+              <span className="text-xs font-semibold text-eidos-text">With Eidos</span>
+              <span className="ml-auto text-2xs text-eidos-accent">2 declarations</span>
+            </div>
+            <div className="space-y-3">
+              {EIDOS_API.map(({ token, note }) => (
+                <div key={token} className="rounded-lg border border-eidos-border bg-eidos-bg px-3 py-2.5">
+                  <code className="block font-mono text-2xs text-eidos-accent">{token}</code>
+                  <span className="mt-1 block text-2xs text-eidos-muted">{note}</span>
+                </div>
+              ))}
+            </div>
+            <p className="mt-4 text-2xs leading-relaxed text-eidos-text-dim">
+              Eidos generates the service worker rules, picks the cache strategy, persists
+              the queue, and replays on reconnect — no configuration required.
+            </p>
+          </div>
+        </div>
+      </Card>
     </section>
   )
 })

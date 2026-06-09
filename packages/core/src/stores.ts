@@ -27,10 +27,13 @@ export interface EidosReadable<T> {
 function shallowEqual<T extends Record<string, unknown>>(a: T, b: T): boolean {
   const keys = Object.keys(a) as (keyof T)[]
   if (keys.length !== Object.keys(b).length) return false
-  for (const k of keys) {
-    if (a[k] !== b[k]) return false
-  }
+  for (const k of keys) if (a[k] !== b[k]) return false
   return true
+}
+
+// Typed comparator alias so call sites don't need inline casts.
+function shallowEq<T extends Record<string, unknown>>(a: T, b: T): boolean {
+  return shallowEqual(a, b)
 }
 
 function readable<T>(
@@ -74,7 +77,7 @@ export const eidosStatus: EidosReadable<{
   swError: string | undefined
 }> = readable(
   (s) => ({ isOnline: s.isOnline, swStatus: s.swStatus, swError: s.swError }),
-  shallowEqual as (a: { isOnline: boolean; swStatus: EidosStore['swStatus']; swError: string | undefined }, b: { isOnline: boolean; swStatus: EidosStore['swStatus']; swError: string | undefined }) => boolean,
+  shallowEq,
 )
 
 /**
@@ -97,7 +100,7 @@ export const eidosQueueStats: EidosReadable<{
     }
     return { pending, failed, replaying, total: s.queue.length }
   },
-  shallowEqual as (a: { pending: number; failed: number; replaying: number; total: number }, b: { pending: number; failed: number; replaying: number; total: number }) => boolean,
+  shallowEq,
 )
 
 // ── Dynamic stores (created per URL / ID) ─────────────────────────────────────

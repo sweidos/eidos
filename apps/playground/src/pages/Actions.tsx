@@ -9,7 +9,6 @@ export function Actions() {
   const [bgSyncFlash, setBgSyncFlash] = useState(false)
   const bgSync             = isBgSyncSupported()
 
-  // Single pass instead of three separate filter() calls
   const pending: ActionQueueItem[] = []
   const active: ActionQueueItem[]  = []
   const done: ActionQueueItem[]    = []
@@ -19,7 +18,6 @@ export function Actions() {
     else done.push(q)
   }
 
-  // Flash indicator when browser-triggered sync fires
   useEffect(() => {
     function onMsg(e: MessageEvent) {
       if (e.data?.type === 'EIDOS_BACKGROUND_SYNC') {

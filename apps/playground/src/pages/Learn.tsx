@@ -555,7 +555,7 @@ resource('/api/feed', { offline: true, strategy: 'network-first' })`}
 
           <div className="grid gap-3 md:grid-cols-2">
             {[
-              { label: 'Project README', href: 'https://github.com/iamadi11/eidos#readme' },
+              { label: 'Project README', href: 'https://sweidos.vercel.app/overview' },
               { label: 'MDN - Service Worker API', href: 'https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API' },
               { label: 'MDN - Cache API', href: 'https://developer.mozilla.org/en-US/docs/Web/API/Cache' },
               { label: 'MDN - IndexedDB API', href: 'https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API' },

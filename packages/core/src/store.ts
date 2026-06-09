@@ -55,11 +55,11 @@ _state = {
     })),
 
   unregisterResource: (url) =>
-    _set((s) => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { [url]: _removed, ...rest } = s.resources
-      return { resources: rest }
-    }),
+    _set((s) => ({
+      resources: Object.fromEntries(
+        Object.entries(s.resources).filter(([k]) => k !== url),
+      ),
+    })),
 
   addQueueItem: (item) => _set((s) => ({ queue: [...s.queue, item] })),
 
