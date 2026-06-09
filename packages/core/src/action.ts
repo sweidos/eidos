@@ -18,6 +18,8 @@ import type {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const _actionRegistry = new Map<string, ActionFn<any[], any>>()
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const _rollbackRegistry = new Map<string, (...args: any[]) => void>()
 
 function uid() {
   return crypto.randomUUID()
@@ -42,8 +44,14 @@ export function action<TArgs extends any[], TReturn>(
   // the user refreshes the page (actions are defined at module scope).
   _actionRegistry.set(actionId, fn as ActionFn<unknown[], unknown>)
 
+  if (config.onRollback) {
+    _rollbackRegistry.set(actionId, config.onRollback)
+  }
+
   const wrapped = async (...args: TArgs): Promise<TReturn | QueuedResult> => {
     const { isOnline } = useEidosStore.getState()
+
+    config.onOptimistic?.(...args)
 
     if (config.reliability === 'neverLose') {
       if (!isOnline) {
@@ -57,8 +65,13 @@ export function action<TArgs extends any[], TReturn>(
       }
     }
 
-    // best-effort: execute directly, no queuing
-    return fn(...args)
+    // best-effort: execute directly, rollback on failure
+    try {
+      return await fn(...args)
+    } catch (err) {
+      config.onRollback?.(...args)
+      throw err
+    }
   }
 
   Object.defineProperty(wrapped, 'id', { value: actionId, writable: false })
@@ -179,6 +192,7 @@ async function _doReplayQueue(store: ReturnType<typeof useEidosStore.getState>):
         if (retryCount >= item.maxRetries) {
           store.updateQueueItem(item.id, { status: 'failed', error: String(err), retryCount })
           await idbUpdateQueueItem(item.id, { status: 'failed', error: String(err), retryCount })
+          _rollbackRegistry.get(item.actionId)?.(...(item.args as unknown[]))
           return 'failed'
         } else {
           const nextRetryAt = Date.now() + backoffMs(retryCount)

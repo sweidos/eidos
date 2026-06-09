@@ -24,9 +24,36 @@ describe('best-effort', () => {
     const fn = vi.fn().mockRejectedValue(new Error('boom'))
     const wrapped = action(fn, { reliability: 'best-effort', name: 'bf-err' })
     await expect(wrapped()).rejects.toThrow('boom')
-    // Nothing persisted to IDB
     const queue = await idbGetQueue()
     expect(queue).toHaveLength(0)
+  })
+
+  it('calls onOptimistic before fn', async () => {
+    const order: string[] = []
+    const fn = vi.fn().mockImplementation(async () => { order.push('fn'); return {} })
+    const onOptimistic = vi.fn().mockImplementation(() => order.push('optimistic'))
+    const wrapped = action(fn, { reliability: 'best-effort', name: 'bf-optimistic', onOptimistic })
+    await wrapped('arg1')
+    expect(onOptimistic).toHaveBeenCalledWith('arg1')
+    expect(order).toEqual(['optimistic', 'fn'])
+  })
+
+  it('calls onRollback with args on throw', async () => {
+    const fn = vi.fn().mockRejectedValue(new Error('fail'))
+    const onOptimistic = vi.fn()
+    const onRollback = vi.fn()
+    const wrapped = action(fn, { reliability: 'best-effort', name: 'bf-rollback', onOptimistic, onRollback })
+    await expect(wrapped('payload')).rejects.toThrow('fail')
+    expect(onOptimistic).toHaveBeenCalledWith('payload')
+    expect(onRollback).toHaveBeenCalledWith('payload')
+  })
+
+  it('does not call onRollback on success', async () => {
+    const fn = vi.fn().mockResolvedValue({})
+    const onRollback = vi.fn()
+    const wrapped = action(fn, { reliability: 'best-effort', name: 'bf-no-rollback', onRollback })
+    await wrapped('x')
+    expect(onRollback).not.toHaveBeenCalled()
   })
 })
 
@@ -93,6 +120,65 @@ describe('neverLose offline', () => {
     const storeQueue = useEidosStore.getState().queue
     expect(storeQueue).toHaveLength(1)
     expect(storeQueue[0].status).toBe('pending')
+  })
+})
+
+// ── optimistic + rollback (neverLose) ─────────────────────────────────────────
+
+describe('neverLose optimistic / rollback', () => {
+  it('calls onOptimistic immediately when offline', async () => {
+    useEidosStore.setState({ isOnline: false, swStatus: 'active', resources: {}, queue: [] })
+    const fn = vi.fn()
+    const onOptimistic = vi.fn()
+    const wrapped = action(fn, { reliability: 'neverLose', name: 'nl-opt-offline', onOptimistic })
+    await wrapped({ id: 1 })
+    expect(onOptimistic).toHaveBeenCalledWith({ id: 1 })
+    expect(fn).not.toHaveBeenCalled()
+  })
+
+  it('calls onOptimistic before fn when online', async () => {
+    const order: string[] = []
+    const fn = vi.fn().mockImplementation(async () => { order.push('fn'); return {} })
+    const onOptimistic = vi.fn().mockImplementation(() => order.push('optimistic'))
+    const wrapped = action(fn, { reliability: 'neverLose', name: 'nl-opt-online', onOptimistic })
+    await wrapped('x')
+    expect(order).toEqual(['optimistic', 'fn'])
+  })
+
+  it('calls onRollback when maxRetries exhausted during replay', async () => {
+    const fn = vi.fn().mockRejectedValue(new Error('always fails'))
+    const onRollback = vi.fn()
+    const wrapped = action(fn, { reliability: 'neverLose', name: 'nl-rollback', maxRetries: 1, onRollback })
+
+    useEidosStore.setState({ isOnline: false, swStatus: 'active', resources: {}, queue: [] })
+    await wrapped('payload')
+
+    useEidosStore.setState({ isOnline: true })
+    await replayQueue()
+
+    expect(onRollback).toHaveBeenCalledWith('payload')
+  })
+
+  it('does not call onRollback when replay succeeds', async () => {
+    const fn = vi.fn().mockResolvedValue({ ok: true })
+    const onRollback = vi.fn()
+    const wrapped = action(fn, { reliability: 'neverLose', name: 'nl-no-rollback', onRollback })
+
+    useEidosStore.setState({ isOnline: false, swStatus: 'active', resources: {}, queue: [] })
+    await wrapped('data')
+
+    useEidosStore.setState({ isOnline: true })
+    await replayQueue()
+
+    expect(onRollback).not.toHaveBeenCalled()
+  })
+
+  it('does not call onRollback when online fn fails but queued for retry', async () => {
+    const fn = vi.fn().mockRejectedValue(new Error('server error'))
+    const onRollback = vi.fn()
+    const wrapped = action(fn, { reliability: 'neverLose', name: 'nl-queue-no-rollback', onRollback })
+    await wrapped('data')
+    expect(onRollback).not.toHaveBeenCalled()
   })
 })
 

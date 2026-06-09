@@ -6,6 +6,38 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.0.24] — 2026-06-09
+
+### Added
+
+- **Optimistic updates — `onOptimistic` / `onRollback` on `action()`** — instant UI feedback before the server confirms, with automatic rollback on permanent failure.
+
+  ```ts
+  const createOrder = action(
+    async (payload: OrderPayload) => { ... },
+    {
+      reliability: 'neverLose',
+      name: 'createOrder',
+      onOptimistic: (payload) => {
+        // called immediately — add item to UI list, mark as pending, etc.
+        setOrders(prev => [...prev, { ...payload, status: 'pending' }])
+      },
+      onRollback: (payload) => {
+        // called only on permanent failure — revert the optimistic change
+        setOrders(prev => prev.filter(o => o.id !== payload.id))
+      },
+    },
+  )
+  ```
+
+  **Semantics:**
+  - `onOptimistic(args)` — called every invocation (online, offline, replay) immediately before the async function.
+  - `onRollback(args)` — called only on *permanent* failure:
+    - `best-effort`: called on first throw (no retries).
+    - `neverLose`: called when `maxRetries` is exhausted and status transitions to `'failed'`; not called when the action is merely queued for retry.
+
+---
+
 ## [1.0.23] — 2026-06-09
 
 ### Added

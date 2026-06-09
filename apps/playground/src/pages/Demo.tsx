@@ -126,6 +126,40 @@ await createOrder({
 
 await replayQueue()`,
     },
+    {
+      badge: 'patterns',
+      title: 'Register an entire route family',
+      description: 'One wildcard declaration intercepts every matching URL — no per-route setup needed.',
+      code: `// * matches one segment, ** matches anything
+resource('/api/products/*', { offline: true })
+// → /api/products/1, /api/products/abc
+
+resource('/api/users/:id/orders', { offline: true })
+// → /api/users/alice/orders
+
+// Cross-origin CDN assets
+resource('https://cdn.example.com/assets/**', {
+  offline: true,
+  strategy: 'cache-first',
+})`,
+    },
+    {
+      badge: 'before / after',
+      title: 'What it replaces',
+      description: 'Eidos generates the service-worker rules and the retry logic so you never write them by hand.',
+      code: `// ✗ before — 40+ lines of Workbox config
+registerRoute(/\\/api\\/products/, new StaleWhileRevalidate({
+  cacheName: 'api-cache',
+  plugins: [new ExpirationPlugin({ maxEntries: 60 })],
+}))
+self.addEventListener('sync', ev => {
+  if (ev.tag === 'create-order') ev.waitUntil(replayOrders())
+})
+
+// ✓ after — 2 declarations
+resource('/api/products', { offline: true })
+action(createOrder, { reliability: 'neverLose' })`,
+    },
   ] as const
 
   return (
@@ -145,6 +179,14 @@ await replayQueue()`,
                 shows the patterns, the docs explain the API, and the live panels below prove that
                 the runtime is actually doing the work.
               </p>
+            </div>
+
+            {/* Install strip */}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-eidos-border bg-eidos-bg px-3 py-2 text-xs">
+              <span className="shrink-0 text-eidos-muted">install</span>
+              <code className="font-mono text-eidos-accent">npm install @sweidos/eidos</code>
+              <span className="text-eidos-border">·</span>
+              <code className="font-mono text-eidos-text-dim">pnpm add @sweidos/eidos</code>
             </div>
 
             <div className="flex flex-wrap gap-2">
@@ -299,37 +341,20 @@ await replayQueue()`,
             )}
           </div>
 
-          <div className="grid gap-2 border-t border-eidos-border px-4 py-3 text-xs sm:grid-cols-3">
-            <div className="rounded-lg border border-eidos-border bg-eidos-bg/40 px-3 py-2">
-              <div className="text-eidos-muted">cache hits</div>
-              <div className="mt-1 font-tabular font-semibold text-eidos-accent">{resourceEntry?.cacheHits ?? 0}</div>
-            </div>
-            <div className="rounded-lg border border-eidos-border bg-eidos-bg/40 px-3 py-2">
-              <div className="text-eidos-muted">queued</div>
-              <div className="mt-1 font-tabular font-semibold text-eidos-amber">{pendingCount}</div>
-            </div>
-            <div className="rounded-lg border border-eidos-border bg-eidos-bg/40 px-3 py-2">
-              <div className="text-eidos-muted">replaying</div>
-              <div className="mt-1 font-tabular font-semibold text-eidos-blue">{replayingCount}</div>
-            </div>
-          </div>
-          <div className="grid gap-2 border-t border-eidos-border px-4 py-3 text-xs sm:grid-cols-3">
-            <div className="rounded-lg border border-eidos-border bg-eidos-bg/40 px-3 py-2">
-              <div className="text-eidos-muted">done</div>
-              <div className="mt-1 font-tabular font-semibold text-eidos-text">{completedCount}</div>
-            </div>
-            <div className="rounded-lg border border-eidos-border bg-eidos-bg/40 px-3 py-2">
-              <div className="text-eidos-muted">status</div>
-              <div className="mt-1 font-semibold text-eidos-text">{swStatus}</div>
-            </div>
-            <div className="rounded-lg border border-eidos-border bg-eidos-bg/40 px-3 py-2">
-              <div className="text-eidos-muted">cached at</div>
-              <div className="mt-1 font-tabular text-eidos-text-dim">
-                {resourceEntry?.cachedAt
-                  ? new Date(resourceEntry.cachedAt).toLocaleTimeString('en', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
-                  : '—'}
+          <div className="grid grid-cols-3 gap-2 border-t border-eidos-border px-4 py-3 text-xs">
+            {[
+              { label: 'cache hits',  value: resourceEntry?.cacheHits ?? 0,                                                                                        tone: 'text-eidos-accent' },
+              { label: 'queued',      value: pendingCount,                                                                                                          tone: 'text-eidos-amber'  },
+              { label: 'replaying',   value: replayingCount,                                                                                                        tone: 'text-eidos-blue'   },
+              { label: 'done',        value: completedCount,                                                                                                        tone: 'text-eidos-text'   },
+              { label: 'sw status',   value: swStatus,                                                                                                              tone: 'text-eidos-text'   },
+              { label: 'cached at',   value: resourceEntry?.cachedAt ? new Date(resourceEntry.cachedAt).toLocaleTimeString('en', { hour12: false }) : '—',          tone: 'text-eidos-text-dim'},
+            ].map(({ label, value, tone }) => (
+              <div key={label} className="rounded-lg border border-eidos-border bg-eidos-bg/40 px-3 py-2">
+                <div className="text-eidos-muted">{label}</div>
+                <div className={`mt-1 font-tabular font-semibold truncate ${tone}`}>{value}</div>
               </div>
-            </div>
+            ))}
           </div>
         </Card>
       </section>

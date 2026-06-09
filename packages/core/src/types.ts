@@ -70,6 +70,21 @@ export interface ActionConfig {
   maxRetries?: number
   /** Human-readable name for the action (used in devtools). */
   name?: string
+  /**
+   * Called immediately before the async function executes, with the same args.
+   * Use to apply an optimistic UI update (add item, mark as pending, etc.).
+   * Called on every invocation — online, offline, and during queue replay.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onOptimistic?: (...args: any[]) => void
+  /**
+   * Called when the action permanently fails and will not be retried.
+   * - `best-effort`: called on first throw.
+   * - `neverLose`: called when `maxRetries` is exhausted (status → `'failed'`).
+   * Use to revert the optimistic update.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onRollback?: (...args: any[]) => void
 }
 
 export interface ActionQueueItem {

@@ -37,7 +37,7 @@ export function CodeBlock({ code, title, className = '' }: CodeBlockProps) {
             title={copied ? 'Copied' : 'Copy code'}
             className="inline-flex min-h-8 items-center gap-1 text-[11px] text-eidos-muted transition-colors hover:text-eidos-text cursor-pointer"
           >
-            {copied ? <Check size={12} className="text-eidos-green" /> : <Copy size={12} />}
+            {copied ? <Check size={12} className="text-eidos-accent" /> : <Copy size={12} />}
             {copied ? 'copied' : copyError ? 'failed' : 'copy'}
           </button>
         </div>

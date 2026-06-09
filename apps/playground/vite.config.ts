@@ -80,7 +80,7 @@ export default defineConfig({
     dedupe: ['react', 'react-dom'],
   },
   server: {
-    port: 3000,
+    port: Number(process.env.PORT) || 3000,
     open: false,
   },
 })

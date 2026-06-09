@@ -108,7 +108,18 @@ export const createOrder = action(
     })
     return res.json()
   },
-  { reliability: 'neverLose', name: 'createOrder' },
+  {
+    reliability: 'neverLose',
+    name: 'createOrder',
+    onOptimistic: (payload) => {
+      // Called immediately — update UI before the server responds
+      addOptimisticOrder(payload)
+    },
+    onRollback: (payload) => {
+      // Called only if maxRetries exhausted — revert the optimistic change
+      removeOptimisticOrder(payload)
+    },
+  },
 )
 ```
 
@@ -205,6 +216,8 @@ const createOrder = action(
     reliability: 'neverLose',  // persist to IndexedDB + replay on reconnect
     maxRetries?: number,        // default: 3
     name?: string,              // label in devtools
+    onOptimistic?: (...args) => void,  // called immediately — update UI optimistically
+    onRollback?: (...args) => void,    // called on permanent failure — revert UI
   }
 )
 
@@ -703,7 +716,7 @@ it('caches the resource after first fetch', async () => {
 - [x] TanStack Query integration (`@sweidos/eidos/query` subpath — `useEidosQuery`, `useEidosMutation`, `withEidosQueryClient`)
 
 **Core reliability**
-- [ ] Optimistic updates — `onOptimistic` / `onRollback` callbacks on `action()` for instant UI feedback before server confirms
+- [x] Optimistic updates — `onOptimistic` / `onRollback` callbacks on `action()` for instant UI feedback before server confirms
 - [ ] Conflict resolution hook — `onConflict` callback when replaying a queued action returns 4xx; decide per-item: retry, skip, or merge
 - [ ] Queue prioritization — `priority: 'high' | 'normal' | 'low'` on `action()`; high-priority items replay first
 

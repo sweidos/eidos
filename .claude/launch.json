@@ -3,9 +3,10 @@
   "configurations": [
     {
       "name": "playground",
-      "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["dev"],
-      "port": 3000
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": ["-c", "export PATH=/Users/adityaraj/.nvm/versions/node/v20.14.0/bin:$PATH && cd apps/playground && pnpm dev"],
+      "port": 3000,
+      "autoPort": true
     }
   ]
 }

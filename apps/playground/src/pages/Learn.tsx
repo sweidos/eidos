@@ -46,13 +46,26 @@ function InlineCode({ children }: { children: ReactNode }) {
   )
 }
 
+// Splits on backtick spans and renders them as inline code.
+function parseBullet(text: string): ReactNode {
+  const parts = text.split(/`([^`]+)`/)
+  if (parts.length === 1) return text
+  return (
+    <>
+      {parts.map((part, i) =>
+        i % 2 === 1 ? <InlineCode key={i}>{part}</InlineCode> : part
+      )}
+    </>
+  )
+}
+
 function BulletList({ items }: { items: string[] }) {
   return (
     <ul className="space-y-2 text-sm leading-relaxed text-eidos-text-dim">
       {items.map(item => (
         <li key={item} className="flex gap-2">
           <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-eidos-accent" />
-          <span>{item}</span>
+          <span>{parseBullet(item)}</span>
         </li>
       ))}
     </ul>
@@ -261,6 +274,7 @@ const data = await products.json<Product[]>()`}
                   'Use `reliability: "neverLose"` when dropping a write would be painful.',
                   'Give anonymous functions a `name` so replay can find them after refresh.',
                   'Tune `maxRetries` when you need a shorter or longer retry window.',
+                  '`onOptimistic` updates the UI instantly; `onRollback` reverts if the action permanently fails.',
                 ]}
               />
               <CodeBlock
@@ -272,10 +286,14 @@ const data = await products.json<Product[]>()`}
       method: 'POST',
       body: JSON.stringify(payload),
     })
-
     return res.json()
   },
-  { reliability: 'neverLose', name: 'createOrder' },
+  {
+    reliability: 'neverLose',
+    name: 'createOrder',
+    onOptimistic: (payload) => addOptimisticOrder(payload),
+    onRollback:   (payload) => removeOptimisticOrder(payload),
+  },
 )`}
               />
             </Card>
