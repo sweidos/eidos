@@ -10,11 +10,19 @@ interface CodeBlockProps {
 
 export function CodeBlock({ code, title, className = '' }: CodeBlockProps) {
   const [copied, setCopied] = useState(false)
+  const [copyError, setCopyError] = useState(false)
 
   async function copy() {
-    await navigator.clipboard.writeText(code)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
+    try {
+      await copyText(code)
+      setCopyError(false)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch (error) {
+      console.error('Failed to copy code block', error)
+      setCopied(false)
+      setCopyError(true)
+    }
   }
 
   return (
@@ -23,11 +31,14 @@ export function CodeBlock({ code, title, className = '' }: CodeBlockProps) {
         <div className="flex items-center justify-between px-4 py-2 border-b border-eidos-border bg-eidos-elevated">
           <span className="text-[11px] font-mono text-eidos-muted">{title}</span>
           <button
+            type="button"
             onClick={copy}
-            className="flex items-center gap-1 text-[11px] text-eidos-muted hover:text-eidos-text transition-colors"
+            aria-label={copied ? 'Code copied' : 'Copy code to clipboard'}
+            title={copied ? 'Copied' : 'Copy code'}
+            className="inline-flex min-h-8 items-center gap-1 text-[11px] text-eidos-muted transition-colors hover:text-eidos-text cursor-pointer"
           >
             {copied ? <Check size={12} className="text-eidos-green" /> : <Copy size={12} />}
-            {copied ? 'copied' : 'copy'}
+            {copied ? 'copied' : copyError ? 'failed' : 'copy'}
           </button>
         </div>
       )}
@@ -36,4 +47,33 @@ export function CodeBlock({ code, title, className = '' }: CodeBlockProps) {
       </pre>
     </div>
   )
+}
+
+async function copyText(text: string) {
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text)
+      return
+    } catch (error) {
+      // Fall back to the legacy copy path when clipboard permissions fail.
+      console.error('Clipboard API copy failed, trying fallback', error)
+    }
+  }
+
+  const textarea = document.createElement('textarea')
+  textarea.value = text
+  textarea.setAttribute('readonly', 'true')
+  textarea.style.position = 'fixed'
+  textarea.style.opacity = '0'
+  textarea.style.pointerEvents = 'none'
+  textarea.style.left = '-9999px'
+  document.body.appendChild(textarea)
+  textarea.select()
+
+  const copied = document.execCommand('copy')
+  document.body.removeChild(textarea)
+
+  if (!copied) {
+    throw new Error('Legacy copy command failed')
+  }
 }

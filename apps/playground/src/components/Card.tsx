@@ -10,8 +10,9 @@ export function Card({ children, className = '', glow = false }: CardProps) {
   return (
     <div
       className={`
-        rounded-xl border border-eidos-border bg-eidos-surface p-5
-        ${glow ? 'shadow-[0_0_24px_rgba(99,102,241,0.08)]' : ''}
+        rounded-xl border border-eidos-border/80 bg-eidos-surface/95 p-5
+        shadow-[0_1px_0_rgba(255,255,255,0.02),0_18px_50px_rgba(15,23,42,0.18)]
+        ${glow ? 'shadow-[0_1px_0_rgba(255,255,255,0.02),0_18px_50px_rgba(15,23,42,0.18),0_0_24px_rgba(34,197,94,0.08)]' : ''}
         ${className}
       `}
     >

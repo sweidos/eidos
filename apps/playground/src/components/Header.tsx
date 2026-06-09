@@ -23,41 +23,43 @@ export function Header() {
   }
 
   return (
-    <header className="shrink-0 border-b border-eidos-border bg-eidos-surface">
+    <header className="shrink-0 border-b border-eidos-border bg-eidos-surface/90 backdrop-blur-md">
       {/* Top bar — brand + status */}
-      <div className="flex items-center justify-between px-4 h-10 border-b border-eidos-border">
+      <div className="flex flex-col gap-3 border-b border-eidos-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         {/* Brand */}
         <div className="flex items-center gap-3">
-          <span className="text-eidos-accent font-bold text-sm tracking-tight">eidos</span>
-          <span className="text-eidos-border">·</span>
+          <span className="text-sm font-bold tracking-[0.22em] text-eidos-accent">eidos</span>
+          <span className="hidden text-eidos-border sm:inline">·</span>
           <span className="text-2xs text-eidos-muted">@sweidos/eidos v{VERSION}</span>
         </div>
 
         {/* Status chips */}
-        <div className="flex items-center gap-4 text-2xs">
-          {/* SW status */}
-          <span className={`flex items-center gap-1.5 ${
-            swStatus === 'active' ? 'text-eidos-accent' :
-            swStatus === 'registering' ? 'text-eidos-amber' : 'text-eidos-muted'
+        <div className="flex flex-wrap items-center gap-2 text-2xs sm:justify-end">
+          <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 ${
+            swStatus === 'active'
+              ? 'border-eidos-accent/30 text-eidos-accent'
+              : swStatus === 'registering'
+                ? 'border-eidos-amber/30 text-eidos-amber'
+                : 'border-eidos-border text-eidos-muted'
           }`}>
             <Cpu size={10} />
             SW {swStatus}
           </span>
 
-          <span className="text-eidos-border">|</span>
-
-          {/* Online/offline */}
-          <span className={`flex items-center gap-1.5 ${isOnline ? 'text-eidos-accent' : 'text-eidos-amber'}`}>
+          <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 ${
+            isOnline
+              ? 'border-eidos-accent/30 text-eidos-accent'
+              : 'border-eidos-amber/30 text-eidos-amber'
+          }`}>
             {isOnline ? <Wifi size={10} /> : <WifiOff size={10} />}
             {isOnline ? 'online' : 'offline'}
           </span>
 
-          <span className="text-eidos-border">|</span>
-
-          {/* Offline simulation toggle */}
           <button
+            type="button"
             onClick={toggleSim}
-            className={`flex items-center gap-1.5 px-2 py-0.5 border transition-colors duration-150 cursor-pointer ${
+            aria-pressed={simulating}
+            className={`inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 py-2 transition-colors duration-150 cursor-pointer ${
               simulating
                 ? 'border-eidos-amber text-eidos-amber bg-eidos-amber-dim'
                 : 'border-eidos-border text-eidos-muted hover:border-eidos-elevated hover:text-eidos-text-dim'
@@ -70,17 +72,17 @@ export function Header() {
       </div>
 
       {/* Tab navigation */}
-      <div className="flex items-stretch px-4 h-9 gap-0">
+      <div className="overflow-x-auto px-2 sm:px-4">
+        <div className="flex min-w-max items-stretch gap-1 py-2">
         {TABS.map(tab => (
           <NavLink
             key={tab.path}
             to={tab.path}
             className={({ isActive }) => `
-              relative px-4 text-xs transition-colors duration-150 cursor-pointer
-              flex items-center gap-1.5 border-b-2
+              inline-flex min-h-9 items-center gap-1.5 rounded-full border px-4 text-xs transition-colors duration-150 cursor-pointer
               ${isActive
-                ? 'text-eidos-accent border-eidos-accent'
-                : 'text-eidos-muted border-transparent hover:text-eidos-text-dim'}
+                ? 'border-eidos-accent/30 bg-eidos-accent-dim text-eidos-accent'
+                : 'border-transparent text-eidos-muted hover:border-eidos-border hover:bg-eidos-bg/50 hover:text-eidos-text-dim'}
             `}
           >
             {tab.label}
@@ -96,6 +98,7 @@ export function Header() {
             )}
           </NavLink>
         ))}
+        </div>
       </div>
     </header>
   )
