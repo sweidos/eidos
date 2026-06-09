@@ -200,6 +200,8 @@ export const createOrder = action(
 
 // Fetch and update cache status in one call.
 // Throws on non-2xx responses (including offline 503).
+// Concurrent calls are deduplicated — only one network request fires even if
+// multiple components call fetch() simultaneously; each gets its own Response clone.
 const response: Response = await products.fetch()
 
 // Shorthand: fetch() + response.json()
