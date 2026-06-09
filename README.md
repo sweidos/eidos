@@ -850,6 +850,83 @@ Use `initEidosSvelteKit()` inside `onMount` in your root `+layout.svelte`. The h
 
 Use the framework-agnostic stores (`eidosQueue`, `eidosStatus`, etc.) from the main `@sweidos/eidos` import in your Svelte components — they work with Svelte's `$` auto-subscribe prefix out of the box.
 
+### React Native (`@sweidos/eidos/react-native`)
+
+The React Native subpath swaps the browser-specific backends (IndexedDB, Service Worker, Cache API) for a pluggable `AsyncStorage`-backed queue while keeping the same `action()` / `resource()` API surface.
+
+**Setup**
+
+```bash
+# peer deps
+npm install @react-native-async-storage/async-storage @react-native-community/netinfo
+```
+
+```ts
+// index.js — before rendering anything
+import AsyncStorage from '@react-native-async-storage/async-storage'
+import { initEidosRN } from '@sweidos/eidos/react-native'
+
+await initEidosRN({ storage: AsyncStorage })
+```
+
+```tsx
+// App.tsx
+import { useNetInfo } from '@react-native-community/netinfo'
+import { EidosProviderRN } from '@sweidos/eidos/react-native'
+
+export function App() {
+  const { isConnected } = useNetInfo()
+  return (
+    <EidosProviderRN isConnected={isConnected ?? true}>
+      <Navigation />
+    </EidosProviderRN>
+  )
+}
+```
+
+```ts
+// Declare actions exactly as you would in a web app
+import { action } from '@sweidos/eidos'
+
+export const createOrder = action(
+  async (payload: CreateOrderInput) => {
+    const res = await fetch('/api/orders', { method: 'POST', body: JSON.stringify(payload) })
+    if (!res.ok) throw res
+    return res.json()
+  },
+  { reliability: 'neverLose', name: 'createOrder' },
+)
+```
+
+Actions queued while offline are persisted to AsyncStorage and replayed automatically when the device reconnects.
+
+**Custom storage**
+
+`AsyncStorageLike` accepts any key-value store that implements `getItem` / `setItem` / `removeItem` — you can use MMKV or SQLite instead of AsyncStorage:
+
+```ts
+import { MMKV } from 'react-native-mmkv'
+import { AsyncStorageQueueStorage, setQueueStorage } from '@sweidos/eidos/react-native'
+
+const mmkv = new MMKV()
+setQueueStorage(new AsyncStorageQueueStorage({
+  getItem: async (key) => mmkv.getString(key) ?? null,
+  setItem: async (key, value) => mmkv.set(key, value),
+  removeItem: async (key) => mmkv.delete(key),
+}))
+```
+
+**What works in RN vs web**
+
+| Feature | Web | React Native |
+|---------|-----|--------------|
+| `action()` queue + replay | ✅ IndexedDB | ✅ AsyncStorage |
+| Offline-aware (auto-queue) | ✅ | ✅ |
+| `resource()` in-memory caching | ✅ | ✅ (in-memory only — no SW) |
+| `resource()` offline persistence | ✅ Cache API + SW | ❌ (fetch from API when online) |
+| `useEidos`, `useEidosQueue` hooks | ✅ | ✅ |
+| Background Sync | ✅ | ❌ (App must be foregrounded) |
+
 ---
 
 ## Devtools
@@ -926,7 +1003,7 @@ The component is self-contained with inline styles — no CSS import needed, no 
 - [x] Cache warming — `warmCache(handles[])` bulk-prefetches a list of resources on init (e.g. on login)
 
 **Ecosystem**
-- [ ] React Native support — AsyncStorage + fetch-based backend (no Cache API / SW); same `resource` / `action` API surface
+- [x] React Native support — `@sweidos/eidos/react-native`; AsyncStorage-backed queue, same `action()` API surface; `EidosProviderRN` syncs NetInfo connectivity into the replay loop
 - [x] OpenAPI codegen CLI — `npx eidos-gen ./openapi.json` generates typed `resource()` and `action()` declarations
 
 ---

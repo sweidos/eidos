@@ -8,6 +8,12 @@ export { action, replayQueue, clearQueue } from './action'
 export { initEidos, _resetEidos } from './runtime'
 export type { EidosConfig } from './runtime'
 
+// Pluggable queue storage (used by React Native adapter and custom backends)
+export { setQueueStorage, _getQueueStorage } from './queue-storage'
+export type { QueueStorage } from './queue-storage'
+export { AsyncStorageQueueStorage } from './async-storage-adapter'
+export type { AsyncStorageLike } from './async-storage-adapter'
+
 // React bindings
 export { EidosProvider } from './react/Provider'
 export { useEidos, useEidosResources, useEidosResource, useEidosQueue, useEidosAction, useEidosQueueStats, useEidosStatus, useEidosOnDrain } from './react/hooks'

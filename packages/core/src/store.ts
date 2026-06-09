@@ -32,7 +32,8 @@ function _set(updater: (prev: EidosStore) => Partial<EidosStore>) {
 }
 
 _state = {
-  isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
+  // navigator.onLine is undefined in React Native — default to true unless explicitly false
+  isOnline: typeof navigator === 'undefined' || navigator.onLine !== false,
   swStatus: 'idle',
   swError: undefined,
   resources: {},

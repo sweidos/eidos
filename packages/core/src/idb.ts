@@ -1,4 +1,5 @@
 import type { ActionQueueItem } from './types'
+import type { QueueStorage } from './queue-storage'
 
 const DB_NAME = 'eidos'
 const DB_VERSION = 1
@@ -122,4 +123,14 @@ export async function idbClearQueue(): Promise<void> {
     tx.oncomplete = () => resolve()
     tx.onerror = () => reject(tx.error)
   })
+}
+
+/** IndexedDB-backed QueueStorage implementation (default for browser environments). */
+export const idbQueueStorage: QueueStorage = {
+  add: idbAddToQueue,
+  getAll: idbGetQueue,
+  getPending: idbGetPendingItems,
+  update: idbUpdateQueueItem,
+  remove: idbRemoveFromQueue,
+  clear: idbClearQueue,
 }

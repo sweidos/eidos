@@ -2,11 +2,14 @@ import { useEidosStore } from './store'
 import { getSwRegistration } from './sw-bridge'
 import {
   idbAddToQueue,
+  idbGetQueue,
   idbGetPendingItems,
   idbUpdateQueueItem,
   idbRemoveFromQueue,
   idbClearQueue,
 } from './idb'
+import { _getQueueStorage } from './queue-storage'
+import type { QueueStorage } from './queue-storage'
 import type {
   ActionConfig,
   ActionHandle,
@@ -22,6 +25,20 @@ const _actionRegistry = new Map<string, ActionFn<any[], any>>()
 const _rollbackRegistry = new Map<string, (...args: any[]) => void>()
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const _conflictRegistry = new Map<string, (error: unknown, args: any[]) => 'retry' | 'skip'>()
+
+// IDB fallback — used when no custom storage is set (default browser behavior).
+const _idbFallback: QueueStorage = {
+  add: (item) => idbAddToQueue(item),
+  getAll: () => idbGetQueue(),
+  getPending: () => idbGetPendingItems(),
+  update: (id, patch) => idbUpdateQueueItem(id, patch),
+  remove: (id) => idbRemoveFromQueue(id),
+  clear: () => idbClearQueue(),
+}
+
+function qs(): QueueStorage {
+  return _getQueueStorage() ?? _idbFallback
+}
 
 function uid() {
   return crypto.randomUUID()
@@ -121,7 +138,7 @@ async function persistAndQueue(
     priority: config.priority ?? 'normal',
   }
 
-  await idbAddToQueue(item)
+  await qs().add(item)
   useEidosStore.getState().addQueueItem(item)
 
   // Register Background Sync tag so the browser can wake up open clients
@@ -186,12 +203,12 @@ async function _replayItem(
     await fn(...(item.args as unknown[]))
     const completedAt = Date.now()
     store.updateQueueItem(item.id, { status: 'succeeded', completedAt })
-    await idbUpdateQueueItem(item.id, { status: 'succeeded', completedAt })
+    await qs().update(item.id, { status: 'succeeded', completedAt })
 
     // Remove from queue after a short delay so UI can show the success state briefly
     setTimeout(() => {
       store.removeQueueItem(item.id)
-      idbRemoveFromQueue(item.id)
+      qs().remove(item.id)
     }, 3000)
     return 'succeeded'
   } catch (err) {
@@ -202,7 +219,7 @@ async function _replayItem(
         const resolution = onConflict(err, item.args as unknown[])
         if (resolution === 'skip') {
           store.removeQueueItem(item.id)
-          await idbRemoveFromQueue(item.id)
+          await qs().remove(item.id)
           return 'conflicted'
         }
         // 'retry' falls through to normal retry/fail logic below
@@ -212,13 +229,13 @@ async function _replayItem(
     const retryCount = item.retryCount + 1
     if (retryCount >= item.maxRetries) {
       store.updateQueueItem(item.id, { status: 'failed', error: String(err), retryCount })
-      await idbUpdateQueueItem(item.id, { status: 'failed', error: String(err), retryCount })
+      await qs().update(item.id, { status: 'failed', error: String(err), retryCount })
       _rollbackRegistry.get(item.actionId)?.(...(item.args as unknown[]))
       return 'failed'
     } else {
       const nextRetryAt = Date.now() + backoffMs(retryCount)
       store.updateQueueItem(item.id, { status: 'pending', retryCount, nextRetryAt })
-      await idbUpdateQueueItem(item.id, { status: 'pending', retryCount, nextRetryAt })
+      await qs().update(item.id, { status: 'pending', retryCount, nextRetryAt })
       return 'retrying'
     }
   }
@@ -239,7 +256,7 @@ async function _replayTier(
   if (replayable.length > 0) {
     store.batchUpdateQueueItems(replayable.map((item) => ({ id: item.id, update: { status: 'replaying' } })))
     for (const item of replayable) {
-      idbUpdateQueueItem(item.id, { status: 'replaying' })
+      qs().update(item.id, { status: 'replaying' })
     }
   }
 
@@ -254,7 +271,7 @@ async function _replayTier(
 }
 
 async function _doReplayQueue(store: ReturnType<typeof useEidosStore.getState>): Promise<ReplayResult> {
-  const candidates = await idbGetPendingItems()
+  const candidates = await qs().getPending()
   const now = Date.now()
   const pending = candidates.filter((item) => !item.nextRetryAt || item.nextRetryAt <= now)
 
@@ -270,8 +287,8 @@ async function _doReplayQueue(store: ReturnType<typeof useEidosStore.getState>):
   return result
 }
 
-/** Remove all items from the action queue (IDB + in-memory store). */
+/** Remove all items from the action queue (storage + in-memory store). */
 export async function clearQueue(): Promise<void> {
-  await idbClearQueue()
+  await qs().clear()
   useEidosStore.getState().hydrateQueue([])
 }

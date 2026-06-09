@@ -1,6 +1,6 @@
 {
   "name": "@sweidos/eidos",
-  "version": "1.0.30",
+  "version": "1.0.31",
   "description": "Describe intent. The runtime figures out how. An abstraction layer for offline-first web apps.",
   "author": "Aditya Raj",
   "license": "MIT",
@@ -60,6 +60,10 @@
     "./devtools": {
       "import": "./dist/devtools.js",
       "types": "./dist/devtools.d.ts"
+    },
+    "./react-native": {
+      "import": "./dist/react-native.js",
+      "types": "./dist/react-native.d.ts"
     }
   },
   "files": [
@@ -67,7 +71,7 @@
     "README.md"
   ],
   "scripts": {
-    "build": "vite build && vite build --config vite.cjs.config.ts && vite build --config vite.plugin.config.ts && vite build --config vite.query.config.ts && vite build --config vite.testing.config.ts && vite build --config vite.nextjs.config.ts && vite build --config vite.sveltekit.config.ts && vite build --config vite.devtools.config.ts && node scripts/copy-sw.mjs",
+    "build": "vite build && vite build --config vite.cjs.config.ts && vite build --config vite.plugin.config.ts && vite build --config vite.query.config.ts && vite build --config vite.testing.config.ts && vite build --config vite.nextjs.config.ts && vite build --config vite.sveltekit.config.ts && vite build --config vite.devtools.config.ts && vite build --config vite.react-native.config.ts && node scripts/copy-sw.mjs",
     "dev": "vite build --watch",
     "type-check": "tsc --noEmit",
     "test": "vitest run",
