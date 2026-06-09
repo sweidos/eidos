@@ -6,6 +6,14 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.0.21] — 2026-06-09
+
+### Added
+
+- **Request deduplication** — when multiple callers invoke `handle.fetch()` concurrently for the same URL, only one network request is made. All callers receive an independent cloned `Response` so each can read the body independently. The in-flight map is cleared immediately after the request settles, so subsequent calls (after a batch completes) start fresh. Zero API change — transparent to all consumers.
+
+---
+
 ## [1.0.20] — 2026-06-09
 
 ### Changed

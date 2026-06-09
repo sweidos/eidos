@@ -10,6 +10,12 @@ import type {
 
 const _registry = new Map<string, ResourceHandle>()
 
+// ── Request deduplication ─────────────────────────────────────────────────────
+// If multiple callers invoke handle.fetch() simultaneously for the same URL,
+// only one network request is made. Each caller gets its own cloned Response.
+// Keyed by URL; entry is deleted when the request settles.
+const _inflightRequests = /* @__PURE__ */ new Map<string, Promise<Response>>()
+
 // ── TanStack Query bridge (optional) ─────────────────────────────────────────
 // Set by @sweidos/eidos/query when withEidosQueryClient() is called.
 // Lets handle.invalidate() also invalidate the matching TQ cache entry.
@@ -116,104 +122,19 @@ export function resource<T = unknown>(
     fetch: async () => {
       if (isPattern(url)) throw _patternError(url, 'fetch')
 
-      const store = useEidosStore.getState()
-      store.updateResource(url, { status: 'fetching', fetchedAt: Date.now() })
+      // ── Deduplication: coalesce concurrent fetches for the same URL ─────
+      // If a request is already in-flight, piggyback on it and return a clone
+      // so each caller gets an independent readable Response body.
+      const existing = _inflightRequests.get(url)
+      if (existing) return existing.then((r) => r.clone())
 
-      // Open cache once and reuse across try/catch — avoids a redundant
-      // caches.open() call in the error fallback path.
-      const cache = await caches.open(strategy.cacheName).catch(() => null)
-
-      try {
-        // ── network-first: skip cache check, go straight to network ───
-        // For cache-first / SWR the cache check below is correct. For
-        // network-first, reading cache first and returning early would
-        // contradict the strategy — fresh data is the priority.
-        if (strategy.swStrategy !== 'network-first') {
-          // ── Direct Cache API check ───────────────────────────────────
-          // We read the cache in the main thread rather than waiting for
-          // an async SW postMessage. This gives instant, reliable status
-          // updates regardless of SW message timing.
-          const cached = cache ? await cache.match(url).catch(() => null) : null
-
-          // Treat cache as miss if maxAge exceeded
-          const current = useEidosStore.getState().resources[url]
-          const expired =
-            config.maxAge !== undefined &&
-            current?.cachedAt !== undefined &&
-            Date.now() - current.cachedAt > config.maxAge
-
-          if (cached && !expired) {
-            store.updateResource(url, {
-              status: 'fresh',
-              lastEvent: 'cache-hit',
-              cacheHits: (current?.cacheHits ?? 0) + 1,
-            })
-
-            // Background revalidation for SWR (stale-while-revalidate)
-            if (strategy.swStrategy === 'stale-while-revalidate') {
-              fetch(url)
-                .then(async (resp) => {
-                  if (resp.ok && cache) {
-                    await cache.put(url, resp.clone())
-                    useEidosStore.getState().updateResource(url, {
-                      cachedAt: Date.now(),
-                      lastEvent: 'cache-updated',
-                    })
-                  }
-                })
-                .catch(() => {
-                  /* offline — cached version stays valid */
-                })
-            }
-
-            return cached
-          }
-
-          // Cache miss (or expired)
-          const storeEntry = useEidosStore.getState().resources[url]
-          store.updateResource(url, {
-            cacheMisses: (storeEntry?.cacheMisses ?? 0) + 1,
-          })
-        }
-
-        const response = await fetch(url)
-
-        if (response.ok) {
-          if (cache) await cache.put(url, response.clone())
-          store.updateResource(url, {
-            status: 'fresh',
-            cachedAt: Date.now(),
-            lastEvent: 'cache-updated',
-          })
-          return response
-        }
-
-        // Non-2xx response (e.g. 503 from offline SW) — update status and throw
-        // so callers get a proper error instead of a plain-object body they can't use.
-        store.updateResource(url, { status: response.status === 503 ? 'offline' : 'error' })
-
-        // Check if the SW tagged this as an offline response
-        const isOffline = response.headers.get('X-Eidos-Offline') === 'true'
-        throw new Error(
-          isOffline ? `offline: no cached response for ${url}` : `${response.status} ${response.statusText}`,
-        )
-      } catch (err) {
-        // Network failure — try cache one more time as fallback
-        const fallback = cache ? await cache.match(url).catch(() => null) : null
-
-        if (fallback) {
-          const current = useEidosStore.getState().resources[url]
-          store.updateResource(url, {
-            status: 'fresh',
-            lastEvent: 'cache-hit',
-            cacheHits: (current?.cacheHits ?? 0) + 1,
-          })
-          return fallback
-        }
-
-        store.updateResource(url, { status: 'error' })
-        throw err
-      }
+      // Store the raw-response promise. All callers (including the primary)
+      // receive a clone — the raw response stays unconsumed in the map so
+      // any caller arriving while the promise is still pending can clone it.
+      const task = _fetchResource(url, config, strategy)
+      _inflightRequests.set(url, task)
+      task.finally(() => _inflightRequests.delete(url))
+      return task.then((r) => r.clone())
     },
 
     json: async () => {
@@ -280,6 +201,115 @@ export function resource<T = unknown>(
 
   _registry.set(url, handle)
   return handle
+}
+
+// ── _fetchResource ─────────────────────────────────────────────────────────────
+// The actual network/cache implementation. Separated from handle.fetch() so the
+// deduplication wrapper can store the Promise and share it across concurrent callers.
+// Returns the raw (unconsumed) Response — callers MUST .clone() before reading body.
+async function _fetchResource(
+  url: string,
+  config: ResourceConfig,
+  strategy: GeneratedStrategy,
+): Promise<Response> {
+  const store = useEidosStore.getState()
+  store.updateResource(url, { status: 'fetching', fetchedAt: Date.now() })
+
+  // Open cache once and reuse across try/catch — avoids a redundant
+  // caches.open() call in the error fallback path.
+  const cache = await caches.open(strategy.cacheName).catch(() => null)
+
+  try {
+    // ── network-first: skip cache check, go straight to network ─────────
+    // For cache-first / SWR the cache check below is correct. For
+    // network-first, reading cache first and returning early would
+    // contradict the strategy — fresh data is the priority.
+    if (strategy.swStrategy !== 'network-first') {
+      // ── Direct Cache API check ─────────────────────────────────────────
+      // We read the cache in the main thread rather than waiting for
+      // an async SW postMessage. This gives instant, reliable status
+      // updates regardless of SW message timing.
+      const cached = cache ? await cache.match(url).catch(() => null) : null
+
+      // Treat cache as miss if maxAge exceeded
+      const current = useEidosStore.getState().resources[url]
+      const expired =
+        config.maxAge !== undefined &&
+        current?.cachedAt !== undefined &&
+        Date.now() - current.cachedAt > config.maxAge
+
+      if (cached && !expired) {
+        store.updateResource(url, {
+          status: 'fresh',
+          lastEvent: 'cache-hit',
+          cacheHits: (current?.cacheHits ?? 0) + 1,
+        })
+
+        // Background revalidation for SWR (stale-while-revalidate)
+        if (strategy.swStrategy === 'stale-while-revalidate') {
+          fetch(url)
+            .then(async (resp) => {
+              if (resp.ok && cache) {
+                await cache.put(url, resp.clone())
+                useEidosStore.getState().updateResource(url, {
+                  cachedAt: Date.now(),
+                  lastEvent: 'cache-updated',
+                })
+              }
+            })
+            .catch(() => {
+              /* offline — cached version stays valid */
+            })
+        }
+
+        return cached
+      }
+
+      // Cache miss (or expired)
+      const storeEntry = useEidosStore.getState().resources[url]
+      store.updateResource(url, {
+        cacheMisses: (storeEntry?.cacheMisses ?? 0) + 1,
+      })
+    }
+
+    const response = await fetch(url)
+
+    if (response.ok) {
+      if (cache) await cache.put(url, response.clone())
+      store.updateResource(url, {
+        status: 'fresh',
+        cachedAt: Date.now(),
+        lastEvent: 'cache-updated',
+      })
+      return response
+    }
+
+    // Non-2xx response (e.g. 503 from offline SW) — update status and throw
+    // so callers get a proper error instead of a plain-object body they can't use.
+    store.updateResource(url, { status: response.status === 503 ? 'offline' : 'error' })
+
+    // Check if the SW tagged this as an offline response
+    const isOffline = response.headers.get('X-Eidos-Offline') === 'true'
+    throw new Error(
+      isOffline ? `offline: no cached response for ${url}` : `${response.status} ${response.statusText}`,
+    )
+  } catch (err) {
+    // Network failure — try cache one more time as fallback
+    const fallback = cache ? await cache.match(url).catch(() => null) : null
+
+    if (fallback) {
+      const current = useEidosStore.getState().resources[url]
+      store.updateResource(url, {
+        status: 'fresh',
+        lastEvent: 'cache-hit',
+        cacheHits: (current?.cacheHits ?? 0) + 1,
+      })
+      return fallback
+    }
+
+    store.updateResource(url, { status: 'error' })
+    throw err
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
