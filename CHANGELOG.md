@@ -6,6 +6,16 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.0.22] — 2026-06-09
+
+### Changed
+
+- **ESM output now uses `preserveModules`** — individual files instead of a single flat bundle. Vue/Svelte/vanilla consumers who import only `resource()`, `eidosStore`, etc. no longer pull in React. React is isolated to `dist/react/hooks.js` and `dist/react/Provider.js`. CJS remains a single bundle (`dist/eidos.cjs.js`) for Node.js/SSR compatibility.
+- Build pipeline: new `vite.cjs.config.ts` for the CJS bundle; ESM built by main `vite.config.ts`.
+- `module`/`exports['.'].import` updated to `./dist/index.js` (was `./dist/eidos.es.js`).
+
+---
+
 ## [1.0.21] — 2026-06-09
 
 ### Added
