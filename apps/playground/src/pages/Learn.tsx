@@ -129,8 +129,20 @@ export function Learn() {
       <Pre label="terminal">{`npm install @sweidos/eidos
 # or
 pnpm add @sweidos/eidos`}</Pre>
-      <P>Then copy the service worker into your project's public directory:</P>
-      <Pre label="terminal">{`cp node_modules/@sweidos/eidos/dist/eidos-sw.js public/eidos-sw.js`}</Pre>
+      <P>
+        The easiest way to get the service worker into your public directory is the built-in{' '}
+        <strong>Vite plugin</strong> — it copies <Code>eidos-sw.js</Code> automatically on every
+        build and dev-server start:
+      </P>
+      <Pre label="vite.config.ts">{`import { eidos } from '@sweidos/eidos/vite'
+import { defineConfig } from 'vite'
+
+export default defineConfig({
+  plugins: [eidos()],
+})`}</Pre>
+      <P>
+        No Vite? Copy manually: <Code>cp node_modules/@sweidos/eidos/dist/eidos-sw.js public/eidos-sw.js</Code>
+      </P>
 
       {/* ── Quick Setup ──────────────────────────────────────────────────────── */}
       <H2 id="setup">Quick Setup</H2>

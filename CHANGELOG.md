@@ -6,6 +6,29 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.0.18] — 2026-06-09
+
+### Added
+
+- **Vite plugin (`@sweidos/eidos/vite`)** — first-class Vite integration. Automatically copies `eidos-sw.js` from the installed package into `public/` on every build and dev-server start, so the SW always stays in sync with the installed package version:
+  ```ts
+  // vite.config.ts
+  import { eidos } from '@sweidos/eidos/vite'
+  import { defineConfig } from 'vite'
+
+  export default defineConfig({
+    plugins: [eidos()],
+  })
+  ```
+  Accepts optional `swDest` option (default `'public/eidos-sw.js'`). Runs on `buildStart` (prod) and `configureServer` (dev). `vite` is an optional peer dependency.
+
+### Changed
+
+- Package exports — added `"./vite"` subpath with ESM + CJS + types outputs.
+- Build script — vite plugin now built via a separate `vite.plugin.config.ts` to keep Node.js targets isolated from the React browser bundle.
+
+---
+
 ## [1.0.17] — 2026-06-09
 
 ### Added
