@@ -116,6 +116,7 @@ export function Learn() {
             ['#svelte-vue',   'Svelte / Vue / JS'],
             ['#simulation',   'Offline Simulation'],
             ['#bg-sync',      'Background Sync'],
+            ['#tanstack',     'TanStack Query'],
             ['#architecture', 'Architecture'],
             ['#limitations',  'Limitations'],
           ].map(([href, label]) => (
@@ -756,6 +757,77 @@ if (isBgSyncSupported()) {
 // Both replay paths fire replayQueue() — whichever arrives first wins:
 // a) store subscription (online event)  → replayQueue() after 600 ms
 // b) Background Sync API (sync event)   → replayQueue() after 200 ms`}</Pre>
+
+      {/* ── TanStack Query ───────────────────────────────────────────────────── */}
+      <H2 id="tanstack">TanStack Query Integration</H2>
+      <P>
+        <Code>@sweidos/eidos/query</Code> provides first-class hooks for{' '}
+        <a href="https://tanstack.com/query/latest" target="_blank" rel="noreferrer" className="text-eidos-accent hover:underline">
+          TanStack Query v5
+        </a>. Install <Code>@tanstack/react-query</Code> alongside Eidos — it is an optional peer dependency.
+      </P>
+
+      <H3>Setup — register the QueryClient once</H3>
+      <Pre label="main.tsx">{`import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { withEidosQueryClient } from '@sweidos/eidos/query'
+
+const queryClient = new QueryClient()
+withEidosQueryClient(queryClient) // bridges handle.invalidate() → TQ cache
+
+root.render(
+  <QueryClientProvider client={queryClient}>
+    <EidosProvider swPath="/eidos-sw.js">
+      <App />
+    </EidosProvider>
+  </QueryClientProvider>
+)`}</Pre>
+
+      <H3>useEidosQuery(handle, options?)</H3>
+      <P>
+        Wraps <Code>useQuery</Code> with two Eidos-smart defaults:{' '}
+        <Code>networkMode: 'always'</Code> (queries run even when <Code>navigator.onLine</Code> is false — Eidos owns the cache layer) and{' '}
+        <Code>retry: false</Code> (Eidos handles retries at the SW/replay layer).
+      </P>
+      <Pre label="ProductList.tsx">{`import { useEidosQuery } from '@sweidos/eidos/query'
+
+function ProductList() {
+  const { data, isPending, isError } = useEidosQuery<Product[]>(products)
+  if (isPending) return <Spinner />
+  return <ul>{data?.map(p => <li key={p.id}>{p.name}</li>)}</ul>
+}`}</Pre>
+
+      <H3>useEidosMutation(handle, options?)</H3>
+      <P>
+        Wraps <Code>useMutation</Code> for a single-argument action handle.{' '}
+        <Code>networkMode: 'always'</Code> lets the action queue offline.{' '}
+        The <Code>invalidates</Code> option clears Eidos Cache Storage and the matching TanStack Query entries on success.
+        Return type is <Code>TData | QueuedResult</Code> — narrow with{' '}
+        <Code>{'\'queued\' in data'}</Code> to detect the offline-queued case.
+      </P>
+      <Pre label="OrderForm.tsx">{`import { useEidosMutation } from '@sweidos/eidos/query'
+
+function OrderForm() {
+  const mutation = useEidosMutation(createOrder, {
+    invalidates: [products],           // refetch product list after mutation
+    onSuccess(data) {
+      if ('queued' in data) toast('Saved offline — will sync when back online')
+      else toast(\`Order #\${data.id} created!\`)
+    },
+  })
+
+  return (
+    <button onClick={() => mutation.mutate({ productId: 1, qty: 2 })}>
+      {mutation.isPending ? 'Saving…' : 'Buy'}
+    </button>
+  )
+}`}</Pre>
+
+      <H3>withEidosQueryClient(client)</H3>
+      <P>
+        After calling this, <Code>handle.invalidate()</Code> also triggers{' '}
+        <Code>queryClient.invalidateQueries({'{ queryKey: [\'eidos\', url] }'})</Code>.
+        Both caches stay in sync even when the cache is cleared outside of mutations (e.g. from devtools or on reconnect).
+      </P>
 
       {/* ── Architecture ─────────────────────────────────────────────────────── */}
       <H2 id="architecture">Architecture</H2>

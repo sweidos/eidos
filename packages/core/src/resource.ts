@@ -10,6 +10,17 @@ import type {
 
 const _registry = new Map<string, ResourceHandle>()
 
+// ── TanStack Query bridge (optional) ─────────────────────────────────────────
+// Set by @sweidos/eidos/query when withEidosQueryClient() is called.
+// Lets handle.invalidate() also invalidate the matching TQ cache entry.
+type QueryInvalidator = (queryKey: [string, string]) => void
+let _queryInvalidator: QueryInvalidator | null = null
+
+/** @internal Called by @sweidos/eidos/query. */
+export function setQueryInvalidator(fn: QueryInvalidator): void {
+  _queryInvalidator = fn
+}
+
 // ── URL pattern helpers ───────────────────────────────────────────────────────
 
 /** Returns true if `url` contains wildcard or :param segments. */
@@ -256,6 +267,8 @@ export function resource<T = unknown>(
           cacheMisses: 0,
         })
       }
+      // Notify TanStack Query bridge if registered.
+      _queryInvalidator?.(['eidos', url])
     },
 
     unregister: () => {
