@@ -41,6 +41,17 @@ export function Demo() {
   const pendingCount = queue.filter(q => q.status === 'pending').length
   const replayingCount = queue.filter(q => q.status === 'replaying').length
   const completedCount = queue.filter(q => q.status === 'succeeded' || q.status === 'failed').length
+  const heroStats = [
+    { label: 'network', value: isOnline ? 'online' : 'offline', tone: isOnline ? 'text-eidos-accent' : 'text-eidos-amber' },
+    { label: 'service worker', value: swStatus, tone: 'text-eidos-text' },
+    { label: 'cache hits', value: resourceEntry?.cacheHits ?? 0, tone: 'text-eidos-accent' },
+    { label: 'queued', value: pendingCount, tone: 'text-eidos-amber' },
+  ] as const
+  const heroSteps = [
+    'Fetch the product list while online, then turn offline simulation on.',
+    'Submit an order and watch it move into the queue.',
+    'Open docs for a shorter explanation of each API surface.',
+  ] as const
 
   // Queue events
   const prevQLen = useRef(0)
@@ -120,13 +131,13 @@ await replayQueue()`,
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-6 lg:px-6 animate-fade-in">
       <Card glow className="overflow-hidden">
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="space-y-4">
+        <div className="grid gap-6 p-5 lg:grid-cols-[minmax(0,1fr)_360px] lg:p-6">
+          <div className="space-y-5">
             <div className="inline-flex items-center gap-2 rounded-full border border-eidos-border bg-eidos-elevated/70 px-3 py-1 text-[10px] uppercase tracking-[0.24em] text-eidos-muted">
               overview
             </div>
-            <div className="space-y-3">
-              <h1 className="text-2xl font-semibold text-eidos-text text-balance md:text-3xl">
+            <div className="space-y-4">
+              <h1 className="max-w-2xl text-2xl font-semibold text-eidos-text text-balance md:text-3xl lg:text-4xl">
                 Stop wiring service-worker details by hand.
               </h1>
               <p className="max-w-2xl text-sm leading-relaxed text-eidos-text-dim md:text-[15px]">
@@ -139,16 +150,25 @@ await replayQueue()`,
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => navigate('/docs')}
-                className="inline-flex items-center gap-1.5 rounded-full border border-eidos-accent bg-eidos-accent px-4 py-2 text-xs font-semibold text-eidos-bg transition-colors hover:bg-green-400 cursor-pointer"
+                className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-eidos-accent bg-eidos-accent px-4 py-2 text-xs font-semibold text-eidos-bg transition-colors hover:bg-green-400 cursor-pointer"
               >
                 Open docs <ArrowRight size={11} />
               </button>
               <button
                 onClick={() => navigate('/actions')}
-                className="inline-flex items-center gap-1.5 rounded-full border border-eidos-border px-4 py-2 text-xs font-medium text-eidos-text-dim transition-colors hover:border-eidos-elevated hover:text-eidos-text cursor-pointer"
+                className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-eidos-border px-4 py-2 text-xs font-medium text-eidos-text-dim transition-colors hover:border-eidos-elevated hover:text-eidos-text cursor-pointer"
               >
                 View action queue
               </button>
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+              {heroStats.map(stat => (
+                <div key={stat.label} className="rounded-xl border border-eidos-border bg-eidos-bg/50 px-3 py-2">
+                  <div className="text-[10px] uppercase tracking-[0.24em] text-eidos-muted">{stat.label}</div>
+                  <div className={`mt-1 text-sm font-semibold ${stat.tone}`}>{stat.value}</div>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -158,31 +178,36 @@ await replayQueue()`,
               <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
                 <div>
                   <div className="text-eidos-muted">network</div>
-                  <div className={`font-semibold ${isOnline ? 'text-eidos-accent' : 'text-eidos-amber'}`}>
+                  <div className={`mt-1 font-semibold ${isOnline ? 'text-eidos-accent' : 'text-eidos-amber'}`}>
                     {isOnline ? 'online' : 'offline'}
                   </div>
                 </div>
                 <div>
                   <div className="text-eidos-muted">service worker</div>
-                  <div className="font-semibold text-eidos-text">{swStatus}</div>
+                  <div className="mt-1 font-semibold text-eidos-text">{swStatus}</div>
                 </div>
                 <div>
                   <div className="text-eidos-muted">cache hits</div>
-                  <div className="font-tabular font-semibold text-eidos-accent">{resourceEntry?.cacheHits ?? 0}</div>
+                  <div className="mt-1 font-tabular font-semibold text-eidos-accent">{resourceEntry?.cacheHits ?? 0}</div>
                 </div>
                 <div>
                   <div className="text-eidos-muted">queued</div>
-                  <div className="font-tabular font-semibold text-eidos-amber">{pendingCount}</div>
+                  <div className="mt-1 font-tabular font-semibold text-eidos-amber">{pendingCount}</div>
                 </div>
               </div>
             </div>
 
             <div className="rounded-xl border border-eidos-border bg-eidos-surface p-4">
               <div className="text-[10px] uppercase tracking-[0.24em] text-eidos-muted">what to try</div>
-              <ul className="mt-3 space-y-2 text-xs leading-relaxed text-eidos-text-dim">
-                <li>1. Fetch the product list while online, then turn offline simulation on.</li>
-                <li>2. Submit an order and watch it move into the queue.</li>
-                <li>3. Open docs for a shorter explanation of each API surface.</li>
+              <ul className="mt-3 space-y-3 text-xs leading-relaxed text-eidos-text-dim">
+                {heroSteps.map((step, index) => (
+                  <li key={step} className="flex gap-2">
+                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-eidos-border text-[10px] font-semibold text-eidos-muted">
+                      {index + 1}
+                    </span>
+                    <span>{step}</span>
+                  </li>
+                ))}
               </ul>
             </div>
           </div>
@@ -243,7 +268,7 @@ await replayQueue()`,
         </div>
 
         <Card className="flex h-full flex-col overflow-hidden p-0">
-          <div className="flex items-center justify-between border-b border-eidos-border px-4 py-3">
+          <div className="flex items-start justify-between gap-3 border-b border-eidos-border px-4 py-3">
             <div>
               <div className="text-[10px] uppercase tracking-[0.24em] text-eidos-muted">runtime feed</div>
               <p className="text-xs text-eidos-text-dim">
@@ -258,48 +283,48 @@ await replayQueue()`,
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-3 space-y-0.5">
+          <div className="flex-1 overflow-y-auto p-3 space-y-1">
             {events.length === 0 ? (
-              <div className="py-10 text-center text-2xs text-eidos-muted">
+              <div className="py-10 text-center text-xs text-eidos-muted">
                 waiting for activity...
               </div>
             ) : (
               events.map(ev => (
-                <div key={ev.id} className="flex gap-2 text-2xs leading-5 font-tabular animate-slide-right">
-                  <span className="w-16 shrink-0 text-eidos-border">{ev.time}</span>
-                  <span className={`w-12 shrink-0 font-bold ${KIND_COLOR[ev.kind]}`}>{ev.kind}</span>
+                <div key={ev.id} className="flex gap-2 text-xs leading-6 font-tabular animate-slide-right">
+                  <span className="w-20 shrink-0 text-eidos-border">{ev.time}</span>
+                  <span className={`w-14 shrink-0 font-bold ${KIND_COLOR[ev.kind]}`}>{ev.kind}</span>
                   <span className="truncate text-eidos-text-dim">{ev.msg}</span>
                 </div>
               ))
             )}
           </div>
 
-          <div className="grid grid-cols-3 gap-2 border-t border-eidos-border px-4 py-3 text-2xs">
-            <div>
+          <div className="grid gap-2 border-t border-eidos-border px-4 py-3 text-xs sm:grid-cols-3">
+            <div className="rounded-lg border border-eidos-border bg-eidos-bg/40 px-3 py-2">
               <div className="text-eidos-muted">cache hits</div>
-              <div className="font-tabular font-semibold text-eidos-accent">{resourceEntry?.cacheHits ?? 0}</div>
+              <div className="mt-1 font-tabular font-semibold text-eidos-accent">{resourceEntry?.cacheHits ?? 0}</div>
             </div>
-            <div>
+            <div className="rounded-lg border border-eidos-border bg-eidos-bg/40 px-3 py-2">
               <div className="text-eidos-muted">queued</div>
-              <div className="font-tabular font-semibold text-eidos-amber">{pendingCount}</div>
+              <div className="mt-1 font-tabular font-semibold text-eidos-amber">{pendingCount}</div>
             </div>
-            <div>
+            <div className="rounded-lg border border-eidos-border bg-eidos-bg/40 px-3 py-2">
               <div className="text-eidos-muted">replaying</div>
-              <div className="font-tabular font-semibold text-eidos-blue">{replayingCount}</div>
+              <div className="mt-1 font-tabular font-semibold text-eidos-blue">{replayingCount}</div>
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-2 border-t border-eidos-border px-4 py-3 text-2xs">
-            <div>
+          <div className="grid gap-2 border-t border-eidos-border px-4 py-3 text-xs sm:grid-cols-3">
+            <div className="rounded-lg border border-eidos-border bg-eidos-bg/40 px-3 py-2">
               <div className="text-eidos-muted">done</div>
-              <div className="font-tabular font-semibold text-eidos-text">{completedCount}</div>
+              <div className="mt-1 font-tabular font-semibold text-eidos-text">{completedCount}</div>
             </div>
-            <div>
+            <div className="rounded-lg border border-eidos-border bg-eidos-bg/40 px-3 py-2">
               <div className="text-eidos-muted">status</div>
-              <div className="font-semibold text-eidos-text">{swStatus}</div>
+              <div className="mt-1 font-semibold text-eidos-text">{swStatus}</div>
             </div>
-            <div>
+            <div className="rounded-lg border border-eidos-border bg-eidos-bg/40 px-3 py-2">
               <div className="text-eidos-muted">cached at</div>
-              <div className="font-tabular text-eidos-text-dim">
+              <div className="mt-1 font-tabular text-eidos-text-dim">
                 {resourceEntry?.cachedAt
                   ? new Date(resourceEntry.cachedAt).toLocaleTimeString('en', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
                   : '—'}
@@ -366,8 +391,8 @@ function ProductsDemo({
   return (
     <div className="p-5">
       {/* Label row */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm font-bold text-eidos-text">products</span>
           <span className="text-2xs text-eidos-muted border border-eidos-border px-1.5 py-0.5">
             StaleWhileRevalidate
@@ -386,7 +411,7 @@ function ProductsDemo({
       </div>
 
       {/* Declaration */}
-      <div className="border border-eidos-border bg-eidos-bg px-3 py-2 mb-4 text-2xs text-eidos-text-dim leading-relaxed">
+      <div className="mb-4 rounded-lg border border-eidos-border bg-eidos-bg px-3 py-2 text-2xs text-eidos-text-dim leading-relaxed">
         <span className="text-eidos-muted">resource</span>(<span className="text-eidos-accent">'/api/products'</span>, {'{ '}
         <span className="text-eidos-text-dim">offline</span>: <span className="text-eidos-accent">true</span>
         {' }'})<br />
@@ -420,9 +445,9 @@ function ProductsDemo({
         {!loading && Array.isArray(products) && (
           <div className="border border-eidos-border divide-y divide-eidos-border">
             {products.map(p => (
-              <div key={p.id} className="flex items-center justify-between px-3 py-2 text-xs">
+              <div key={p.id} className="flex items-center justify-between gap-4 px-3 py-2 text-xs">
                 <span className="text-eidos-text">{p.name}</span>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
                   <span className="text-2xs text-eidos-muted">{p.category}</span>
                   <span className="text-eidos-accent font-tabular">${p.price}</span>
                 </div>
@@ -432,11 +457,11 @@ function ProductsDemo({
         )}
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row">
         <button
           onClick={fetch_}
           disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 bg-eidos-accent text-eidos-bg text-xs font-bold hover:bg-green-400 transition-colors disabled:opacity-50 cursor-pointer"
+          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-eidos-accent px-4 py-2 text-xs font-bold text-eidos-bg transition-colors hover:bg-green-400 disabled:opacity-50 cursor-pointer"
         >
           <RefreshCw size={11} className={loading ? 'animate-spin' : ''} />
           Fetch Products
@@ -444,14 +469,14 @@ function ProductsDemo({
         {products && !loading && (
           <button
             onClick={clear}
-            className="px-3 py-2 text-xs border border-eidos-border text-eidos-muted hover:border-eidos-border hover:text-eidos-red transition-colors cursor-pointer"
+            className="inline-flex min-h-10 items-center justify-center rounded-md border border-eidos-border px-3 py-2 text-xs text-eidos-muted transition-colors hover:border-eidos-border hover:text-eidos-red cursor-pointer"
           >
             clear cache
           </button>
         )}
       </div>
 
-      <div className="mt-2 text-2xs text-eidos-muted font-tabular">
+      <div className="mt-3 text-2xs text-eidos-muted font-tabular">
         {resourceEntry?.cacheHits ?? 0} hits · {resourceEntry?.cacheMisses ?? 0} misses
         {resourceEntry?.cachedAt ? ` · cached ${new Date(resourceEntry.cachedAt).toLocaleTimeString('en', { hour12: false })}` : ' · not cached yet'}
         {!isOnline && ' · offline mode active'}
@@ -517,15 +542,15 @@ function OrdersDemo({
 
   return (
     <div className="p-5">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm font-bold text-eidos-text">orders</span>
           <span className="text-2xs text-eidos-amber border border-eidos-amber/40 px-1.5 py-0.5">neverLose</span>
         </div>
       </div>
 
       {/* Declaration */}
-      <div className="border border-eidos-border bg-eidos-bg px-3 py-2 mb-4 text-2xs text-eidos-text-dim leading-relaxed">
+      <div className="mb-4 rounded-lg border border-eidos-border bg-eidos-bg px-3 py-2 text-2xs text-eidos-text-dim leading-relaxed">
         <span className="text-eidos-muted">action</span>(<span className="text-eidos-text-dim">createOrder</span>, {'{ '}
         <span className="text-eidos-text-dim">reliability</span>: <span className="text-eidos-amber">'neverLose'</span>
         {' }'})<br />
@@ -543,17 +568,17 @@ function OrdersDemo({
       )}
 
       {/* Queue */}
-      <div className="min-h-[80px] mb-4">
+      <div className="mb-4 min-h-[80px]">
         {pending.length === 0 ? (
-          <div className="flex items-center justify-center h-20 text-2xs text-eidos-muted">
+          <div className="flex h-20 items-center justify-center text-xs text-eidos-muted">
             {isOnline ? 'simulate offline · submit an order' : 'offline · orders will queue to IDB'}
           </div>
         ) : (
           <div className="border border-eidos-border divide-y divide-eidos-border">
             {pending.map(item => (
-              <div key={item.id} className="flex items-center justify-between px-3 py-2 text-2xs">
+              <div key={item.id} className="flex items-center justify-between gap-4 px-3 py-2 text-xs">
                 <div className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 bg-eidos-amber animate-pulse-fast" />
+                  <span className="h-1.5 w-1.5 animate-pulse-fast bg-eidos-amber" />
                   <span className="text-eidos-text">{item.actionName}</span>
                   <span className="text-eidos-muted">retry {item.retryCount}/{item.maxRetries}</span>
                 </div>
@@ -568,11 +593,11 @@ function OrdersDemo({
         )}
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row">
         <button
           onClick={submit}
           disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 border border-eidos-border text-eidos-text text-xs hover:border-eidos-accent hover:text-eidos-accent transition-colors disabled:opacity-50 cursor-pointer"
+          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-eidos-border px-4 py-2 text-xs text-eidos-text transition-colors hover:border-eidos-accent hover:text-eidos-accent disabled:opacity-50 cursor-pointer"
         >
           <ShoppingCart size={11} className={loading ? 'animate-pulse' : ''} />
           Submit Order
@@ -580,7 +605,7 @@ function OrdersDemo({
         {pending.length > 0 && isOnline && (
           <button
             onClick={replay}
-            className="px-3 py-2 text-xs bg-eidos-accent text-eidos-bg font-bold hover:bg-green-400 transition-colors cursor-pointer"
+            className="inline-flex min-h-10 items-center justify-center rounded-md bg-eidos-accent px-3 py-2 text-xs font-bold text-eidos-bg transition-colors hover:bg-green-400 cursor-pointer"
           >
             replay {pending.length}
           </button>

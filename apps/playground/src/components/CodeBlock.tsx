@@ -23,8 +23,11 @@ export function CodeBlock({ code, title, className = '' }: CodeBlockProps) {
         <div className="flex items-center justify-between px-4 py-2 border-b border-eidos-border bg-eidos-elevated">
           <span className="text-[11px] font-mono text-eidos-muted">{title}</span>
           <button
+            type="button"
             onClick={copy}
-            className="flex items-center gap-1 text-[11px] text-eidos-muted hover:text-eidos-text transition-colors"
+            aria-label={copied ? 'Code copied' : 'Copy code to clipboard'}
+            title={copied ? 'Copied' : 'Copy code'}
+            className="inline-flex min-h-8 items-center gap-1 text-[11px] text-eidos-muted transition-colors hover:text-eidos-text cursor-pointer"
           >
             {copied ? <Check size={12} className="text-eidos-green" /> : <Copy size={12} />}
             {copied ? 'copied' : 'copy'}
