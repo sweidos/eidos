@@ -14,6 +14,8 @@ let _initialized = false
 let _unsubscribe: (() => void) | null = null
 
 export async function initEidos(config: EidosConfig = {}): Promise<void> {
+  // Skip silently during SSR — SW, IndexedDB, and window are browser-only.
+  if (typeof window === 'undefined') return
   if (_initialized) return
   _initialized = true
 

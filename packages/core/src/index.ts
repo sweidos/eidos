@@ -3,9 +3,10 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Public API
-export { resource, setQueryInvalidator } from './resource'
+export { resource, warmCache, setQueryInvalidator } from './resource'
 export { action, replayQueue, clearQueue } from './action'
 export { initEidos, _resetEidos } from './runtime'
+export type { EidosConfig } from './runtime'
 
 // React bindings
 export { EidosProvider } from './react/Provider'
@@ -29,6 +30,7 @@ export type {
   ResourceHandle,
   ResourceEntry,
   GeneratedStrategy,
+  WarmCacheResult,
   ActionConfig,
   ActionHandle,
   ActionQueueItem,

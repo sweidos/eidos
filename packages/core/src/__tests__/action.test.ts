@@ -255,3 +255,92 @@ describe('replayQueue', () => {
     expect(item?.retryCount).toBe(1)
   })
 })
+
+// ── priority ──────────────────────────────────────────────────────────────────
+
+describe('priority', () => {
+  it('stores priority in queue item (default: normal)', async () => {
+    const fn = vi.fn()
+    const wrapped = action(fn, { reliability: 'neverLose', name: 'prio-default' })
+    useEidosStore.setState({ isOnline: false, swStatus: 'active', resources: {}, queue: [] })
+    await wrapped('x')
+    const queue = await idbGetQueue()
+    expect(queue[0].priority).toBe('normal')
+  })
+
+  it('stores explicit priority in queue item', async () => {
+    const fn = vi.fn()
+    const high = action(fn, { reliability: 'neverLose', name: 'prio-high', priority: 'high' })
+    const low = action(fn, { reliability: 'neverLose', name: 'prio-low', priority: 'low' })
+    useEidosStore.setState({ isOnline: false, swStatus: 'active', resources: {}, queue: [] })
+    await high('h')
+    await low('l')
+    const queue = await idbGetQueue()
+    expect(queue.find(i => i.actionName === 'prio-high')?.priority).toBe('high')
+    expect(queue.find(i => i.actionName === 'prio-low')?.priority).toBe('low')
+  })
+
+  it('replays high before low — high items complete before low items start', async () => {
+    const callOrder: string[] = []
+
+    // low queued first, high queued second — high must still replay first
+    const lowFn = vi.fn().mockImplementation(async () => { callOrder.push('low') })
+    const highFn = vi.fn().mockImplementation(async () => { callOrder.push('high') })
+
+    const lowAction = action(lowFn, { reliability: 'neverLose', name: 'prio-order-low', priority: 'low' })
+    const highAction = action(highFn, { reliability: 'neverLose', name: 'prio-order-high', priority: 'high' })
+
+    useEidosStore.setState({ isOnline: false, swStatus: 'active', resources: {}, queue: [] })
+    await lowAction('l')
+    await highAction('h')
+
+    useEidosStore.setState({ isOnline: true })
+    await replayQueue()
+
+    // high must have been called, and its call index < low's call index
+    expect(highFn).toHaveBeenCalled()
+    expect(lowFn).toHaveBeenCalled()
+    expect(callOrder.indexOf('high')).toBeLessThan(callOrder.indexOf('low'))
+  })
+
+  it('normal replays before low', async () => {
+    const callOrder: string[] = []
+
+    const normalFn = vi.fn().mockImplementation(async () => { callOrder.push('normal') })
+    const lowFn = vi.fn().mockImplementation(async () => { callOrder.push('low') })
+
+    action(normalFn, { reliability: 'neverLose', name: 'prio-nl-normal', priority: 'normal' })
+    action(lowFn, { reliability: 'neverLose', name: 'prio-nl-low', priority: 'low' })
+
+    // Queue low first, normal second
+    useEidosStore.setState({ isOnline: false, swStatus: 'active', resources: {}, queue: [] })
+    const normalWrapped = action(normalFn, { reliability: 'neverLose', name: 'prio-nl-normal', priority: 'normal' })
+    const lowWrapped = action(lowFn, { reliability: 'neverLose', name: 'prio-nl-low', priority: 'low' })
+    await lowWrapped('l')
+    await normalWrapped('n')
+
+    useEidosStore.setState({ isOnline: true })
+    await replayQueue()
+
+    expect(callOrder.indexOf('normal')).toBeLessThan(callOrder.indexOf('low'))
+  })
+
+  it('replayQueue result counts items across tiers', async () => {
+    const succeedFn = vi.fn().mockResolvedValue({})
+    const failFn = vi.fn().mockRejectedValue(new Error('fail'))
+
+    const succeedAction = action(succeedFn, { reliability: 'neverLose', name: 'prio-count-succeed', priority: 'high' })
+    const failAction = action(failFn, { reliability: 'neverLose', name: 'prio-count-fail', priority: 'low', maxRetries: 1 })
+
+    useEidosStore.setState({ isOnline: false, swStatus: 'active', resources: {}, queue: [] })
+    await succeedAction('s')
+    await failAction('f')
+
+    useEidosStore.setState({ isOnline: true })
+    const result = await replayQueue()
+
+    expect(result.attempted).toBe(2)
+    expect(result.succeeded).toBe(1)
+    expect(result.failed).toBe(1)
+  })
+})

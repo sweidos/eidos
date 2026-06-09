@@ -6,6 +6,7 @@ import type {
   ResourceEntry,
   GeneratedStrategy,
   CacheStrategy,
+  WarmCacheResult,
 } from './types'
 
 const _registry = new Map<string, ResourceHandle>()
@@ -133,7 +134,9 @@ export function resource<T = unknown>(
       // any caller arriving while the promise is still pending can clone it.
       const task = _fetchResource(url, config, strategy)
       _inflightRequests.set(url, task)
-      task.finally(() => _inflightRequests.delete(url))
+      // .catch() silences the unhandled-rejection on the cleanup promise;
+      // the error still propagates to callers via task.then() below.
+      task.finally(() => _inflightRequests.delete(url)).catch(() => {})
       return task.then((r) => r.clone())
     },
 
@@ -378,5 +381,38 @@ function buildStrategy(swStrategy: CacheStrategy, _url: string, cacheName?: stri
     ...STRATEGY_META[swStrategy],
     swStrategy,
     cacheName: cacheName ?? 'eidos-resources-v1',
+  }
+}
+
+// ── warmCache ─────────────────────────────────────────────────────────────────
+
+/**
+ * Bulk-prefetch an array of resource handles concurrently, warming the cache
+ * for each one. Useful on login / app init when you know which resources the
+ * user will need offline.
+ *
+ * Pattern handles (containing `*`, `**`, or `:param`) are silently skipped —
+ * they match multiple URLs so there is no single URL to prefetch.
+ *
+ * @example
+ * import { warmCache } from '@sweidos/eidos'
+ *
+ * // In EidosProvider's onReady, or after login:
+ * const { warmed, failed } = await warmCache([products, userProfile, settings])
+ */
+export async function warmCache(handles: ResourceHandle[]): Promise<WarmCacheResult> {
+  const results = await Promise.allSettled(handles.map((h) => h.prefetch()))
+  const errors = results
+    .filter((r): r is PromiseRejectedResult => r.status === 'rejected')
+    .map((r) => r.reason)
+
+  if (import.meta.env.DEV && errors.length > 0) {
+    console.warn(`[eidos] warmCache: ${errors.length} handle(s) failed to prefetch`, errors)
+  }
+
+  return {
+    warmed: results.filter((r) => r.status === 'fulfilled').length,
+    failed: errors.length,
+    errors,
   }
 }

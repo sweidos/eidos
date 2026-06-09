@@ -58,6 +58,16 @@ export interface ResourceHandle<T = unknown> {
   unregister: () => void
 }
 
+/** Summary returned by warmCache(). */
+export interface WarmCacheResult {
+  /** Resources that were prefetched successfully. */
+  warmed: number
+  /** Resources whose prefetch threw (network error, offline, etc.). */
+  failed: number
+  /** The raw errors, in input order, for failed handles. */
+  errors: unknown[]
+}
+
 // ── Action ───────────────────────────────────────────────────────────────────
 
 export interface ActionConfig {
@@ -70,6 +80,13 @@ export interface ActionConfig {
   maxRetries?: number
   /** Human-readable name for the action (used in devtools). */
   name?: string
+  /**
+   * Replay order when multiple queued actions are pending.
+   * `'high'` items replay before `'normal'`, which replay before `'low'`.
+   * Each tier completes fully before the next tier begins.
+   * Default: `'normal'`.
+   */
+  priority?: 'high' | 'normal' | 'low'
   /**
    * Called immediately before the async function executes, with the same args.
    * Use to apply an optimistic UI update (add item, mark as pending, etc.).
@@ -85,6 +102,21 @@ export interface ActionConfig {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onRollback?: (...args: any[]) => void
+  /**
+   * Called during queue replay when the server responds with a 4xx status code
+   * (client error — conflict, gone, unprocessable, etc.).
+   *
+   * Return `'retry'` to keep the item in the queue and retry per normal backoff.
+   * Return `'skip'` to silently remove the item without triggering `onRollback`.
+   *
+   * If not provided, 4xx errors are treated identically to other errors (retried
+   * until `maxRetries` is exhausted, then `onRollback` is called).
+   *
+   * The `error` argument is whatever `fn` threw — typically a `Response` object
+   * or a custom error with a `.status` property.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onConflict?: (error: unknown, args: any[]) => 'retry' | 'skip'
 }
 
 export interface ActionQueueItem {
@@ -97,6 +129,8 @@ export interface ActionQueueItem {
   retryCount: number
   maxRetries: number
   status: 'pending' | 'replaying' | 'succeeded' | 'failed'
+  /** Replay priority. High items replay before normal, normal before low. Default: 'normal'. */
+  priority?: 'high' | 'normal' | 'low'
   error?: string
   completedAt?: number
   /** Earliest timestamp at which this item should be retried (exponential backoff). */
@@ -121,6 +155,8 @@ export interface ReplayResult {
   retrying: number
   /** Items whose actionId had no registered function — likely not yet imported. */
   skipped: number
+  /** Items that received a 4xx response and were dropped via `onConflict: () => 'skip'`. */
+  conflicted: number
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

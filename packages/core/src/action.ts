@@ -20,6 +20,8 @@ import type {
 const _actionRegistry = new Map<string, ActionFn<any[], any>>()
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const _rollbackRegistry = new Map<string, (...args: any[]) => void>()
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const _conflictRegistry = new Map<string, (error: unknown, args: any[]) => 'retry' | 'skip'>()
 
 function uid() {
   return crypto.randomUUID()
@@ -46,6 +48,10 @@ export function action<TArgs extends any[], TReturn>(
 
   if (config.onRollback) {
     _rollbackRegistry.set(actionId, config.onRollback)
+  }
+
+  if (config.onConflict) {
+    _conflictRegistry.set(actionId, config.onConflict)
   }
 
   const wrapped = async (...args: TArgs): Promise<TReturn | QueuedResult> => {
@@ -112,6 +118,7 @@ async function persistAndQueue(
     retryCount: 0,
     maxRetries: config.maxRetries ?? 3,
     status: 'pending',
+    priority: config.priority ?? 'normal',
   }
 
   await idbAddToQueue(item)
@@ -136,6 +143,15 @@ async function persistAndQueue(
   }
 }
 
+function isClientError(err: unknown): boolean {
+  if (err instanceof Response) return err.status >= 400 && err.status < 500
+  if (typeof err === 'object' && err !== null) {
+    const s = (err as Record<string, unknown>).status
+    if (typeof s === 'number') return s >= 400 && s < 500
+  }
+  return false
+}
+
 // Base delay 2s, doubles per retry, capped at 5 minutes, ±20% jitter
 function backoffMs(retryCount: number): number {
   const base = Math.min(2000 * 2 ** retryCount, 300_000)
@@ -147,7 +163,7 @@ let _replaying = false
 export async function replayQueue(): Promise<ReplayResult> {
   const store = useEidosStore.getState()
   if (!store.isOnline || _replaying) {
-    return { attempted: 0, succeeded: 0, failed: 0, retrying: 0, skipped: 0 }
+    return { attempted: 0, succeeded: 0, failed: 0, retrying: 0, skipped: 0, conflicted: 0 }
   }
   _replaying = true
   try {
@@ -157,20 +173,69 @@ export async function replayQueue(): Promise<ReplayResult> {
   }
 }
 
-async function _doReplayQueue(store: ReturnType<typeof useEidosStore.getState>): Promise<ReplayResult> {
+type ItemOutcome = 'succeeded' | 'failed' | 'retrying' | 'skipped' | 'conflicted'
 
-  const candidates = await idbGetPendingItems()
-  const now = Date.now()
-  const pending = candidates.filter(
-    (item) => !item.nextRetryAt || item.nextRetryAt <= now,
-  )
+async function _replayItem(
+  item: ActionQueueItem,
+  store: ReturnType<typeof useEidosStore.getState>,
+): Promise<ItemOutcome> {
+  const fn = _actionRegistry.get(item.actionId)
+  if (!fn) return 'skipped'
 
-  const result: ReplayResult = { attempted: 0, succeeded: 0, failed: 0, retrying: 0, skipped: 0 }
+  try {
+    await fn(...(item.args as unknown[]))
+    const completedAt = Date.now()
+    store.updateQueueItem(item.id, { status: 'succeeded', completedAt })
+    await idbUpdateQueueItem(item.id, { status: 'succeeded', completedAt })
 
-  // Batch all 'replaying' store updates into a single notify — N items → 1 re-render.
-  // IDB write is fire-and-forget: if the page reloads mid-replay the items remain
-  // 'pending' in IDB (the last-written durable state), which is safe to re-replay.
-  const replayable = pending.filter((item) => _actionRegistry.has(item.actionId))
+    // Remove from queue after a short delay so UI can show the success state briefly
+    setTimeout(() => {
+      store.removeQueueItem(item.id)
+      idbRemoveFromQueue(item.id)
+    }, 3000)
+    return 'succeeded'
+  } catch (err) {
+    // 4xx: give onConflict a chance to decide before normal retry/fail logic
+    if (isClientError(err)) {
+      const onConflict = _conflictRegistry.get(item.actionId)
+      if (onConflict) {
+        const resolution = onConflict(err, item.args as unknown[])
+        if (resolution === 'skip') {
+          store.removeQueueItem(item.id)
+          await idbRemoveFromQueue(item.id)
+          return 'conflicted'
+        }
+        // 'retry' falls through to normal retry/fail logic below
+      }
+    }
+
+    const retryCount = item.retryCount + 1
+    if (retryCount >= item.maxRetries) {
+      store.updateQueueItem(item.id, { status: 'failed', error: String(err), retryCount })
+      await idbUpdateQueueItem(item.id, { status: 'failed', error: String(err), retryCount })
+      _rollbackRegistry.get(item.actionId)?.(...(item.args as unknown[]))
+      return 'failed'
+    } else {
+      const nextRetryAt = Date.now() + backoffMs(retryCount)
+      store.updateQueueItem(item.id, { status: 'pending', retryCount, nextRetryAt })
+      await idbUpdateQueueItem(item.id, { status: 'pending', retryCount, nextRetryAt })
+      return 'retrying'
+    }
+  }
+}
+
+async function _replayTier(
+  items: ActionQueueItem[],
+  store: ReturnType<typeof useEidosStore.getState>,
+  result: ReplayResult,
+): Promise<void> {
+  if (items.length === 0) return
+
+  // Batch 'replaying' status update — N items → 1 store notify.
+  // IDB write is fire-and-forget: on reload items stay 'pending', safe to re-replay.
+  const replayable = items.filter((item) => _actionRegistry.has(item.actionId))
+  result.skipped += items.length - replayable.length
+
   if (replayable.length > 0) {
     store.batchUpdateQueueItems(replayable.map((item) => ({ id: item.id, update: { status: 'replaying' } })))
     for (const item of replayable) {
@@ -178,44 +243,28 @@ async function _doReplayQueue(store: ReturnType<typeof useEidosStore.getState>):
     }
   }
 
-  const outcomes = await Promise.allSettled(
-    pending.map(async (item): Promise<'succeeded' | 'failed' | 'retrying' | 'skipped'> => {
-      const fn = _actionRegistry.get(item.actionId)
-      if (!fn) return 'skipped'
-
-      try {
-        await fn(...(item.args as unknown[]))
-        const completedAt = Date.now()
-        store.updateQueueItem(item.id, { status: 'succeeded', completedAt })
-        await idbUpdateQueueItem(item.id, { status: 'succeeded', completedAt })
-
-        // Remove from queue after a delay so the UI can show the success state
-        setTimeout(() => {
-          store.removeQueueItem(item.id)
-          idbRemoveFromQueue(item.id)
-        }, 3000)
-        return 'succeeded'
-      } catch (err) {
-        const retryCount = item.retryCount + 1
-        if (retryCount >= item.maxRetries) {
-          store.updateQueueItem(item.id, { status: 'failed', error: String(err), retryCount })
-          await idbUpdateQueueItem(item.id, { status: 'failed', error: String(err), retryCount })
-          _rollbackRegistry.get(item.actionId)?.(...(item.args as unknown[]))
-          return 'failed'
-        } else {
-          const nextRetryAt = Date.now() + backoffMs(retryCount)
-          store.updateQueueItem(item.id, { status: 'pending', retryCount, nextRetryAt })
-          await idbUpdateQueueItem(item.id, { status: 'pending', retryCount, nextRetryAt })
-          return 'retrying'
-        }
-      }
-    }),
-  )
+  const outcomes = await Promise.allSettled(replayable.map((item) => _replayItem(item, store)))
 
   for (const o of outcomes) {
     const outcome = o.status === 'fulfilled' ? o.value : 'failed'
     if (outcome === 'skipped') { result.skipped++ }
+    else if (outcome === 'conflicted') { result.conflicted++ }
     else { result.attempted++; result[outcome]++ }
+  }
+}
+
+async function _doReplayQueue(store: ReturnType<typeof useEidosStore.getState>): Promise<ReplayResult> {
+  const candidates = await idbGetPendingItems()
+  const now = Date.now()
+  const pending = candidates.filter((item) => !item.nextRetryAt || item.nextRetryAt <= now)
+
+  const result: ReplayResult = { attempted: 0, succeeded: 0, failed: 0, retrying: 0, skipped: 0, conflicted: 0 }
+
+  // Process tiers sequentially: high items complete before normal, normal before low.
+  // Within each tier items run in parallel via Promise.allSettled.
+  for (const tier of ['high', 'normal', 'low'] as const) {
+    const tierItems = pending.filter((item) => (item.priority ?? 'normal') === tier)
+    await _replayTier(tierItems, store, result)
   }
 
   return result

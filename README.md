@@ -119,6 +119,15 @@ export const createOrder = action(
       // Called only if maxRetries exhausted — revert the optimistic change
       removeOptimisticOrder(payload)
     },
+    onConflict: (error, [payload]) => {
+      // Called during replay when the server returns a 4xx (conflict, gone, etc.)
+      // Return 'skip' to silently drop the item, or 'retry' to keep retrying.
+      if (error instanceof Response && error.status === 409) {
+        removeOptimisticOrder(payload) // revert UI
+        return 'skip'                  // drop from queue — already handled server-side
+      }
+      return 'retry'
+    },
   },
 )
 ```
@@ -216,8 +225,10 @@ const createOrder = action(
     reliability: 'neverLose',  // persist to IndexedDB + replay on reconnect
     maxRetries?: number,        // default: 3
     name?: string,              // label in devtools
+    priority?: 'high' | 'normal' | 'low', // replay order (default: 'normal')
     onOptimistic?: (...args) => void,  // called immediately — update UI optimistically
     onRollback?: (...args) => void,    // called on permanent failure — revert UI
+    onConflict?: (error, args) => 'retry' | 'skip', // called on 4xx during replay
   }
 )
 
@@ -235,6 +246,37 @@ const result = await createOrder(payload)
 
 **Exponential backoff:** `neverLose` actions that fail are retried with `2s × 2^retryCount` delay (capped at 5 min, ±20% jitter). Items not yet due are skipped on each replay pass.
 
+**Conflict resolution:** when a 4xx HTTP response occurs during replay, `onConflict` is called with the thrown error and the original args. Return `'skip'` to silently remove the item from the queue without calling `onRollback`, or `'retry'` to continue normal retry/backoff behaviour.
+
+A 4xx is detected when the thrown value is a `Response` with `status` in [400, 499], or any object with a `.status` property in that range.
+
+```ts
+onConflict: (error, [payload]) => {
+  if (error instanceof Response && error.status === 409) {
+    // already created server-side — safe to drop and revert UI
+    removeOptimisticOrder(payload)
+    return 'skip'
+  }
+  return 'retry' // keep in queue for everything else
+}
+```
+
+**Queue prioritization:** `priority` controls the replay order when multiple queued actions are pending. `'high'` items all complete before `'normal'` items start; `'normal'` all complete before `'low'` items start. Within each tier, items run in parallel. Default: `'normal'`.
+
+```ts
+// Critical write — replays before any normal/low actions
+const saveDocument = action(api.saveDocument, {
+  reliability: 'neverLose',
+  priority: 'high',
+})
+
+// Background analytics — replays last, after user-visible writes
+const logEvent = action(api.logEvent, {
+  reliability: 'neverLose',
+  priority: 'low',
+})
+```
+
 ---
 
 ### `replayQueue()`
@@ -247,13 +289,14 @@ import type { ReplayResult } from '@sweidos/eidos'
 
 // Manual trigger — e.g. after a user clicks "Retry"
 const result: ReplayResult = await replayQueue()
-// { attempted: 3, succeeded: 2, failed: 0, retrying: 1, skipped: 0 }
+// { attempted: 3, succeeded: 2, failed: 0, retrying: 1, skipped: 0, conflicted: 0 }
 //
-// attempted — items where the fn was found and called
-// succeeded — resolved successfully
-// failed    — maxRetries exceeded, stays in queue
-// retrying  — failed, will retry later (nextRetryAt set)
-// skipped   — fn not in registry (module not imported yet)
+// attempted  — items where the fn was found and called
+// succeeded  — resolved successfully
+// failed     — maxRetries exceeded, stays in queue
+// retrying   — failed, will retry later (nextRetryAt set)
+// skipped    — fn not in registry (module not imported yet)
+// conflicted — 4xx response, onConflict returned 'skip', removed from queue
 ```
 
 ---
@@ -388,6 +431,29 @@ const hits = eidosResource('/api/products').getState()?.cacheHits ?? 0
 | `eidosResource(url)` | `ResourceEntry \| undefined` | Resource registered or updated |
 | `eidosAction(id)` | `ActionQueueItem \| undefined` | Item status changes or removal |
 | `eidosStore` | `EidosStore` | Any state change |
+
+---
+
+### `warmCache(handles[])`
+
+Bulk-prefetch an array of resource handles concurrently — warms the cache for all of them in one call. Useful on login or app init when you know which resources the user will need offline.
+
+Pattern handles (containing `*`, `**`, or `:param`) are counted as failed — they match multiple URLs so there is no single URL to prefetch.
+
+```ts
+import { warmCache } from '@sweidos/eidos'
+import type { WarmCacheResult } from '@sweidos/eidos'
+
+// After login — warm the cache with the user's likely-needed data
+const result: WarmCacheResult = await warmCache([products, userProfile, settings])
+// { warmed: 3, failed: 0, errors: [] }
+//
+// warmed  — handles prefetched successfully
+// failed  — handles that threw (network error, offline, pattern handle, etc.)
+// errors  — the raw thrown values for failed handles
+```
+
+In development, a `console.warn` is printed for each failed handle.
 
 ---
 
@@ -690,6 +756,79 @@ it('caches the resource after first fetch', async () => {
 
 ---
 
+## SSR Adapters
+
+Eidos is browser-only — Service Workers, Cache API, and IndexedDB are not available in Node.js. The runtime already no-ops safely when `window` is undefined, but two subpath exports make integration with SSR frameworks seamless.
+
+### Next.js App Router (`@sweidos/eidos/nextjs`)
+
+Imports from this subpath are pre-marked `'use client'`, so you can use `EidosProvider` and all hooks directly in your App Router layout without creating your own wrapper file.
+
+```tsx
+// app/providers.tsx  ← no 'use client' needed here
+import { EidosProvider, useEidosStatus } from '@sweidos/eidos/nextjs'
+
+export function Providers({ children }: { children: React.ReactNode }) {
+  return <EidosProvider swPath="/eidos-sw.js">{children}</EidosProvider>
+}
+```
+
+The `'use client'` boundary is on the published `dist/nextjs.js` — Next.js recognises it and marks everything imported through that entry as client code.
+
+### SvelteKit (`@sweidos/eidos/sveltekit`)
+
+Use `initEidosSvelteKit()` inside `onMount` in your root `+layout.svelte`. The helper returns an `onMount`-compatible callback that defers init to the browser, keeping SSR clean.
+
+```svelte
+<!-- src/routes/+layout.svelte -->
+<script>
+  import { onMount } from 'svelte'
+  import { initEidosSvelteKit } from '@sweidos/eidos/sveltekit'
+
+  onMount(initEidosSvelteKit({ swPath: '/eidos-sw.js', autoReplay: true }))
+</script>
+
+<slot />
+```
+
+Use the framework-agnostic stores (`eidosQueue`, `eidosStatus`, etc.) from the main `@sweidos/eidos` import in your Svelte components — they work with Svelte's `$` auto-subscribe prefix out of the box.
+
+---
+
+## Devtools
+
+`@sweidos/eidos/devtools` exports a floating panel component you can drop into any React app during development. It shows live queue state, cache entries, SW registration status, and lets you toggle offline simulation — all without leaving your app.
+
+```tsx
+import { EidosDevtools } from '@sweidos/eidos/devtools'
+
+// Add anywhere in your component tree (bottom-right by default)
+export default function App() {
+  return (
+    <>
+      <YourApp />
+      {process.env.NODE_ENV === 'development' && <EidosDevtools />}
+    </>
+  )
+}
+```
+
+**Props:**
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `position` | `'bottom-right' \| 'bottom-left' \| 'top-right' \| 'top-left'` | `'bottom-right'` | Corner to anchor the panel |
+| `defaultOpen` | `boolean` | `false` | Start expanded |
+
+**Panel features:**
+- **Status bar** — online/offline indicator, SW registration status, offline simulation toggle (`setOfflineSimulation`)
+- **Queue tab** — all queue items with status badges (`pending` / `replaying` / `succeeded` / `failed`), priority, retry count, plus Replay and Clear buttons
+- **Cache tab** — all registered resources with cache status, strategy name, hit/miss counts, and last cached timestamp
+
+The component is self-contained with inline styles — no CSS import needed, no style conflicts.
+
+---
+
 ## Known Limitations
 
 | Limitation | Detail |
@@ -717,17 +856,17 @@ it('caches the resource after first fetch', async () => {
 
 **Core reliability**
 - [x] Optimistic updates — `onOptimistic` / `onRollback` callbacks on `action()` for instant UI feedback before server confirms
-- [ ] Conflict resolution hook — `onConflict` callback when replaying a queued action returns 4xx; decide per-item: retry, skip, or merge
-- [ ] Queue prioritization — `priority: 'high' | 'normal' | 'low'` on `action()`; high-priority items replay first
+- [x] Conflict resolution hook — `onConflict` callback when replaying a queued action returns 4xx; decide per-item: retry or skip
+- [x] Queue prioritization — `priority: 'high' | 'normal' | 'low'` on `action()`; high-priority items replay first
 
 **DX / Tooling**
-- [ ] Devtools panel component — drop-in `<EidosDevtools />` showing cache entries, queue state, replay status, and offline toggle
+- [x] Devtools panel component — drop-in `<EidosDevtools />` showing cache entries, queue state, replay status, and offline toggle
 - [x] Testing utilities (`@sweidos/eidos/testing`) — `mockOffline()`, `mockOnline()`, `drainQueue()`, `waitForQueueDrain()`, `getCachedEntry(url)`, `clearEidosCache()`, `resetEidos()`, `getEidosState()` for Vitest / Playwright
-- [ ] SvelteKit / Next.js adapters — SSR-aware init helpers that skip SW registration server-side
+- [x] SvelteKit / Next.js adapters — SSR-aware init helpers that skip SW registration server-side
 
 **Performance**
 - [x] Request deduplication — multiple simultaneous `resource.fetch()` calls share one in-flight network request; each caller gets an independent cloned `Response`
-- [ ] Cache warming — `warmCache(handles[])` bulk-prefetches a list of resources on init (e.g. on login)
+- [x] Cache warming — `warmCache(handles[])` bulk-prefetches a list of resources on init (e.g. on login)
 
 **Ecosystem**
 - [ ] React Native support — AsyncStorage + fetch-based backend (no Cache API / SW); same `resource` / `action` API surface
