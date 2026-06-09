@@ -6,6 +6,34 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.0.19] — 2026-06-09
+
+### Added
+
+- **TanStack Query integration (`@sweidos/eidos/query`)** — first-class hooks for TanStack Query v5. `@tanstack/react-query` is an optional peer dependency.
+
+  - **`useEidosQuery(handle, options?)`** — wraps `useQuery` with Eidos-smart defaults: `networkMode: 'always'` (queries run offline, Eidos owns the cache), `retry: false` (Eidos handles retries at the SW layer).
+
+  - **`useEidosMutation(handle, options?)`** — wraps `useMutation` for single-argument action handles with `networkMode: 'always'`. Accepts an `invalidates: ResourceHandle[]` option that clears both Eidos Cache Storage and the corresponding TanStack Query entries on success. Return type is `TData | QueuedResult`; narrow with `'queued' in data` to detect offline-queued results.
+
+  - **`withEidosQueryClient(client)`** — registers a `QueryClient` with Eidos so that `handle.invalidate()` also calls `queryClient.invalidateQueries({ queryKey: ['eidos', url] })`, bridging both caches automatically.
+
+  ```ts
+  // Setup (once)
+  withEidosQueryClient(queryClient)
+
+  // Components
+  const { data } = useEidosQuery<Product[]>(products)
+  const mutation = useEidosMutation(createOrder, { invalidates: [products] })
+  ```
+
+### Changed
+
+- `setQueryInvalidator` exported from main package (used internally by `@sweidos/eidos/query`).
+- Build script extended: `vite.query.config.ts` builds the query subpath in isolation (Node.js + browser neutral, `@sweidos/eidos` and React externalized).
+
+---
+
 ## [1.0.18] — 2026-06-09
 
 ### Added

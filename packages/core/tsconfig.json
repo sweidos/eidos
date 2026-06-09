@@ -5,7 +5,10 @@
     "outDir": "dist",
     "declaration": true,
     "declarationDir": "dist",
-    "types": ["vite/client"]
+    "types": ["vite/client"],
+    "paths": {
+      "@sweidos/eidos": ["./src/index.ts"]
+    }
   },
   "include": ["src"],
   "exclude": ["src/__tests__"]

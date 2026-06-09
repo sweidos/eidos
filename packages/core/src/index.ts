@@ -3,7 +3,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Public API
-export { resource } from './resource'
+export { resource, setQueryInvalidator } from './resource'
 export { action, replayQueue, clearQueue } from './action'
 export { initEidos } from './runtime'
 
