@@ -6,6 +6,127 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.0.31] — 2026-06-10
+
+### Added
+
+- **React Native support — `@sweidos/eidos/react-native`** — same `action()` / `resource()` API surface on React Native. The action queue persists to AsyncStorage (or any `AsyncStorageLike` key-value store) instead of IndexedDB. Actions queued offline survive app restarts and replay automatically when the device reconnects.
+
+  ```ts
+  // App entry point
+  import AsyncStorage from '@react-native-async-storage/async-storage'
+  import { initEidosRN } from '@sweidos/eidos/react-native'
+
+  await initEidosRN({ storage: AsyncStorage })
+  ```
+
+  ```tsx
+  // Root component
+  import { useNetInfo } from '@react-native-community/netinfo'
+  import { EidosProviderRN } from '@sweidos/eidos/react-native'
+
+  <EidosProviderRN isConnected={useNetInfo().isConnected ?? true}>
+    <App />
+  </EidosProviderRN>
+  ```
+
+- **`QueueStorage` interface + `setQueueStorage()`** — pluggable storage backend for the action queue, exported from the main `@sweidos/eidos` package. Supports any key-value store via `AsyncStorageQueueStorage` or a custom implementation.
+
+- **`AsyncStorageQueueStorage`** — ships in the main package; works with `@react-native-async-storage/async-storage`, MMKV, SQLite, or any `AsyncStorageLike` store.
+
+### Fixed
+
+- `store.ts`: `isOnline` initial value was `undefined` (falsy) in React Native because `navigator.onLine` is not implemented in RN. Now defaults to `true` unless `navigator.onLine` is explicitly `false`.
+
+---
+
+## [1.0.30] — 2026-06-10
+
+### Added
+
+- **OpenAPI codegen CLI — `eidos-gen`** (`npm install -g eidos-gen` / `npx eidos-gen`). Reads an OpenAPI 3.x JSON or YAML spec and generates typed `resource()` and `action()` declarations. Handles path parameters (`{id}` → `:id`), `$ref` schema resolution, `operationId` naming, request/response type inference, and DELETE body omission.
+
+  ```bash
+  npx eidos-gen openapi.json --out src/api/eidos.generated.ts
+  ```
+
+  Ships as a separate package (`eidos-gen`) in the monorepo. Depends only on `js-yaml`; no bundler required.
+
+- **Request deduplication** — concurrent `resource.fetch()` calls for the same URL share one in-flight network request. Each caller receives an independent cloned `Response`. The shared request is cleaned up on settlement.
+
+---
+
+## [1.0.29] — 2026-06-10
+
+### Added
+
+- **`@sweidos/eidos/devtools`** — floating panel component for React apps. Shows live queue state, cache entries, SW registration status, priority/retry badges, and offline simulation toggle. Zero CSS dependencies, inline dark theme, `'use client'`-marked for Next.js App Router.
+
+  ```tsx
+  import { EidosDevtools } from '@sweidos/eidos/devtools'
+  {process.env.NODE_ENV === 'development' && <EidosDevtools />}
+  ```
+
+- **`@sweidos/eidos/nextjs`** — re-exports `EidosProvider` and all hooks pre-marked `'use client'`. Drop-in for Next.js App Router layouts without a separate wrapper file.
+
+- **`@sweidos/eidos/sveltekit`** — `initEidosSvelteKit(config?)` returns an `onMount`-compatible callback that defers SW registration to the browser, keeping SSR clean.
+
+### Fixed
+
+- **SSR guard in `initEidos`** — early returns when `typeof window === 'undefined'`. Previously, calling `initEidos` in a Next.js `layout.tsx` without a `'use client'` boundary threw on the server.
+
+---
+
+## [1.0.28] — 2026-06-10
+
+### Added
+
+- **`warmCache(handles[])`** — bulk-prefetches a list of resource handles on init (e.g. on login). Uses `Promise.allSettled` so one failure doesn't block others. Returns `{ warmed, failed, errors }`.
+
+  ```ts
+  import { warmCache } from '@sweidos/eidos'
+  await warmCache([products, user, settings])
+  ```
+
+### Fixed
+
+- **Unhandled rejection on dedup cleanup** — `task.finally(() => _inflightRequests.delete(url))` created an unhandled promise rejection when `fetch` threw. Added `.catch(() => {})` to silence the cleanup-promise while still propagating errors to callers.
+
+---
+
+## [1.0.27] — 2026-06-10
+
+### Added
+
+- **Queue prioritization — `priority: 'high' | 'normal' | 'low'`** on `action()`. High-priority items replay before normal; normal replay before low. Within each tier, items run in parallel. Default: `'normal'`.
+
+  ```ts
+  const criticalSync = action(fn, { reliability: 'neverLose', priority: 'high' })
+  const analyticsFlush = action(fn, { reliability: 'neverLose', priority: 'low' })
+  ```
+
+---
+
+## [1.0.26] — 2026-06-10
+
+### Added
+
+- **Conflict resolution — `onConflict` on `action()`** — callback invoked when replaying a queued action receives a 4xx response. Return `'retry'` to keep normal retry/fail logic, or `'skip'` to drop the item from the queue (counts as `conflicted` in `ReplayResult`).
+
+  ```ts
+  const updateProfile = action(fn, {
+    reliability: 'neverLose',
+    onConflict: (err, args) => {
+      // 409 Conflict — another client already updated this record
+      return err instanceof Response && err.status === 409 ? 'skip' : 'retry'
+    },
+  })
+  ```
+
+- `conflicted` field added to `ReplayResult`.
+
+---
+
 ## [1.0.25] — 2026-06-09
 
 ### Changed
