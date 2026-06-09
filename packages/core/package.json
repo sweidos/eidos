@@ -1,6 +1,6 @@
 {
   "name": "@sweidos/eidos",
-  "version": "1.0.21",
+  "version": "1.0.22",
   "description": "Describe intent. The runtime figures out how. An abstraction layer for offline-first web apps.",
   "author": "Aditya Raj",
   "license": "MIT",
@@ -23,11 +23,11 @@
     "directory": "packages/core"
   },
   "main": "./dist/eidos.cjs.js",
-  "module": "./dist/eidos.es.js",
+  "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/eidos.es.js",
+      "import": "./dist/index.js",
       "require": "./dist/eidos.cjs.js",
       "types": "./dist/index.d.ts"
     },
@@ -50,7 +50,7 @@
     "README.md"
   ],
   "scripts": {
-    "build": "vite build && vite build --config vite.plugin.config.ts && vite build --config vite.query.config.ts && node scripts/copy-sw.mjs",
+    "build": "vite build && vite build --config vite.cjs.config.ts && vite build --config vite.plugin.config.ts && vite build --config vite.query.config.ts && node scripts/copy-sw.mjs",
     "dev": "vite build --watch",
     "type-check": "tsc --noEmit",
     "test": "vitest run",

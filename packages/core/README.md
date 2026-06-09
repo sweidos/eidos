@@ -419,13 +419,15 @@ Performance is a first-class concern in Eidos. Every design decision optimises f
 | **Network timeout** | 3 s | `NetworkFirst` strategy aborts fetch after 3 s and falls back to cache — no hanging requests |
 | **Pre-activation buffer** | Zero drops | Messages sent before the SW is active are buffered and flushed on activation |
 | **Concurrency safety** | Lock-guarded | `_replaying` flag prevents duplicate replay passes from concurrent online events |
+| **Request deduplication** | 1 request / N callers | Concurrent `handle.fetch()` calls for the same URL share one in-flight network request; each caller gets a cloned `Response` |
 
 ### Bundle comparison
 
 | Version | Raw | Gzip | Change |
 |---------|-----|------|--------|
 | 1.0.5 (with zustand) | 35.0 kB | 7.9 kB | — |
-| **1.0.6** (zero deps) | **18.6 kB** | **5.0 kB** | **−47%** |
+| 1.0.6 (zero deps) | 18.6 kB | 5.0 kB | −47% |
+| **1.0.21** (minified + dedup) | **19.0 kB** | **5.8 kB** | +0.5% raw vs 1.0.6 (dedup code), smaller than zustand baseline |
 
 ---
 
@@ -636,7 +638,7 @@ Registers a `QueryClient` with Eidos. After calling this:
 - [ ] SvelteKit / Next.js adapters — SSR-aware init helpers that skip SW registration server-side
 
 **Performance**
-- [ ] Request deduplication — multiple simultaneous `resource.fetch()` calls share one in-flight network request
+- [x] Request deduplication — multiple simultaneous `resource.fetch()` calls share one in-flight network request; each caller gets an independent cloned `Response`
 - [ ] Cache warming — `warmCache(handles[])` bulk-prefetches a list of resources on init (e.g. on login)
 
 **Ecosystem**
