@@ -1,0 +1,227 @@
+import type { OpenAPISpec, SchemaObject, Operation } from './types'
+import { convertPath, refName } from './parse'
+
+export interface GenerateOptions {
+  offline: boolean
+  eidos: string
+}
+
+// ── Schema → TypeScript ───────────────────────────────────────────────────────
+
+function schemaToTs(schema: SchemaObject | undefined, indent = 0): string {
+  if (!schema) return 'unknown'
+  if (schema.$ref) return refName(schema.$ref)
+
+  const pad = '  '.repeat(indent)
+
+  if (schema.enum) {
+    return schema.enum.map((v) => JSON.stringify(v)).join(' | ')
+  }
+
+  switch (schema.type) {
+    case 'string':
+      return schema.format === 'date-time' ? 'string' : 'string'
+    case 'integer':
+    case 'number':
+      return 'number'
+    case 'boolean':
+      return 'boolean'
+    case 'array':
+      return `${schemaToTs(schema.items, indent)}[]`
+    case 'object': {
+      if (!schema.properties) {
+        if (schema.additionalProperties) {
+          const valType = typeof schema.additionalProperties === 'object'
+            ? schemaToTs(schema.additionalProperties, indent)
+            : 'unknown'
+          return `Record<string, ${valType}>`
+        }
+        return 'Record<string, unknown>'
+      }
+      const required = new Set(schema.required ?? [])
+      const lines = Object.entries(schema.properties).map(([k, v]) => {
+        const opt = required.has(k) ? '' : '?'
+        return `${pad}  ${k}${opt}: ${schemaToTs(v, indent + 1)}`
+      })
+      return `{\n${lines.join('\n')}\n${pad}}`
+    }
+    default:
+      if (schema.allOf) return schema.allOf.map((s) => schemaToTs(s, indent)).join(' & ')
+      if (schema.oneOf || schema.anyOf) {
+        const union = (schema.oneOf ?? schema.anyOf ?? [])
+        return union.map((s) => schemaToTs(s, indent)).join(' | ')
+      }
+      return 'unknown'
+  }
+}
+
+function generateInterfaces(spec: OpenAPISpec): string {
+  const schemas = spec.components?.schemas
+  if (!schemas || Object.keys(schemas).length === 0) return ''
+
+  const lines: string[] = ['// ── Generated types ─────────────────────────────────────────────────────────', '']
+
+  for (const [name, schema] of Object.entries(schemas)) {
+    if (schema.description) {
+      lines.push(`/** ${schema.description} */`)
+    }
+
+    if (schema.type === 'object' || schema.properties) {
+      const required = new Set(schema.required ?? [])
+      lines.push(`export interface ${name} {`)
+      for (const [k, v] of Object.entries(schema.properties ?? {})) {
+        const opt = required.has(k) ? '' : '?'
+        if (v.description) lines.push(`  /** ${v.description} */`)
+        lines.push(`  ${k}${opt}: ${schemaToTs(v, 1)}`)
+      }
+      lines.push('}')
+    } else if (schema.enum) {
+      lines.push(`export type ${name} = ${schemaToTs(schema)}`)
+    } else if (schema.allOf || schema.oneOf || schema.anyOf) {
+      lines.push(`export type ${name} = ${schemaToTs(schema)}`)
+    } else if (schema.type === 'array') {
+      lines.push(`export type ${name} = ${schemaToTs(schema)}`)
+    } else {
+      lines.push(`export type ${name} = ${schemaToTs(schema)}`)
+    }
+    lines.push('')
+  }
+
+  return lines.join('\n')
+}
+
+// ── Operation helpers ─────────────────────────────────────────────────────────
+
+function getRequestBodyType(op: Operation): string {
+  const content = op.requestBody?.content
+  if (!content) return 'unknown'
+  const media = content['application/json'] ?? Object.values(content)[0]
+  if (!media?.schema) return 'unknown'
+  if (media.schema.$ref) return refName(media.schema.$ref)
+  return schemaToTs(media.schema)
+}
+
+function getResponseType(op: Operation): string {
+  const responses = op.responses ?? {}
+  const ok = responses['200'] ?? responses['201'] ?? responses['202'] ?? Object.values(responses)[0]
+  if (!ok?.content) return 'void'
+  const media = ok.content['application/json'] ?? Object.values(ok.content)[0]
+  if (!media?.schema) return 'void'
+  if (media.schema.$ref) return refName(media.schema.$ref)
+  return schemaToTs(media.schema)
+}
+
+function toIdentifier(operationId: string | undefined, method: string, urlPath: string): string {
+  if (operationId) {
+    // camelCase the operationId
+    return operationId.replace(/[-_\s]+(.)/g, (_, c: string) => c.toUpperCase())
+  }
+  // Derive from method + path: POST /api/products → createProducts
+  const verb: Record<string, string> = {
+    get: 'get', post: 'create', put: 'update', patch: 'patch', delete: 'delete',
+  }
+  const segments = urlPath.split('/').filter(Boolean).filter((s) => !s.startsWith('{'))
+  const base = segments.map((s, i) =>
+    i === 0 ? s : s.charAt(0).toUpperCase() + s.slice(1),
+  ).join('')
+  return `${verb[method] ?? method}${base.charAt(0).toUpperCase() + base.slice(1)}`
+}
+
+// ── Main generator ────────────────────────────────────────────────────────────
+
+export function generate(spec: OpenAPISpec, opts: GenerateOptions): string {
+  const lines: string[] = []
+
+  lines.push(`// Generated by eidos-gen — edit function bodies freely, re-run to refresh declarations.`)
+  lines.push(`// @sweidos/eidos ${spec.info?.version ? `(API ${spec.info.version})` : ''}`)
+  lines.push(`// ${spec.info?.title ?? 'OpenAPI spec'}`)
+  lines.push('')
+  lines.push(`import { resource, action } from '${opts.eidos}'`)
+  lines.push('')
+
+  const interfaces = generateInterfaces(spec)
+  if (interfaces) lines.push(interfaces)
+
+  lines.push('// ── Resources (GET) ─────────────────────────────────────────────────────────')
+  lines.push('')
+
+  const resourceLines: string[] = []
+  const actionLines: string[] = []
+
+  for (const [urlPath, pathItem] of Object.entries(spec.paths ?? {})) {
+    const eidosPath = convertPath(urlPath)
+
+    for (const [method, op] of Object.entries(pathItem) as [string, Operation][]) {
+      if (method === 'parameters') continue
+      if (typeof op !== 'object' || op === null) continue
+
+      const id = toIdentifier(op.operationId, method, urlPath)
+      const comment = op.summary ? `/** ${op.summary} */\n` : ''
+
+      if (method === 'get') {
+        resourceLines.push(
+          `${comment}export const ${id} = resource('${eidosPath}', { offline: ${opts.offline} })`,
+        )
+      } else {
+        const reqType = getRequestBodyType(op)
+        const resType = getResponseType(op)
+        const methodUpper = method.toUpperCase()
+
+        // Detect path params like :id — they need to be in the payload and interpolated into the URL
+        const pathParams = (eidosPath.match(/:([^/]+)/g) ?? []).map((p) => p.slice(1))
+        const hasPathParams = pathParams.length > 0
+
+        // Build URL expression — template literal when path params are present
+        let urlExpr: string
+        if (hasPathParams) {
+          urlExpr = '`' + eidosPath.replace(/:([^/]+)/g, '${payload.$1}') + '`'
+        } else {
+          urlExpr = `'${eidosPath}'`
+        }
+
+        // Build payload type annotation — merge path params into request body type
+        let payloadType: string
+        if (hasPathParams) {
+          const paramFields = pathParams.map((p) => `${p}: string`).join('; ')
+          payloadType = reqType === 'unknown'
+            ? `{ ${paramFields} }`
+            : `{ ${paramFields} } & ${reqType}`
+        } else {
+          payloadType = reqType
+        }
+
+        // For methods that typically have no body (DELETE), omit body if no request body defined
+        const hasBody = !!op.requestBody || (reqType !== 'unknown' && !hasPathParams)
+        const bodyLines = hasBody
+          ? `      headers: { 'Content-Type': 'application/json' },\n      body: JSON.stringify(payload),\n`
+          : ''
+
+        actionLines.push(
+          `${comment}export const ${id} = action(\n` +
+          `  async (payload: ${payloadType}): Promise<${resType}> => {\n` +
+          `    const res = await fetch(${urlExpr}, {\n` +
+          `      method: '${methodUpper}',\n` +
+          bodyLines +
+          `    })\n` +
+          `    if (!res.ok) throw Object.assign(res, { status: res.status })\n` +
+          (resType === 'void'
+            ? `    if (res.status !== 204) return res.json() as Promise<${resType}>\n`
+            : `    return res.json() as Promise<${resType}>\n`) +
+          `  },\n` +
+          `  { reliability: 'neverLose', name: '${id}' },\n` +
+          `)`,
+        )
+      }
+    }
+  }
+
+  lines.push(...resourceLines)
+  if (resourceLines.length > 0 && actionLines.length > 0) {
+    lines.push('')
+    lines.push('// ── Actions (POST / PUT / PATCH / DELETE) ────────────────────────────────────')
+    lines.push('')
+  }
+  lines.push(...actionLines)
+
+  return lines.join('\n') + '\n'
+}

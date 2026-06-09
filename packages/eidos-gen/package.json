@@ -1,0 +1,45 @@
+{
+  "name": "eidos-gen",
+  "version": "0.1.0",
+  "description": "Generate typed Eidos resource() and action() declarations from an OpenAPI 3.x spec.",
+  "author": "Aditya Raj",
+  "license": "MIT",
+  "bin": {
+    "eidos-gen": "./dist/cli.js"
+  },
+  "main": "./dist/cli.js",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.5"
+  },
+  "keywords": [
+    "openapi",
+    "codegen",
+    "eidos",
+    "service-worker",
+    "offline",
+    "pwa"
+  ],
+  "homepage": "https://github.com/iamadi11/eidos",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/iamadi11/eidos.git",
+    "directory": "packages/eidos-gen"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
