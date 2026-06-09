@@ -266,7 +266,7 @@ React root component. Registers the SW and initialises the runtime.
 ### React Hooks
 
 ```ts
-import { useEidosStatus, useEidosResource, useEidosQueue, useEidosQueueStats, useEidosAction } from '@sweidos/eidos'
+import { useEidosStatus, useEidosResource, useEidosQueue, useEidosQueueStats, useEidosAction, useEidosOnDrain } from '@sweidos/eidos'
 
 // Online status + SW lifecycle — cheap subscription, safe in headers
 const { isOnline, swStatus, swError } = useEidosStatus()
@@ -286,6 +286,9 @@ const result = await createOrder(payload) // { queued: true, id: 'abc123', ... }
 const item = useEidosAction(result.id)
 // item → ActionQueueItem | undefined
 // item?.status → 'pending' | 'replaying' | 'succeeded' | 'failed'
+
+// Fire callback when queue drains to empty — for "all synced!" toasts
+useEidosOnDrain(() => toast.success('All offline actions synced!'))
 
 // Full store snapshot — use sparingly, prefer the narrower hooks above
 const state = useEidos()
@@ -347,7 +350,6 @@ export function useEidosQueueVue() {
 ```ts
 import { eidosStatus, eidosResource } from '@sweidos/eidos'
 
-// subscribe() returns an unsubscribe function
 const unsub = eidosStatus.subscribe(({ isOnline }) => {
   document.title = isOnline ? 'App' : 'App (offline)'
 })
@@ -376,6 +378,21 @@ import { setOfflineSimulation } from '@sweidos/eidos'
 
 setOfflineSimulation(true)   // SW serves only cached responses
 setOfflineSimulation(false)  // restore normal behaviour
+```
+
+---
+
+### `isBgSyncSupported()`
+
+Returns `true` when the active SW registration supports the Background Sync API (Chrome 49+, Edge 79+, Safari 16+). Use to conditionally surface sync status in your UI.
+
+```ts
+import { isBgSyncSupported } from '@sweidos/eidos'
+
+if (isBgSyncSupported()) {
+  // browser will fire 'eidos-queue-replay' sync tag when connectivity returns,
+  // even if the user briefly navigated away from the page
+}
 ```
 
 ---
@@ -449,6 +466,7 @@ Performance is a first-class concern in Eidos. Every design decision optimises f
 | `EIDOS_CACHE_UPDATED` | Cache entry refreshed from network |
 | `EIDOS_NETWORK_ERROR` | Network request failed |
 | `EIDOS_CACHE_CLEARED` | Cache was cleared |
+| `EIDOS_BACKGROUND_SYNC` | Browser fired `sync` event — runtime calls `replayQueue()` |
 
 ---
 
@@ -464,7 +482,7 @@ eidos/
 │   │       ├── resource.ts     resource() — caching + handle
 │   │       ├── action.ts       action() + exponential backoff queue replay
 │   │       ├── runtime.ts      initEidos + SW registration
-│   │       ├── store.ts        pure JS event emitter (no React dependency)
+│   │       ├── store.ts        reactive store (useSyncExternalStore)
 │   │       ├── sw-bridge.ts    postMessage channel
 │   │       ├── idb.ts          IndexedDB CRUD wrapper
 │   │       └── react/          EidosProvider + hooks
@@ -522,7 +540,7 @@ function eidosPlugin() {
 - [x] `resource.unregister()` for cleanup
 - [x] URL pattern matching (`*`, `**`, `:param`)
 - [x] Cross-origin resource support
-- [ ] Background Sync API integration
+- [x] Background Sync API integration
 - [ ] Vite plugin (first-class, published separately)
 - [x] Vue / Svelte bindings (framework-agnostic reactive stores)
 - [ ] TanStack Query integration package

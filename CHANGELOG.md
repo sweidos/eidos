@@ -6,6 +6,26 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.0.17] — 2026-06-09
+
+### Added
+
+- **Background Sync API integration** — `neverLose` actions now register the `'eidos-queue-replay'` sync tag with the browser after being queued. When connectivity returns the browser fires a `sync` event on the SW, which notifies all open clients via `EIDOS_BACKGROUND_SYNC` — triggering `replayQueue()` even if the user briefly navigated away and back. Falls back to the existing `online`-event replay path on browsers that don't support Background Sync (Firefox, older Safari).
+
+- **`isBgSyncSupported()`** — new exported helper that returns `true` when the active SW registration exposes the `sync` property:
+  ```ts
+  import { isBgSyncSupported } from '@sweidos/eidos'
+  if (isBgSyncSupported()) {
+    // browser will auto-replay queue even after brief navigation away
+  }
+  ```
+
+### Changed
+
+- **SW message protocol** — added `EIDOS_BACKGROUND_SYNC` (SW → app) message. The SW fires it on `sync` events with tag `'eidos-queue-replay'`; the runtime calls `replayQueue()` with a 200 ms debounce on receipt.
+
+---
+
 ## [1.0.16] — 2026-06-09
 
 ### Changed

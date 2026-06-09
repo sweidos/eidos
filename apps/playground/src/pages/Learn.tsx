@@ -115,6 +115,7 @@ export function Learn() {
             ['#strategies',   'Strategies'],
             ['#svelte-vue',   'Svelte / Vue / JS'],
             ['#simulation',   'Offline Simulation'],
+            ['#bg-sync',      'Background Sync'],
             ['#architecture', 'Architecture'],
             ['#limitations',  'Limitations'],
           ].map(([href, label]) => (
@@ -718,6 +719,32 @@ setOfflineSimulation(false)  // go back online
 // → isOnline becomes true
 // → replayQueue() fires automatically after 600ms`}</Pre>
 
+      {/* ── Background Sync ──────────────────────────────────────────────────── */}
+      <H2 id="bg-sync">Background Sync</H2>
+      <P>
+        When a <Code>neverLose</Code> action is queued, Eidos registers the{' '}
+        <Code>'eidos-queue-replay'</Code> Background Sync tag with the browser. If the user
+        briefly navigates away and back while offline, the browser fires a{' '}
+        <Code>sync</Code> event on the SW when connectivity returns — even before the store's
+        own <Code>online</Code> subscription fires. The SW forwards{' '}
+        <Code>EIDOS_BACKGROUND_SYNC</Code> to all open clients, which call{' '}
+        <Code>replayQueue()</Code> with a 200 ms debounce.
+      </P>
+      <P>
+        Falls back silently to online-event replay on browsers without Background Sync
+        support (Firefox, older Safari).
+      </P>
+      <Pre>{`import { isBgSyncSupported } from '@sweidos/eidos'
+
+// Check support — useful for conditionally surfacing sync status in your UI
+if (isBgSyncSupported()) {
+  // browser will auto-trigger 'eidos-queue-replay' when connectivity returns
+}
+
+// Both replay paths fire replayQueue() — whichever arrives first wins:
+// a) store subscription (online event)  → replayQueue() after 600 ms
+// b) Background Sync API (sync event)   → replayQueue() after 200 ms`}</Pre>
+
       {/* ── Architecture ─────────────────────────────────────────────────────── */}
       <H2 id="architecture">Architecture</H2>
       <Pre>{`┌─────────────────────────────────────────────────────────┐
@@ -758,6 +785,7 @@ setOfflineSimulation(false)  // go back online
         <PropRow name="SW → App"  type="EIDOS_CACHE_UPDATED"       def="url, strategy"              desc="Cache entry was written from a network response." />
         <PropRow name="SW → App"  type="EIDOS_NETWORK_ERROR"       def="url"                        desc="Fetch failed and no cached fallback was found." />
         <PropRow name="SW → App"  type="EIDOS_CACHE_CLEARED"       def="url?"                       desc="Cache entry(ies) were deleted." />
+        <PropRow name="SW → App"  type="EIDOS_BACKGROUND_SYNC"     def="—"                          desc="Browser fired the 'eidos-queue-replay' sync tag — runtime calls replayQueue()." />
       </Table>
 
       {/* ── Limitations ──────────────────────────────────────────────────────── */}
@@ -769,7 +797,7 @@ setOfflineSimulation(false)  // go back online
           { l: 'Module-scope actions required', d: 'action() must execute at module import time for replay to work after page reload. Actions declared inside components or event handlers are not available in the replay registry.' },
           { l: 'maxAge is client-side only', d: 'The maxAge TTL is enforced in the main thread. The SW still serves the cached response to other tabs or after a page reload until invalidate() is called.' },
           { l: 'Single SW registration', d: 'EidosProvider assumes one /eidos-sw.js per origin. Registering multiple service workers from the same provider is unsupported.' },
-          { l: 'No background sync integration', d: 'The action queue is replayed on reconnect in the main thread, not via the Background Sync API. The page must be open for replay to fire.' },
+          { l: 'Background Sync requires open client', d: 'The Background Sync API wakes up the SW and notifies open clients, but actual function execution still runs in the main thread. If no tab is open, the sync tag is queued until the user reopens the app.' },
           { l: 'CacheStorage availability', d: 'In Firefox private browsing mode, CacheStorage and IndexedDB may be unavailable. Eidos degrades gracefully — resources fetch from the network, actions silently fail without queuing.' },
         ].map(({ l, d }) => (
           <div key={l} className="flex gap-3 p-3 rounded-lg border border-eidos-border bg-eidos-elevated text-xs">

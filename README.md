@@ -382,6 +382,21 @@ setOfflineSimulation(false)  // restore normal behaviour
 
 ---
 
+### `isBgSyncSupported()`
+
+Returns `true` when the active SW registration supports the Background Sync API (Chrome 49+, Edge 79+, Safari 16+). Use to conditionally surface sync status in your UI.
+
+```ts
+import { isBgSyncSupported } from '@sweidos/eidos'
+
+if (isBgSyncSupported()) {
+  // browser will fire 'eidos-queue-replay' sync tag when connectivity returns,
+  // even if the user briefly navigated away from the page
+}
+```
+
+---
+
 ## Performance
 
 Performance is a first-class concern in Eidos. Every design decision optimises for low overhead.
@@ -451,6 +466,7 @@ Performance is a first-class concern in Eidos. Every design decision optimises f
 | `EIDOS_CACHE_UPDATED` | Cache entry refreshed from network |
 | `EIDOS_NETWORK_ERROR` | Network request failed |
 | `EIDOS_CACHE_CLEARED` | Cache was cleared |
+| `EIDOS_BACKGROUND_SYNC` | Browser fired `sync` event — runtime calls `replayQueue()` |
 
 ---
 
@@ -524,7 +540,7 @@ function eidosPlugin() {
 - [x] `resource.unregister()` for cleanup
 - [x] URL pattern matching (`*`, `**`, `:param`)
 - [x] Cross-origin resource support
-- [ ] Background Sync API integration
+- [x] Background Sync API integration
 - [ ] Vite plugin (first-class, published separately)
 - [x] Vue / Svelte bindings (framework-agnostic reactive stores)
 - [ ] TanStack Query integration package
