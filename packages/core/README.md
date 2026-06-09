@@ -72,7 +72,7 @@ pnpm add @sweidos/eidos
 cp node_modules/@sweidos/eidos/dist/eidos-sw.js public/eidos-sw.js
 ```
 
-> **Vite users** — automate this with the [Vite plugin snippet](#vite-plugin).
+> **Vite users** — use the [first-class Vite plugin](#vite-plugin) to automate this.
 
 ### 3. Wrap your app
 
@@ -499,25 +499,27 @@ eidos/
 
 ## Vite Plugin
 
-Automatically copy `eidos-sw.js` into `public/` on build:
+`@sweidos/eidos` ships a first-class Vite plugin via the `@sweidos/eidos/vite` subpath. It automatically copies `eidos-sw.js` from the installed package into your `public/` directory on every build and dev-server start — keeping the SW in sync with the installed version.
 
 ```ts
 // vite.config.ts
-import { copyFileSync } from 'fs'
-import { resolve } from 'path'
+import { eidos } from '@sweidos/eidos/vite'
+import { defineConfig } from 'vite'
 
-function eidosPlugin() {
-  return {
-    name: 'eidos-sw',
-    buildStart() {
-      copyFileSync(
-        resolve('./node_modules/@sweidos/eidos/dist/eidos-sw.js'),
-        resolve('./public/eidos-sw.js'),
-      )
-    },
-  }
-}
+export default defineConfig({
+  plugins: [eidos()],
+})
 ```
+
+**Options:**
+
+```ts
+eidos({
+  swDest: 'public/eidos-sw.js', // default — relative to project root
+})
+```
+
+No more manual `cp` step. The plugin runs on `buildStart` (prod builds) and `configureServer` (dev).
 
 ---
 
@@ -541,7 +543,7 @@ function eidosPlugin() {
 - [x] URL pattern matching (`*`, `**`, `:param`)
 - [x] Cross-origin resource support
 - [x] Background Sync API integration
-- [ ] Vite plugin (first-class, published separately)
+- [x] Vite plugin (`@sweidos/eidos/vite` subpath — ships in the main package)
 - [x] Vue / Svelte bindings (framework-agnostic reactive stores)
 - [ ] TanStack Query integration package
 
