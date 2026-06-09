@@ -1,4 +1,4 @@
-import { registerServiceWorker } from './sw-bridge'
+import { registerServiceWorker, registerBgSyncHandler } from './sw-bridge'
 import { replayQueue } from './action'
 import { useEidosStore } from './store'
 import { idbGetQueue } from './idb'
@@ -35,6 +35,15 @@ export async function initEidos(config: EidosConfig = {}): Promise<void> {
   } catch {
     // SW registration failed; app continues without offline support
   }
+
+  // When the SW fires the Background Sync tag, replay the queue in the main thread.
+  // This path runs even if the user briefly navigated away and back — the browser
+  // triggers the sync event on the SW, which wakes up all open clients.
+  registerBgSyncHandler(() => {
+    if (useEidosStore.getState().isOnline) {
+      setTimeout(replayQueue, 200)
+    }
+  })
 
   if (autoReplay) {
     // ── Subscribe to the store instead of window.addEventListener('online')

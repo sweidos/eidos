@@ -1,4 +1,5 @@
 import { useEidosStore } from './store'
+import { getSwRegistration } from './sw-bridge'
 import {
   idbAddToQueue,
   idbGetPendingItems,
@@ -102,6 +103,18 @@ async function persistAndQueue(
 
   await idbAddToQueue(item)
   useEidosStore.getState().addQueueItem(item)
+
+  // Register Background Sync tag so the browser can wake up open clients
+  // when connectivity returns, even if the user navigated away briefly.
+  // Graceful no-op when Background Sync is unsupported.
+  try {
+    const reg = getSwRegistration()
+    if (reg && 'sync' in reg) {
+      await (reg as unknown as { sync: { register(tag: string): Promise<void> } }).sync.register('eidos-queue-replay')
+    }
+  } catch {
+    // Background Sync not available — online-event replay remains the fallback
+  }
 
   return {
     queued: true,

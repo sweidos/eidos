@@ -15,7 +15,7 @@ export { useEidos, useEidosResource, useEidosQueue, useEidosAction, useEidosQueu
 export { VERSION } from './version'
 
 // Devtools helpers
-export { setOfflineSimulation } from './sw-bridge'
+export { setOfflineSimulation, isBgSyncSupported } from './sw-bridge'
 export { useEidosStore } from './store'
 export type { EidosStore } from './store'
 

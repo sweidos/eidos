@@ -298,4 +298,22 @@ async function notifyClients(message: Record<string, unknown>): Promise<void> {
   clients.forEach((client) => client.postMessage(message))
 }
 
+// ── Background Sync ───────────────────────────────────────────────────────────
+
+interface SyncEvent extends ExtendableEvent {
+  readonly tag: string
+  readonly lastChance: boolean
+}
+
+// When the browser fires the 'eidos-queue-replay' sync tag (which the main
+// thread registers after queueing a neverLose action), notify all open clients
+// so they can call replayQueue(). The actual function execution always runs in
+// the main thread — the SW is only responsible for the wake-up signal.
+self.addEventListener('sync', (event) => {
+  const syncEvent = event as unknown as SyncEvent
+  if (syncEvent.tag === 'eidos-queue-replay') {
+    syncEvent.waitUntil(notifyClients({ type: 'EIDOS_BACKGROUND_SYNC' }))
+  }
+})
+
 export {}

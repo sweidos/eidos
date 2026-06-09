@@ -1,15 +1,29 @@
 import { useState, useEffect } from 'react'
-import { useEidosQueue, useEidosStatus, replayQueue } from '@sweidos/eidos'
+import { useEidosQueue, useEidosStatus, replayQueue, isBgSyncSupported } from '@sweidos/eidos'
 import type { ActionQueueItem } from '@sweidos/eidos'
 
 export function Actions() {
   const queue              = useEidosQueue()
   const { isOnline }       = useEidosStatus()
-  const [busy, setBusy] = useState(false)
+  const [busy, setBusy]    = useState(false)
+  const [bgSyncFlash, setBgSyncFlash] = useState(false)
+  const bgSync             = isBgSyncSupported()
 
   const pending   = queue.filter(q => q.status === 'pending')
   const active    = queue.filter(q => q.status === 'replaying')
   const done      = queue.filter(q => q.status === 'succeeded' || q.status === 'failed')
+
+  // Flash indicator when browser-triggered sync fires
+  useEffect(() => {
+    function onMsg(e: MessageEvent) {
+      if (e.data?.type === 'EIDOS_BACKGROUND_SYNC') {
+        setBgSyncFlash(true)
+        setTimeout(() => setBgSyncFlash(false), 2000)
+      }
+    }
+    navigator.serviceWorker?.addEventListener('message', onMsg)
+    return () => navigator.serviceWorker?.removeEventListener('message', onMsg)
+  }, [])
 
   async function replay() {
     setBusy(true)
@@ -26,6 +40,21 @@ export function Actions() {
             Actions with <code className="text-eidos-amber">reliability: 'neverLose'</code> persist
             to IndexedDB when offline and replay automatically on reconnect.
           </p>
+          {/* Background Sync badge */}
+          <div className="flex items-center gap-2 mt-2">
+            <span
+              className={`inline-flex items-center gap-1.5 text-2xs px-2 py-0.5 border transition-colors duration-300 ${
+                bgSyncFlash
+                  ? 'border-eidos-accent text-eidos-accent bg-eidos-accent/10'
+                  : bgSync
+                  ? 'border-eidos-accent/40 text-eidos-accent'
+                  : 'border-eidos-border text-eidos-muted'
+              }`}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${bgSync ? 'bg-eidos-accent' : 'bg-eidos-muted'}`} />
+              {bgSyncFlash ? 'background sync fired' : bgSync ? 'background sync supported' : 'background sync unsupported'}
+            </span>
+          </div>
         </div>
         {pending.length > 0 && isOnline && (
           <button
@@ -79,11 +108,14 @@ const result = await createOrder(payload)
 if ('queued' in result) {
   // { queued: true, id: '...', message: '...' }
   // → args persisted to IndexedDB
+  // → Background Sync tag registered (Chrome/Edge/Safari 16+)
 }
 
-// 3. On reconnect — store subscription fires replayQueue()
-//    automatically (600ms debounce). Covers real reconnects AND
-//    setOfflineSimulation(false).
+// 3. Replay paths — whichever fires first:
+//    a) store subscription → replayQueue() (600ms debounce on reconnect)
+//    b) Background Sync API → SW fires 'eidos-queue-replay' tag →
+//       notifies open clients → replayQueue() (200ms debounce)
+//    Path (b) works even if the user briefly navigated away and back.
 
 // 4. Status transitions
 'pending' → 'replaying' → 'succeeded'  // removed from IDB after 3s

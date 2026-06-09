@@ -67,12 +67,36 @@ export function sendToWorker(message: Record<string, unknown>): void {
   }
 }
 
+let _bgSyncHandler: (() => void) | null = null
+
+export function registerBgSyncHandler(fn: () => void): void {
+  _bgSyncHandler = fn
+}
+
+export function isBgSyncSupported(): boolean {
+  try {
+    return (
+      typeof navigator !== 'undefined' &&
+      'serviceWorker' in navigator &&
+      _registration !== null &&
+      'sync' in _registration
+    )
+  } catch {
+    return false
+  }
+}
+
 function onSwMessage(event: MessageEvent): void {
   const data = event.data as { type: string; url?: string; strategy?: string }
   if (!data?.type) return
 
   const store = useEidosStore.getState()
   const { type, url } = data
+
+  if (type === 'EIDOS_BACKGROUND_SYNC') {
+    _bgSyncHandler?.()
+    return
+  }
 
   if (!url) return
 
