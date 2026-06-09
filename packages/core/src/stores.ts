@@ -24,12 +24,31 @@ export interface EidosReadable<T> {
   getState(): T
 }
 
-function readable<T>(selector: (s: EidosStore) => T): EidosReadable<T> {
+function shallowEqual<T extends Record<string, unknown>>(a: T, b: T): boolean {
+  const keys = Object.keys(a) as (keyof T)[]
+  if (keys.length !== Object.keys(b).length) return false
+  for (const k of keys) {
+    if (a[k] !== b[k]) return false
+  }
+  return true
+}
+
+function readable<T>(
+  selector: (s: EidosStore) => T,
+  equal: (a: T, b: T) => boolean = Object.is,
+): EidosReadable<T> {
   return {
     subscribe(run) {
       // Emit current value immediately (Svelte store contract)
-      run(selector(useEidosStore.getState()))
-      return useEidosStore.subscribe(() => run(selector(useEidosStore.getState())))
+      let last = selector(useEidosStore.getState())
+      run(last)
+      return useEidosStore.subscribe(() => {
+        const next = selector(useEidosStore.getState())
+        if (!equal(last, next)) {
+          last = next
+          run(next)
+        }
+      })
     },
     getState() {
       return selector(useEidosStore.getState())
@@ -47,38 +66,39 @@ export const eidosQueue: EidosReadable<ActionQueueItem[]> = readable((s) => s.qu
 
 /**
  * Online status + SW lifecycle.
- * Object identity changes on every notification — destructure or compare fields
- * in the subscriber if you need to avoid unnecessary work.
+ * Only re-emits when isOnline, swStatus, or swError actually changes.
  */
 export const eidosStatus: EidosReadable<{
   isOnline: boolean
   swStatus: EidosStore['swStatus']
   swError: string | undefined
-}> = readable((s) => ({
-  isOnline: s.isOnline,
-  swStatus: s.swStatus,
-  swError: s.swError,
-}))
+}> = readable(
+  (s) => ({ isOnline: s.isOnline, swStatus: s.swStatus, swError: s.swError }),
+  shallowEqual as (a: { isOnline: boolean; swStatus: EidosStore['swStatus']; swError: string | undefined }, b: { isOnline: boolean; swStatus: EidosStore['swStatus']; swError: string | undefined }) => boolean,
+)
 
 /**
- * Queue counts. Re-notifies on any queue mutation — compare values inside the
- * subscriber callback to skip work when counts haven't changed.
+ * Queue counts. Re-emits only when a count actually changes, not on every
+ * queue mutation (e.g. a status transition that doesn't change counts is skipped).
  */
 export const eidosQueueStats: EidosReadable<{
   pending: number
   failed: number
   replaying: number
   total: number
-}> = readable((s) => {
-  // Single pass over the queue — avoids three separate .filter() calls.
-  let pending = 0, failed = 0, replaying = 0
-  for (const q of s.queue) {
-    if (q.status === 'pending') pending++
-    else if (q.status === 'failed') failed++
-    else if (q.status === 'replaying') replaying++
-  }
-  return { pending, failed, replaying, total: s.queue.length }
-})
+}> = readable(
+  (s) => {
+    // Single pass over the queue — avoids three separate .filter() calls.
+    let pending = 0, failed = 0, replaying = 0
+    for (const q of s.queue) {
+      if (q.status === 'pending') pending++
+      else if (q.status === 'failed') failed++
+      else if (q.status === 'replaying') replaying++
+    }
+    return { pending, failed, replaying, total: s.queue.length }
+  },
+  shallowEqual as (a: { pending: number; failed: number; replaying: number; total: number }, b: { pending: number; failed: number; replaying: number; total: number }) => boolean,
+)
 
 // ── Dynamic stores (created per URL / ID) ─────────────────────────────────────
 

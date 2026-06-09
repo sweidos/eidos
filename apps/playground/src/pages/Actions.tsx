@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, memo } from 'react'
 import { useEidosQueue, useEidosStatus, replayQueue, isBgSyncSupported } from '@sweidos/eidos'
 import type { ActionQueueItem } from '@sweidos/eidos'
 
@@ -9,9 +9,15 @@ export function Actions() {
   const [bgSyncFlash, setBgSyncFlash] = useState(false)
   const bgSync             = isBgSyncSupported()
 
-  const pending   = queue.filter(q => q.status === 'pending')
-  const active    = queue.filter(q => q.status === 'replaying')
-  const done      = queue.filter(q => q.status === 'succeeded' || q.status === 'failed')
+  // Single pass instead of three separate filter() calls
+  const pending: ActionQueueItem[] = []
+  const active: ActionQueueItem[]  = []
+  const done: ActionQueueItem[]    = []
+  for (const q of queue) {
+    if (q.status === 'replaying') active.push(q)
+    else if (q.status === 'pending') pending.push(q)
+    else done.push(q)
+  }
 
   // Flash indicator when browser-triggered sync fires
   useEffect(() => {
@@ -146,7 +152,7 @@ function RetryCountdown({ nextRetryAt }: { nextRetryAt: number }) {
   return <span className="text-eidos-blue">retry in {secs}s</span>
 }
 
-function QueueItem({ item }: { item: ActionQueueItem }) {
+const QueueItem = memo(function QueueItem({ item }: { item: ActionQueueItem }) {
   const statusColor = {
     replaying: 'text-eidos-blue',
     succeeded: 'text-eidos-accent',
@@ -180,4 +186,4 @@ function QueueItem({ item }: { item: ActionQueueItem }) {
       </p>
     </div>
   )
-}
+})

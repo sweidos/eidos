@@ -12,6 +12,7 @@ export interface EidosStore extends EidosState {
   // Queue
   addQueueItem: (item: ActionQueueItem) => void
   updateQueueItem: (id: string, update: Partial<ActionQueueItem>) => void
+  batchUpdateQueueItems: (updates: Array<{ id: string; update: Partial<ActionQueueItem> }>) => void
   removeQueueItem: (id: string) => void
   hydrateQueue: (items: ActionQueueItem[]) => void
 }
@@ -65,6 +66,17 @@ _state = {
     _set((s) => ({
       queue: s.queue.map((item) => (item.id === id ? { ...item, ...update } : item)),
     })),
+
+  batchUpdateQueueItems: (updates) =>
+    _set((s) => {
+      const map = new Map(updates.map((u) => [u.id, u.update]))
+      return {
+        queue: s.queue.map((item) => {
+          const u = map.get(item.id)
+          return u ? { ...item, ...u } : item
+        }),
+      }
+    }),
 
   removeQueueItem: (id) => _set((s) => ({ queue: s.queue.filter((item) => item.id !== id) })),
 

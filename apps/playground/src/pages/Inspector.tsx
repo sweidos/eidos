@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useEidos } from '@sweidos/eidos'
+import { useEidosResources } from '@sweidos/eidos'
 import type { ResourceEntry } from '@sweidos/eidos'
 
 const SAMPLE: ResourceEntry = {
@@ -22,7 +22,7 @@ const SAMPLE: ResourceEntry = {
 }
 
 export function Inspector() {
-  const live = Object.values(useEidos().resources)
+  const live = Object.values(useEidosResources())
   const all  = live.length > 0 ? live : [SAMPLE]
   const [sel, setSel] = useState<ResourceEntry>(all[0])
 

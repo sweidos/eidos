@@ -167,13 +167,21 @@ async function _doReplayQueue(store: ReturnType<typeof useEidosStore.getState>):
 
   const result: ReplayResult = { attempted: 0, succeeded: 0, failed: 0, retrying: 0, skipped: 0 }
 
+  // Batch all 'replaying' store updates into a single notify — N items → 1 re-render.
+  // IDB write is fire-and-forget: if the page reloads mid-replay the items remain
+  // 'pending' in IDB (the last-written durable state), which is safe to re-replay.
+  const replayable = pending.filter((item) => _actionRegistry.has(item.actionId))
+  if (replayable.length > 0) {
+    store.batchUpdateQueueItems(replayable.map((item) => ({ id: item.id, update: { status: 'replaying' } })))
+    for (const item of replayable) {
+      idbUpdateQueueItem(item.id, { status: 'replaying' })
+    }
+  }
+
   const outcomes = await Promise.allSettled(
     pending.map(async (item): Promise<'succeeded' | 'failed' | 'retrying' | 'skipped'> => {
       const fn = _actionRegistry.get(item.actionId)
       if (!fn) return 'skipped'
-
-      store.updateQueueItem(item.id, { status: 'replaying' })
-      await idbUpdateQueueItem(item.id, { status: 'replaying' })
 
       try {
         await fn(...(item.args as unknown[]))

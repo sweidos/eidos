@@ -14,6 +14,11 @@ export function useEidos() {
   return useStore()
 }
 
+/** All registered resources — only re-renders when the resources map changes, not on queue mutations. */
+export function useEidosResources() {
+  return useStore((s) => s.resources)
+}
+
 /** Live state for a single registered resource URL. */
 export function useEidosResource(url: string) {
   return useStore((s) => s.resources[url])

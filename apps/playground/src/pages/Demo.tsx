@@ -147,6 +147,8 @@ export function Demo() {
     setEvents([...evRef.current])
   }, [])
 
+  const clearEvents = useCallback(() => setEvents([]), [])
+
   // Queue feed events — driven by active count (pending + replaying)
   const activeCount = pendingCount + replayingCount
   const prevActiveRef = useRef(0)
@@ -259,39 +261,7 @@ export function Demo() {
         </div>
       </Card>
 
-      <section className="space-y-3">
-        <div className="flex items-end justify-between gap-4">
-          <div>
-            <p className="text-[10px] uppercase tracking-[0.24em] text-eidos-muted">examples</p>
-            <h2 className="text-sm font-semibold text-eidos-text md:text-base">
-              Concrete patterns you can copy first
-            </h2>
-          </div>
-          <button
-            onClick={() => navigate('/docs')}
-            className="text-xs font-medium text-eidos-accent transition-colors hover:text-green-400 cursor-pointer"
-          >
-            open full reference
-          </button>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          {EXAMPLES.map(example => (
-            <Card key={example.title} className="h-full">
-              <CardHeader
-                title={example.title}
-                description={example.description}
-                action={(
-                  <span className="rounded-full border border-eidos-border px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-eidos-muted">
-                    {example.badge}
-                  </span>
-                )}
-              />
-              <CodeBlock code={example.code} title={example.badge} />
-            </Card>
-          ))}
-        </div>
-      </section>
+      <ExamplesGrid />
 
       <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div className="space-y-4">
@@ -312,58 +282,130 @@ export function Demo() {
           </Card>
         </div>
 
-        <Card className="flex h-full flex-col overflow-hidden p-0">
-          <div className="flex items-start justify-between gap-3 border-b border-eidos-border px-4 py-3">
-            <div>
-              <div className="text-[10px] uppercase tracking-[0.24em] text-eidos-muted">runtime feed</div>
-              <p className="text-xs text-eidos-text-dim">
-                Cache hits, queue updates, and service-worker status changes in one place.
-              </p>
-            </div>
-            <button
-              onClick={() => setEvents([])}
-              className="text-2xs text-eidos-muted transition-colors hover:text-eidos-red cursor-pointer"
-            >
-              clear
-            </button>
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-3 space-y-1">
-            {events.length === 0 ? (
-              <div className="py-10 text-center text-xs text-eidos-muted">
-                waiting for activity...
-              </div>
-            ) : (
-              events.map(ev => (
-                <div key={ev.id} className="flex gap-2 text-xs leading-6 font-tabular animate-slide-right">
-                  <span className="w-20 shrink-0 text-eidos-border">{ev.time}</span>
-                  <span className={`w-14 shrink-0 font-bold ${KIND_COLOR[ev.kind]}`}>{ev.kind}</span>
-                  <span className="truncate text-eidos-text-dim">{ev.msg}</span>
-                </div>
-              ))
-            )}
-          </div>
-
-          <div className="grid grid-cols-3 gap-2 border-t border-eidos-border px-4 py-3 text-xs">
-            {[
-              { label: 'cache hits',  value: resourceEntry?.cacheHits ?? 0,                                                                                        tone: 'text-eidos-accent' },
-              { label: 'queued',      value: pendingCount,                                                                                                          tone: 'text-eidos-amber'  },
-              { label: 'replaying',   value: replayingCount,                                                                                                        tone: 'text-eidos-blue'   },
-              { label: 'done',        value: completedCount,                                                                                                        tone: 'text-eidos-text'   },
-              { label: 'sw status',   value: swStatus,                                                                                                              tone: 'text-eidos-text'   },
-              { label: 'cached at',   value: resourceEntry?.cachedAt ? new Date(resourceEntry.cachedAt).toLocaleTimeString('en', { hour12: false }) : '—',          tone: 'text-eidos-text-dim'},
-            ].map(({ label, value, tone }) => (
-              <div key={label} className="rounded-lg border border-eidos-border bg-eidos-bg/40 px-3 py-2">
-                <div className="text-eidos-muted">{label}</div>
-                <div className={`mt-1 font-tabular font-semibold truncate ${tone}`}>{value}</div>
-              </div>
-            ))}
-          </div>
-        </Card>
+        <EventFeed
+          events={events}
+          onClear={clearEvents}
+          resourceEntry={resourceEntry}
+          pendingCount={pendingCount}
+          replayingCount={replayingCount}
+          completedCount={completedCount}
+          swStatus={swStatus}
+        />
       </section>
     </div>
   )
 }
+
+// ── Examples Grid — static content, memoized to avoid re-renders on state changes ──
+
+const ExamplesGrid = memo(function ExamplesGrid() {
+  const navigate = useNavigate()
+  return (
+    <section className="space-y-3">
+      <div className="flex items-end justify-between gap-4">
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.24em] text-eidos-muted">examples</p>
+          <h2 className="text-sm font-semibold text-eidos-text md:text-base">
+            Concrete patterns you can copy first
+          </h2>
+        </div>
+        <button
+          onClick={() => navigate('/docs')}
+          className="text-xs font-medium text-eidos-accent transition-colors hover:text-green-400 cursor-pointer"
+        >
+          open full reference
+        </button>
+      </div>
+      <div className="grid gap-4 md:grid-cols-2">
+        {EXAMPLES.map(example => (
+          <Card key={example.title} className="h-full">
+            <CardHeader
+              title={example.title}
+              description={example.description}
+              action={(
+                <span className="rounded-full border border-eidos-border px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-eidos-muted">
+                  {example.badge}
+                </span>
+              )}
+            />
+            <CodeBlock code={example.code} title={example.badge} />
+          </Card>
+        ))}
+      </div>
+    </section>
+  )
+})
+
+// ── Event Feed — memoized so re-renders are isolated to events/stats changes ──
+
+const EventFeed = memo(function EventFeed({
+  events,
+  onClear,
+  resourceEntry,
+  pendingCount,
+  replayingCount,
+  completedCount,
+  swStatus,
+}: {
+  events: SwEvent[]
+  onClear: () => void
+  resourceEntry: ResourceEntry | undefined
+  pendingCount: number
+  replayingCount: number
+  completedCount: number
+  swStatus: string
+}) {
+  return (
+    <Card className="flex h-full flex-col overflow-hidden p-0">
+      <div className="flex items-start justify-between gap-3 border-b border-eidos-border px-4 py-3">
+        <div>
+          <div className="text-[10px] uppercase tracking-[0.24em] text-eidos-muted">runtime feed</div>
+          <p className="text-xs text-eidos-text-dim">
+            Cache hits, queue updates, and service-worker status changes in one place.
+          </p>
+        </div>
+        <button
+          onClick={onClear}
+          className="text-2xs text-eidos-muted transition-colors hover:text-eidos-red cursor-pointer"
+        >
+          clear
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-3 space-y-1">
+        {events.length === 0 ? (
+          <div className="py-10 text-center text-xs text-eidos-muted">
+            waiting for activity...
+          </div>
+        ) : (
+          events.map(ev => (
+            <div key={ev.id} className="flex gap-2 text-xs leading-6 font-tabular animate-slide-right">
+              <span className="w-20 shrink-0 text-eidos-border">{ev.time}</span>
+              <span className={`w-14 shrink-0 font-bold ${KIND_COLOR[ev.kind]}`}>{ev.kind}</span>
+              <span className="truncate text-eidos-text-dim">{ev.msg}</span>
+            </div>
+          ))
+        )}
+      </div>
+
+      <div className="grid grid-cols-3 gap-2 border-t border-eidos-border px-4 py-3 text-xs">
+        {([
+          { label: 'cache hits', value: resourceEntry?.cacheHits ?? 0,                                                                                  tone: 'text-eidos-accent'  },
+          { label: 'queued',     value: pendingCount,                                                                                                    tone: 'text-eidos-amber'   },
+          { label: 'replaying',  value: replayingCount,                                                                                                  tone: 'text-eidos-blue'    },
+          { label: 'done',       value: completedCount,                                                                                                  tone: 'text-eidos-text'    },
+          { label: 'sw status',  value: swStatus,                                                                                                        tone: 'text-eidos-text'    },
+          { label: 'cached at',  value: resourceEntry?.cachedAt ? new Date(resourceEntry.cachedAt).toLocaleTimeString('en', { hour12: false }) : '—',    tone: 'text-eidos-text-dim' },
+        ] as const).map(({ label, value, tone }) => (
+          <div key={label} className="rounded-lg border border-eidos-border bg-eidos-bg/40 px-3 py-2">
+            <div className="text-eidos-muted">{label}</div>
+            <div className={`mt-1 font-tabular font-semibold truncate ${tone}`}>{value}</div>
+          </div>
+        ))}
+      </div>
+    </Card>
+  )
+})
 
 // ── Products Demo ─────────────────────────────────────────────────────────────
 
