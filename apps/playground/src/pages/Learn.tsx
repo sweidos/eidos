@@ -117,6 +117,7 @@ export function Learn() {
             ['#simulation',   'Offline Simulation'],
             ['#bg-sync',      'Background Sync'],
             ['#tanstack',     'TanStack Query'],
+            ['#testing',      'Testing'],
             ['#architecture', 'Architecture'],
             ['#limitations',  'Limitations'],
           ].map(([href, label]) => (
@@ -830,6 +831,91 @@ function OrderForm() {
         <Code>queryClient.invalidateQueries({'{ queryKey: [\'eidos\', url] }'})</Code>.
         Both caches stay in sync even when the cache is cleared outside of mutations (e.g. from devtools or on reconnect).
       </P>
+
+      {/* ── Testing ──────────────────────────────────────────────────────────── */}
+      <H2 id="testing">Testing Utilities</H2>
+      <P>
+        <Code>@sweidos/eidos/testing</Code> ships first-class helpers for Vitest, Jest, and Playwright.
+        Import only in test files — never in production code.
+      </P>
+      <Pre label="vitest setup (optional global reset)">{`// vitest.setup.ts
+import { resetEidos } from '@sweidos/eidos/testing'
+
+beforeEach(async () => {
+  await resetEidos()
+  // queue cleared, resources cleared, online restored, _initialized reset
+})`}</Pre>
+
+      <H3>Testing offline queuing</H3>
+      <Pre label="queue.test.ts">{`import { mockOffline, getEidosState } from '@sweidos/eidos/testing'
+
+it('queues action while offline', async () => {
+  mockOffline()
+  await savePost({ title: 'Draft' })
+
+  expect(getEidosState().queue).toHaveLength(1)
+  expect(getEidosState().isOnline).toBe(false)
+})`}</Pre>
+
+      <H3>Testing queue replay</H3>
+      <Pre label="replay.test.ts">{`import { mockOffline, drainQueue } from '@sweidos/eidos/testing'
+
+it('replays queue on reconnect', async () => {
+  mockOffline()
+  await savePost({ title: 'Draft' })
+
+  const result = await drainQueue()   // forces online + replays
+  expect(result.succeeded).toBe(1)
+  expect(result.failed).toBe(0)
+})`}</Pre>
+
+      <H3>Testing cache state</H3>
+      <Pre label="cache.test.ts">{`import { getCachedEntry } from '@sweidos/eidos/testing'
+
+it('caches the resource after first fetch', async () => {
+  const products = resource('/api/products', { offline: true })
+  await products.fetch()
+
+  const cached = await getCachedEntry('/api/products')
+  expect(cached).toBeDefined()
+})`}</Pre>
+
+      <H3>stubFetch option</H3>
+      <P>
+        Pass <Code>{'{ stubFetch: true }'}</Code> to <Code>mockOffline()</Code> to also stub{' '}
+        <Code>globalThis.fetch</Code> — useful when testing code that calls{' '}
+        <Code>fetch()</Code> directly outside the Eidos resource layer.
+      </P>
+      <Pre>{`mockOffline({ stubFetch: true })
+await expect(fetch('/api/anything')).rejects.toThrow(TypeError)
+mockOnline() // restores original fetch`}</Pre>
+
+      <H3>API summary</H3>
+      <table className="w-full text-sm border-collapse mb-6">
+        <thead>
+          <tr className="border-b border-white/10">
+            <th className="text-left py-2 pr-4 text-slate-300 font-medium">Helper</th>
+            <th className="text-left py-2 text-slate-300 font-medium">Description</th>
+          </tr>
+        </thead>
+        <tbody className="text-slate-400">
+          {[
+            ['mockOffline(opts?)', 'Set isOnline = false. stubFetch: true also stubs fetch().'],
+            ['mockOnline()', 'Restore isOnline = true. Removes fetch stub if present.'],
+            ['drainQueue()', 'Force-replay queue now. Returns ReplayResult.'],
+            ['waitForQueueDrain(opts?)', 'Wait until no pending/replaying items. Timeout default 5 s.'],
+            ['getCachedEntry(url, name?)', 'Read a Response from Cache Storage. undefined if missing.'],
+            ['clearEidosCache(name?)', 'Delete an entire cache namespace (default: eidos-resources-v1).'],
+            ['resetEidos()', 'Full teardown: queue, resources, SW status, online, runtime flag.'],
+            ['getEidosState()', 'Plain-object snapshot of store state for inline assertions.'],
+          ].map(([name, desc]) => (
+            <tr key={name as string} className="border-b border-white/5">
+              <td className="py-2 pr-4 font-mono text-eidos-accent whitespace-nowrap">{name}</td>
+              <td className="py-2">{desc}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
 
       {/* ── Architecture ─────────────────────────────────────────────────────── */}
       <H2 id="architecture">Architecture</H2>

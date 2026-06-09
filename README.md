@@ -602,6 +602,81 @@ Registers a `QueryClient` with Eidos. After calling this:
 
 ---
 
+## Testing Utilities
+
+`@sweidos/eidos/testing` provides first-class helpers for Vitest, Jest, and Playwright. Import only in test files.
+
+```ts
+import {
+  mockOffline, mockOnline,
+  drainQueue, waitForQueueDrain,
+  getCachedEntry, clearEidosCache,
+  resetEidos, getEidosState,
+} from '@sweidos/eidos/testing'
+```
+
+### `resetEidos()` — `beforeEach` cleanup
+
+```ts
+beforeEach(async () => {
+  await resetEidos()
+  // ✓ queue cleared, resources cleared, online restored, _initialized reset
+})
+```
+
+### Testing offline queuing
+
+```ts
+it('queues action while offline', async () => {
+  mockOffline()
+  await savePost({ title: 'Draft' })
+
+  expect(getEidosState().queue).toHaveLength(1)
+  expect(getEidosState().isOnline).toBe(false)
+})
+```
+
+### Testing queue replay
+
+```ts
+it('replays queue on reconnect', async () => {
+  mockOffline()
+  await savePost({ title: 'Draft' })
+
+  const result = await drainQueue()   // forces online + replays
+  expect(result.succeeded).toBe(1)
+})
+```
+
+### Testing cache state
+
+```ts
+it('caches the resource after first fetch', async () => {
+  const products = resource('/api/products', { offline: true })
+  await products.fetch()
+
+  const cached = await getCachedEntry('/api/products')
+  expect(cached).toBeDefined()
+  const body = await cached!.json()
+  expect(body).toEqual([...])
+})
+```
+
+### API summary
+
+| Helper | Description |
+|--------|-------------|
+| `mockOffline(opts?)` | Set `isOnline = false`. Pass `{ stubFetch: true }` to also make `fetch()` throw. |
+| `mockOnline()` | Restore `isOnline = true`. Removes fetch stub if present. |
+| `drainQueue()` | Force-replay queue now. Returns `ReplayResult`. |
+| `waitForQueueDrain(opts?)` | Wait until no pending/replaying items. Timeout default 5s. |
+| `getCachedEntry(url, name?)` | Read a `Response` from Cache Storage. Returns `undefined` if missing. |
+| `clearEidosCache(name?)` | Delete an entire cache namespace (default: `eidos-resources-v1`). |
+| `resetEidos()` | Full teardown: queue, resources, SW status, online state, runtime flag. |
+| `getEidosState()` | Plain-object snapshot of store state (no store methods). |
+
+---
+
 ## Known Limitations
 
 | Limitation | Detail |
@@ -634,7 +709,7 @@ Registers a `QueryClient` with Eidos. After calling this:
 
 **DX / Tooling**
 - [ ] Devtools panel component — drop-in `<EidosDevtools />` showing cache entries, queue state, replay status, and offline toggle
-- [ ] Testing utilities (`@sweidos/eidos/testing`) — `mockOffline()`, `drainQueue()`, `getCachedEntry(url)` for Vitest / Playwright
+- [x] Testing utilities (`@sweidos/eidos/testing`) — `mockOffline()`, `mockOnline()`, `drainQueue()`, `waitForQueueDrain()`, `getCachedEntry(url)`, `clearEidosCache()`, `resetEidos()`, `getEidosState()` for Vitest / Playwright
 - [ ] SvelteKit / Next.js adapters — SSR-aware init helpers that skip SW registration server-side
 
 **Performance**

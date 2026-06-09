@@ -5,7 +5,7 @@
 // Public API
 export { resource, setQueryInvalidator } from './resource'
 export { action, replayQueue, clearQueue } from './action'
-export { initEidos } from './runtime'
+export { initEidos, _resetEidos } from './runtime'
 
 // React bindings
 export { EidosProvider } from './react/Provider'

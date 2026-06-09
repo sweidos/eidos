@@ -6,6 +6,24 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.0.23] — 2026-06-09
+
+### Added
+
+- **`@sweidos/eidos/testing` subpath** — first-class test helpers for Vitest, Jest, and Playwright.
+  - `mockOffline(opts?)` / `mockOnline()` — toggle Eidos offline state; optional `stubFetch: true` also stubs `globalThis.fetch` to throw `TypeError`.
+  - `drainQueue()` — force-replay the action queue immediately; returns `ReplayResult`.
+  - `waitForQueueDrain(opts?)` — poll until queue has no pending/replaying items; configurable `timeout` (default 5 s) and `interval`.
+  - `getCachedEntry(url, cacheName?)` — read a cached `Response` from Cache Storage for assertions.
+  - `clearEidosCache(cacheName?)` — delete an entire cache namespace; useful in `afterEach`.
+  - `resetEidos()` — full `beforeEach` teardown: clears queue, resources, SW status, online state, and runtime `_initialized` flag.
+  - `getEidosState()` — plain-object snapshot of store state (no store methods) for inline assertions.
+  - `EIDOS_CACHE_NAME` — constant (`'eidos-resources-v1'`) for cache namespace assertions.
+- `_resetEidos` exported from main `@sweidos/eidos` entrypoint (internal; used by `resetEidos()`).
+- `resolve.alias` in `vite.config.ts` so Vitest resolves `@sweidos/eidos` to local source without a prior build step.
+
+---
+
 ## [1.0.22] — 2026-06-09
 
 ### Changed
