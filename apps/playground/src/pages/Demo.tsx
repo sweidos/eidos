@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback, memo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { RefreshCw, ShoppingCart, CheckCircle, WifiOff, ArrowRight, Clock, Zap, ArrowUp, AlertTriangle, X } from 'lucide-react'
-import { useEidosQueue, useEidosStatus, useEidosResource, useEidosStore, replayQueue } from '@sweidos/eidos'
-import type { ActionQueueItem, ResourceEntry } from '@sweidos/eidos'
+import { useEidosQueue, useEidosQueueStats, useEidosStatus, useEidosResource, useEidosStore, replayQueue } from '@sweidos/eidos'
+import type { ResourceEntry } from '@sweidos/eidos'
 import { Card, CardHeader } from '../components/Card'
 import { CodeBlock } from '../components/CodeBlock'
 import { productsResource, createOrder, type Product } from '../lib/eidos'
@@ -29,67 +29,32 @@ const KIND_COLOR: Record<SwEvent['kind'], string> = {
 function uid()  { return Math.random().toString(36).slice(2, 7) }
 function now()  { return new Date().toLocaleTimeString('en', { hour12: false }) }
 
-// ── Demo Page ─────────────────────────────────────────────────────────────────
+// ── Module-scope constants (not recreated on every render) ────────────────────
 
-export function Demo() {
-  const navigate = useNavigate()
-  const [events, setEvents] = useState<SwEvent[]>([])
-  const evRef = useRef<SwEvent[]>([])
-  const queue = useEidosQueue()
-  const { isOnline, swStatus } = useEidosStatus()
-  const resourceEntry = useEidosResource('/api/products')
-  const pendingCount = queue.filter(q => q.status === 'pending').length
-  const replayingCount = queue.filter(q => q.status === 'replaying').length
-  const completedCount = queue.filter(q => q.status === 'succeeded' || q.status === 'failed').length
-  const heroStats = [
-    { label: 'network', value: isOnline ? 'online' : 'offline', tone: isOnline ? 'text-eidos-accent' : 'text-eidos-amber' },
-    { label: 'service worker', value: swStatus, tone: 'text-eidos-text' },
-    { label: 'cache hits', value: resourceEntry?.cacheHits ?? 0, tone: 'text-eidos-accent' },
-    { label: 'queued', value: pendingCount, tone: 'text-eidos-amber' },
-  ] as const
-  const heroSteps = [
-    'Fetch the product list while online, then turn offline simulation on.',
-    'Submit an order and watch it move into the queue.',
-    'Open docs for a shorter explanation of each API surface.',
-  ] as const
+const HERO_STEPS = [
+  'Fetch the product list while online, then turn offline simulation on.',
+  'Submit an order and watch it move into the queue.',
+  'Open docs for a shorter explanation of each API surface.',
+] as const
 
-  // Queue events
-  const prevQLen = useRef(0)
-  useEffect(() => {
-    const curr = queue.filter(q => q.status === 'pending' || q.status === 'replaying').length
-    if (curr > prevQLen.current) emit('QUEUE', `createOrder queued → IndexedDB`)
-    else if (curr < prevQLen.current && prevQLen.current > 0) emit('REPLAY', `replayQueue() executed`)
-    prevQLen.current = curr
-  }, [queue])
-
-  useEffect(() => {
-    if (swStatus === 'active') emit('SW', 'eidos-sw.js activated · scope /')
-  }, [swStatus])
-
-  function emit(kind: SwEvent['kind'], msg: string) {
-    const e: SwEvent = { id: uid(), time: now(), kind, msg }
-    evRef.current = [e, ...evRef.current].slice(0, 80)
-    setEvents([...evRef.current])
-  }
-
-  const examples = [
-    {
-      badge: 'resource()',
-      title: 'Cache the product catalog',
-      description: 'Register a GET endpoint once and let the runtime keep it fresh in the background.',
-      code: `import { resource } from '@sweidos/eidos'
+const EXAMPLES = [
+  {
+    badge: 'resource()',
+    title: 'Cache the product catalog',
+    description: 'Register a GET endpoint once and let the runtime keep it fresh in the background.',
+    code: `import { resource } from '@sweidos/eidos'
 
 export const products = resource('/api/products', {
   offline: true,
 })
 
 const data = await products.json<Product[]>()`,
-    },
-    {
-      badge: 'action()',
-      title: 'Queue writes when offline',
-      description: 'Persist order submissions to IndexedDB and replay them when the connection returns.',
-      code: `export const createOrder = action(
+  },
+  {
+    badge: 'action()',
+    title: 'Queue writes when offline',
+    description: 'Persist order submissions to IndexedDB and replay them when the connection returns.',
+    code: `export const createOrder = action(
   async (payload: OrderPayload) => {
     const res = await fetch('/api/orders', {
       method: 'POST',
@@ -101,22 +66,22 @@ const data = await products.json<Product[]>()`,
   },
   { reliability: 'neverLose', name: 'createOrder' },
 )`,
-    },
-    {
-      badge: 'query()',
-      title: 'Bridge into TanStack Query',
-      description: 'Keep the cache in sync with an existing query layer instead of replacing it.',
-      code: `const { data } = useQuery(productsResource.query<Product[]>())
+  },
+  {
+    badge: 'query()',
+    title: 'Bridge into TanStack Query',
+    description: 'Keep the cache in sync with an existing query layer instead of replacing it.',
+    code: `const { data } = useQuery(productsResource.query<Product[]>())
 
 const mutation = useEidosMutation(createOrder, {
   invalidates: [productsResource],
 })`,
-    },
-    {
-      badge: 'testing',
-      title: 'Simulate offline and replay',
-      description: 'Toggle the runtime into offline mode, then bring the queue back with a single call.',
-      code: `setOfflineSimulation(true)
+  },
+  {
+    badge: 'testing',
+    title: 'Simulate offline and replay',
+    description: 'Toggle the runtime into offline mode, then bring the queue back with a single call.',
+    code: `setOfflineSimulation(true)
 
 await createOrder({
   productId: 1,
@@ -125,12 +90,12 @@ await createOrder({
 })
 
 await replayQueue()`,
-    },
-    {
-      badge: 'patterns',
-      title: 'Register an entire route family',
-      description: 'One wildcard declaration intercepts every matching URL — no per-route setup needed.',
-      code: `// * matches one segment, ** matches anything
+  },
+  {
+    badge: 'patterns',
+    title: 'Register an entire route family',
+    description: 'One wildcard declaration intercepts every matching URL — no per-route setup needed.',
+    code: `// * matches one segment, ** matches anything
 resource('/api/products/*', { offline: true })
 // → /api/products/1, /api/products/abc
 
@@ -142,12 +107,12 @@ resource('https://cdn.example.com/assets/**', {
   offline: true,
   strategy: 'cache-first',
 })`,
-    },
-    {
-      badge: 'before / after',
-      title: 'What it replaces',
-      description: 'Eidos generates the service-worker rules and the retry logic so you never write them by hand.',
-      code: `// ✗ before — 40+ lines of Workbox config
+  },
+  {
+    badge: 'before / after',
+    title: 'What it replaces',
+    description: 'Eidos generates the service-worker rules and the retry logic so you never write them by hand.',
+    code: `// ✗ before — 40+ lines of Workbox config
 registerRoute(/\\/api\\/products/, new StaleWhileRevalidate({
   cacheName: 'api-cache',
   plugins: [new ExpirationPlugin({ maxEntries: 60 })],
@@ -159,8 +124,41 @@ self.addEventListener('sync', ev => {
 // ✓ after — 2 declarations
 resource('/api/products', { offline: true })
 action(createOrder, { reliability: 'neverLose' })`,
-    },
-  ] as const
+  },
+] as const
+
+// ── Demo Page ─────────────────────────────────────────────────────────────────
+
+export function Demo() {
+  const navigate = useNavigate()
+  const [events, setEvents] = useState<SwEvent[]>([])
+  const evRef = useRef<SwEvent[]>([])
+  const { isOnline, swStatus } = useEidosStatus()
+  const resourceEntry = useEidosResource('/api/products')
+  // Use stats hook (1 subscription + 1 loop) rather than full queue subscription.
+  // Demo no longer re-renders on every queue item mutation — only on count changes.
+  const { pending: pendingCount, replaying: replayingCount, total: queueTotal } = useEidosQueueStats()
+  const completedCount = queueTotal - pendingCount - replayingCount
+
+  // Stable emit ref so memo'd children don't re-render when Demo re-renders
+  const emit = useCallback((kind: SwEvent['kind'], msg: string) => {
+    const e: SwEvent = { id: uid(), time: now(), kind, msg }
+    evRef.current = [e, ...evRef.current].slice(0, 80)
+    setEvents([...evRef.current])
+  }, [])
+
+  // Queue feed events — driven by active count (pending + replaying)
+  const activeCount = pendingCount + replayingCount
+  const prevActiveRef = useRef(0)
+  useEffect(() => {
+    if (activeCount > prevActiveRef.current) emit('QUEUE', 'createOrder queued → IndexedDB')
+    else if (activeCount < prevActiveRef.current && prevActiveRef.current > 0) emit('REPLAY', 'replayQueue() executed')
+    prevActiveRef.current = activeCount
+  }, [activeCount, emit])
+
+  useEffect(() => {
+    if (swStatus === 'active') emit('SW', 'eidos-sw.js activated · scope /')
+  }, [swStatus, emit])
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-6 lg:px-6 animate-fade-in">
@@ -205,7 +203,12 @@ action(createOrder, { reliability: 'neverLose' })`,
             </div>
 
             <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-              {heroStats.map(stat => (
+              {([
+                { label: 'network',        value: isOnline ? 'online' : 'offline', tone: isOnline ? 'text-eidos-accent' : 'text-eidos-amber' },
+                { label: 'service worker', value: swStatus,                        tone: 'text-eidos-text' },
+                { label: 'cache hits',     value: resourceEntry?.cacheHits ?? 0,   tone: 'text-eidos-accent' },
+                { label: 'queued',         value: pendingCount,                    tone: 'text-eidos-amber' },
+              ] as const).map(stat => (
                 <div key={stat.label} className="rounded-xl border border-eidos-border bg-eidos-bg/50 px-3 py-2">
                   <div className="text-[10px] uppercase tracking-[0.24em] text-eidos-muted">{stat.label}</div>
                   <div className={`mt-1 text-sm font-semibold ${stat.tone}`}>{stat.value}</div>
@@ -242,7 +245,7 @@ action(createOrder, { reliability: 'neverLose' })`,
             <div className="rounded-xl border border-eidos-border bg-eidos-surface p-4">
               <div className="text-[10px] uppercase tracking-[0.24em] text-eidos-muted">what to try</div>
               <ul className="mt-3 space-y-3 text-xs leading-relaxed text-eidos-text-dim">
-                {heroSteps.map((step, index) => (
+                {HERO_STEPS.map((step, index) => (
                   <li key={step} className="flex gap-2">
                     <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-eidos-border text-[10px] font-semibold text-eidos-muted">
                       {index + 1}
@@ -273,7 +276,7 @@ action(createOrder, { reliability: 'neverLose' })`,
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
-          {examples.map(example => (
+          {EXAMPLES.map(example => (
             <Card key={example.title} className="h-full">
               <CardHeader
                 title={example.title}
@@ -305,7 +308,7 @@ action(createOrder, { reliability: 'neverLose' })`,
               <div className="text-[10px] uppercase tracking-[0.24em] text-eidos-muted">interactive demo</div>
               <h3 className="mt-1 text-sm font-semibold text-eidos-text">Submit actions, queue them offline, and replay on reconnect</h3>
             </div>
-            <OrdersDemo onEmit={emit} queue={queue} isOnline={isOnline} />
+            <OrdersDemo onEmit={emit} isOnline={isOnline} />
           </Card>
         </div>
 
@@ -366,7 +369,7 @@ action(createOrder, { reliability: 'neverLose' })`,
 
 type EmitFn = (kind: SwEvent['kind'], msg: string) => void
 
-function ProductsDemo({
+const ProductsDemo = memo(function ProductsDemo({
   onEmit,
   resourceEntry,
   isOnline,
@@ -508,7 +511,7 @@ function ProductsDemo({
       </div>
     </div>
   )
-}
+})
 
 function ResultBadge({ r }: { r: 'hit' | 'miss' | 'offline' | 'error' }) {
   const cfg = {
@@ -526,14 +529,14 @@ function ResultBadge({ r }: { r: 'hit' | 'miss' | 'offline' | 'error' }) {
 
 // ── Orders Demo ───────────────────────────────────────────────────────────────
 
-function OrdersDemo({
-  onEmit, queue, isOnline,
+const OrdersDemo = memo(function OrdersDemo({
+  onEmit, isOnline,
 }: {
   onEmit: EmitFn
-  queue: ActionQueueItem[]
   isOnline: boolean
 }) {
   const navigate = useNavigate()
+  const queue    = useEidosQueue()
   const [loading, setLoading] = useState(false)
   const [result,  setResult]  = useState<{ text: string; ok: boolean } | null>(null)
 
@@ -645,4 +648,4 @@ function OrdersDemo({
       </button>
     </div>
   )
-}
+})

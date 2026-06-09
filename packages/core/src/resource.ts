@@ -247,7 +247,7 @@ async function _fetchResource(
 
         // Background revalidation for SWR (stale-while-revalidate)
         if (strategy.swStrategy === 'stale-while-revalidate') {
-          fetch(url)
+          fetch(url, { signal: AbortSignal.timeout(5000) })
             .then(async (resp) => {
               if (resp.ok && cache) {
                 await cache.put(url, resp.clone())
@@ -258,7 +258,7 @@ async function _fetchResource(
               }
             })
             .catch(() => {
-              /* offline — cached version stays valid */
+              /* offline or timed out — cached version stays valid */
             })
         }
 

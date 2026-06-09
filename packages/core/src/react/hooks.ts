@@ -46,16 +46,25 @@ export function useEidosStatus() {
 }
 
 /**
- * Queue counts — four independent primitive selectors. Re-renders only when a
+ * Queue counts — single subscription, single loop. Re-renders only when a
  * count changes, not on every queue mutation. Use for badges and status bars
  * instead of `useEidosQueue()` when you only need numbers, not full items.
  */
 export function useEidosQueueStats() {
-  const pending   = useStore((s) => s.queue.filter((q) => q.status === 'pending').length)
-  const failed    = useStore((s) => s.queue.filter((q) => q.status === 'failed').length)
-  const replaying = useStore((s) => s.queue.filter((q) => q.status === 'replaying').length)
-  const total     = useStore((s) => s.queue.length)
-  return { pending, failed, replaying, total }
+  // Encode as a comma-separated string so useSyncExternalStore's Object.is
+  // comparison bails out correctly when counts haven't changed. One loop,
+  // one subscription — cheaper than four separate filter() passes.
+  const encoded = useStore((s) => {
+    let pending = 0, failed = 0, replaying = 0
+    for (const q of s.queue) {
+      if (q.status === 'pending') pending++
+      else if (q.status === 'failed') failed++
+      else if (q.status === 'replaying') replaying++
+    }
+    return `${pending},${failed},${replaying},${s.queue.length}`
+  })
+  const [p, f, r, t] = encoded.split(',')
+  return { pending: +p, failed: +f, replaying: +r, total: +t }
 }
 
 /**

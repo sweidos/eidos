@@ -6,6 +6,21 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.0.25] — 2026-06-09
+
+### Changed
+
+- **`useEidosQueueStats` — single subscription, single loop** — previously used four independent `useSyncExternalStore` subscriptions each running a separate `.filter()` pass. Now uses one subscription with a loop-counted encoded string as the selector, so `useSyncExternalStore` bails out on no-change states. Net: 4× fewer subscriptions, 3× fewer queue scans per render cycle.
+
+- **SWR background revalidation timeout** — the background `fetch()` in `stale-while-revalidate` strategy now passes `AbortSignal.timeout(5000)`. Previously had no timeout; on a slow or disconnected network, the revalidation fetch could hang indefinitely without surfacing an error.
+
+### Dashboard
+
+- **`Demo` re-render isolation** — removed `useEidosQueue()` from `Demo`; queue-change effects now use stats counts. `ProductsDemo` and `OrdersDemo` wrapped in `memo`; `emit` stabilised with `useCallback`. Demo no longer re-renders on every queue item mutation — only on count changes or resource/status updates.
+- **`examples` and `heroSteps` moved to module scope** — were recreated as new arrays on every `Demo` render.
+
+---
+
 ## [1.0.24] — 2026-06-09
 
 ### Added
