@@ -69,12 +69,16 @@ export const eidosQueueStats: EidosReadable<{
   failed: number
   replaying: number
   total: number
-}> = readable((s) => ({
-  pending:   s.queue.filter((q) => q.status === 'pending').length,
-  failed:    s.queue.filter((q) => q.status === 'failed').length,
-  replaying: s.queue.filter((q) => q.status === 'replaying').length,
-  total:     s.queue.length,
-}))
+}> = readable((s) => {
+  // Single pass over the queue — avoids three separate .filter() calls.
+  let pending = 0, failed = 0, replaying = 0
+  for (const q of s.queue) {
+    if (q.status === 'pending') pending++
+    else if (q.status === 'failed') failed++
+    else if (q.status === 'replaying') replaying++
+  }
+  return { pending, failed, replaying, total: s.queue.length }
+})
 
 // ── Dynamic stores (created per URL / ID) ─────────────────────────────────────
 

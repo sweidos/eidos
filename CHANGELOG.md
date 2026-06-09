@@ -6,6 +6,20 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.0.20] — 2026-06-09
+
+### Changed
+
+- **`react` and `react-dom` peer dependencies are now optional** — Vue, Svelte, and vanilla-JS consumers no longer get peer-missing warnings. Install React only when using `EidosProvider` / `useEidos*` hooks.
+- **ESM + CJS bundles are now minified (`esbuild`)** — raw bundle size reduced from 24.8 kB → 18.9 kB (ES); gzip from 6.4 kB → 5.8 kB. Sourcemaps preserved, so debugging is unaffected.
+- **`eidosQueueStats` (framework-agnostic store)** — replaced three `.filter()` passes with a single `for…of` loop. Semantically identical output; faster on larger queues.
+
+### Docs
+
+- Known Limitations — added note on single-bundle React import for non-React consumers; documented `preserveModules` as the planned long-term fix.
+
+---
+
 ## [1.0.19] — 2026-06-09
 
 ### Added

@@ -608,6 +608,7 @@ Registers a `QueryClient` with Eidos. After calling this:
 | Query string ignored | Resources match by pathname (or full URL for cross-origin). `/api/products?page=2` and `/api/products` share the same SW rule but are cached as separate entries. |
 | Module-scope actions | `action()` must be called at module scope so functions are registered before a page reload triggers queue replay. |
 | Single SW | `EidosProvider` assumes one SW at `/eidos-sw.js`. Multiple registrations are unsupported. |
+| React in main bundle | The published ESM bundle is a single file — consumers who import `resource()` or `eidosStore` (no React) still pull in the `react` import declaration. Since `react` is an optional peer dep, bundlers handle it correctly (import is skipped if unused), but Vue/Svelte projects should ensure `react` is available as a dep. A future `preserveModules` refactor will fix this properly. |
 
 ---
 
