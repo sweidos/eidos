@@ -1,0 +1,33 @@
+import { defineConfig } from 'vite'
+import dts from 'vite-plugin-dts'
+import { resolve } from 'path'
+
+// Separate build for the @sweidos/eidos/testing subpath export.
+// Runs after the main build; emptyOutDir: false preserves dist/*.js.
+export default defineConfig({
+  plugins: [
+    dts({
+      include: ['src/testing.ts'],
+      entryRoot: 'src',
+      outDir: 'dist',
+      rollupTypes: false,
+    }),
+  ],
+  build: {
+    lib: {
+      entry: resolve(__dirname, 'src/testing.ts'),
+      formats: ['es', 'cjs'],
+      fileName: (format) => (format === 'es' ? 'testing.js' : 'testing.cjs.js'),
+    },
+    outDir: 'dist',
+    emptyOutDir: false,
+    rollupOptions: {
+      // @sweidos/eidos MUST be external so testing.js shares the same module
+      // instance as the host app — required for the store bridge and _resetEidos.
+      external: ['@sweidos/eidos'],
+    },
+    sourcemap: false,
+    // Don't minify testing helpers — readable stack traces matter in test output.
+    minify: false,
+  },
+})

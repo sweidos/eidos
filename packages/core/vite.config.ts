@@ -3,7 +3,18 @@ import react from '@vitejs/plugin-react'
 import dts from 'vite-plugin-dts'
 import { resolve } from 'path'
 
+// Resolve @sweidos/eidos to local source so Vitest can run tests that import
+// subpath files (query.ts, testing.ts) without a prior build step.
+const localSelf = resolve(__dirname, 'src/index.ts')
+
 export default defineConfig({
+  resolve: {
+    alias: {
+      // Self-referencing alias for subpath modules (query.ts, testing.ts).
+      // Only matters during `vitest` — build configs each declare their own externals.
+      '@sweidos/eidos': localSelf,
+    },
+  },
   test: {
     environment: 'jsdom',
     globals: true,
@@ -20,7 +31,7 @@ export default defineConfig({
     react(),
     dts({
       include: ['src'],
-      exclude: ['src/**/*.test.*', 'src/vite.ts', 'src/query.ts'],
+      exclude: ['src/**/*.test.*', 'src/vite.ts', 'src/query.ts', 'src/testing.ts'],
       rollupTypes: true,
     }),
   ],
