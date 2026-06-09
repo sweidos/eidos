@@ -1,163 +1,203 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 import { ExternalLink, ChevronDown, ChevronRight } from 'lucide-react'
+import { Card, CardHeader } from '../components/Card'
+import { CodeBlock } from '../components/CodeBlock'
 
-// ── Tiny helpers ──────────────────────────────────────────────────────────────
-
-function H2({ id, children }: { id: string; children: React.ReactNode }) {
+function SectionHeading({
+  id,
+  eyebrow,
+  title,
+  description,
+}: {
+  id: string
+  eyebrow: string
+  title: string
+  description?: string
+}) {
   return (
-    <h2 id={id} className="text-base font-semibold text-eidos-text mt-10 mb-3 flex items-center gap-2 scroll-mt-4">
-      <a href={`#${id}`} aria-label={`Link to ${String(id)} section`} className="text-eidos-border hover:text-eidos-accent transition-colors" tabIndex={-1}>#</a>
-      {children}
-    </h2>
-  )
-}
-
-function H3({ children }: { children: React.ReactNode }) {
-  return <h3 className="text-sm font-semibold text-eidos-text mt-6 mb-2">{children}</h3>
-}
-
-function P({ children }: { children: React.ReactNode }) {
-  return <p className="text-sm text-eidos-text-dim leading-relaxed mb-3">{children}</p>
-}
-
-function Code({ children }: { children: React.ReactNode }) {
-  return <code className="font-mono text-eidos-accent text-xs bg-eidos-elevated px-1.5 py-0.5 rounded border border-eidos-border">{children}</code>
-}
-
-function Pre({ children, label }: { children: string; label?: string }) {
-  const [copied, setCopied] = useState(false)
-  return (
-    <div className="rounded-lg border border-eidos-border overflow-hidden mb-4">
-      {label && (
-        <div className="flex items-center justify-between px-3 py-1.5 bg-eidos-surface border-b border-eidos-border">
-          <span className="text-[10px] font-mono text-eidos-muted">{label}</span>
-          <button
-            onClick={() => { navigator.clipboard.writeText(children); setCopied(true); setTimeout(() => setCopied(false), 1500) }}
-            className="text-[10px] font-mono text-eidos-muted hover:text-eidos-text transition-colors"
-          >
-            {copied ? '✓ copied' : 'copy'}
-          </button>
-        </div>
+    <div id={id} className="scroll-mt-5">
+      <p className="text-[10px] uppercase tracking-[0.24em] text-eidos-muted">{eyebrow}</p>
+      <div className="mt-1 flex items-center gap-2">
+        <a
+          href={`#${id}`}
+          aria-label={`Link to ${title} section`}
+          className="text-eidos-border transition-colors hover:text-eidos-accent"
+          tabIndex={-1}
+        >
+          #
+        </a>
+        <h2 className="text-base font-semibold text-eidos-text md:text-lg">{title}</h2>
+      </div>
+      {description && (
+        <p className="mt-2 max-w-3xl text-sm leading-relaxed text-eidos-text-dim">
+          {description}
+        </p>
       )}
-      <pre className="p-4 text-xs font-mono text-eidos-text leading-relaxed overflow-x-auto bg-eidos-elevated">{children}</pre>
     </div>
   )
 }
 
-function PropRow({ name, type, def, desc }: { name: string; type: string; def?: string; desc: string }) {
+function InlineCode({ children }: { children: ReactNode }) {
   return (
-    <tr className="border-t border-eidos-border">
-      <td className="py-2 pr-3 font-mono text-[11px] text-eidos-accent align-top">{name}</td>
-      <td className="py-2 pr-3 font-mono text-[11px] text-eidos-text-dim align-top">{type}</td>
-      <td className="py-2 pr-3 font-mono text-[11px] text-eidos-muted align-top">{def ?? '—'}</td>
-      <td className="py-2 text-xs text-eidos-text-dim align-top leading-relaxed">{desc}</td>
-    </tr>
+    <code className="rounded border border-eidos-border bg-eidos-elevated px-1.5 py-0.5 font-mono text-[11px] text-eidos-accent">
+      {children}
+    </code>
   )
 }
 
-function Table({ headers, children }: { headers: string[]; children: React.ReactNode }) {
+function BulletList({ items }: { items: string[] }) {
   return (
-    <div className="overflow-x-auto mb-4">
-      <table className="w-full text-left bg-eidos-surface border border-eidos-border rounded-lg overflow-hidden">
-        <thead>
-          <tr className="bg-eidos-elevated">
-            {headers.map(h => (
-              <th key={h} className="px-3 py-2 text-[10px] font-mono text-eidos-muted uppercase tracking-widest">{h}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-eidos-border px-3">
-          {children}
-        </tbody>
-      </table>
-    </div>
+    <ul className="space-y-2 text-sm leading-relaxed text-eidos-text-dim">
+      {items.map(item => (
+        <li key={item} className="flex gap-2">
+          <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-eidos-accent" />
+          <span>{item}</span>
+        </li>
+      ))}
+    </ul>
   )
 }
 
-function Collapse({ title, children }: { title: string; children: React.ReactNode }) {
+function Collapse({ title, children }: { title: string; children: ReactNode }) {
   const [open, setOpen] = useState(false)
+
   return (
-    <div className="border border-eidos-border rounded-lg overflow-hidden mb-3">
+    <div className="overflow-hidden rounded-xl border border-eidos-border bg-eidos-surface">
       <button
-        onClick={() => setOpen(v => !v)}
+        onClick={() => setOpen(value => !value)}
         aria-expanded={open}
-        className="w-full flex items-center gap-2 px-4 py-3 text-sm font-medium text-eidos-text hover:bg-eidos-elevated transition-colors text-left"
+        className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-medium text-eidos-text transition-colors hover:bg-eidos-elevated cursor-pointer"
       >
-        {open ? <ChevronDown size={13} className="shrink-0 text-eidos-accent" /> : <ChevronRight size={13} className="shrink-0 text-eidos-muted" />}
+        {open ? (
+          <ChevronDown size={13} className="shrink-0 text-eidos-accent" />
+        ) : (
+          <ChevronRight size={13} className="shrink-0 text-eidos-muted" />
+        )}
         {title}
       </button>
-      {open && <div className="border-t border-eidos-border p-4 bg-eidos-elevated/30" role="region">{children}</div>}
+      {open && <div className="border-t border-eidos-border bg-eidos-elevated/20 p-4">{children}</div>}
     </div>
   )
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
-
 export function Learn() {
-  return (
-    <div className="max-w-3xl mx-auto px-6 py-6 animate-fade-in">
-      {/* ToC */}
-      <nav className="rounded-xl border border-eidos-border bg-eidos-surface p-4 mb-8 text-xs font-mono">
-        <p className="text-eidos-muted mb-2 uppercase tracking-widest text-[10px]">On this page</p>
-        <div className="grid grid-cols-2 gap-1">
-          {[
-            ['#install',      'Installation'],
-            ['#setup',        'Quick Setup'],
-            ['#resource',     'resource()'],
-            ['#patterns',     'URL Patterns'],
-            ['#cross-origin', 'Cross-Origin'],
-            ['#action',       'action()'],
-            ['#replay',       'replayQueue()'],
-            ['#clear',        'clearQueue()'],
-            ['#provider',     'EidosProvider'],
-            ['#hooks',        'Hooks'],
-            ['#types',        'Types'],
-            ['#strategies',   'Strategies'],
-            ['#svelte-vue',   'Svelte / Vue / JS'],
-            ['#simulation',   'Offline Simulation'],
-            ['#bg-sync',      'Background Sync'],
-            ['#tanstack',     'TanStack Query'],
-            ['#testing',      'Testing'],
-            ['#architecture', 'Architecture'],
-            ['#limitations',  'Limitations'],
-          ].map(([href, label]) => (
-            <a key={href} href={href} className="text-eidos-accent hover:underline">{label}</a>
-          ))}
-        </div>
-      </nav>
+  const quickLinks = [
+    { href: '#quick-start', label: 'Quick start' },
+    { href: '#core', label: 'Core APIs' },
+    { href: '#examples', label: 'Examples' },
+    { href: '#hooks', label: 'Hooks & stores' },
+    { href: '#advanced', label: 'Advanced' },
+    { href: '#references', label: 'Further reading' },
+  ]
 
-      {/* ── Installation ─────────────────────────────────────────────────────── */}
-      <H2 id="install">Installation</H2>
-      <Pre label="terminal">{`npm install @sweidos/eidos
-# or
-pnpm add @sweidos/eidos`}</Pre>
-      <P>
-        The easiest way to get the service worker into your public directory is the built-in{' '}
-        <strong>Vite plugin</strong> — it copies <Code>eidos-sw.js</Code> automatically on every
-        build and dev-server start:
-      </P>
-      <Pre label="vite.config.ts">{`import { eidos } from '@sweidos/eidos/vite'
+  return (
+    <div className="mx-auto grid max-w-6xl gap-5 px-4 py-6 lg:grid-cols-[minmax(0,1fr)_280px] lg:px-6 animate-fade-in">
+      <div className="space-y-5">
+        <Card glow className="overflow-hidden">
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
+            <div className="space-y-4">
+              <div className="inline-flex items-center gap-2 rounded-full border border-eidos-border bg-eidos-elevated/60 px-3 py-1 text-[10px] uppercase tracking-[0.24em] text-eidos-muted">
+                docs
+              </div>
+              <div className="space-y-3">
+                <h1 className="text-2xl font-semibold text-eidos-text text-balance md:text-3xl">
+                  Simple enough to scan. Deep enough to ship with.
+                </h1>
+                <p className="max-w-2xl text-sm leading-relaxed text-eidos-text-dim md:text-[15px]">
+                  Start here if you want the short version first. The page begins with the setup
+                  path, shows the core APIs as small building blocks, and hides the heavier
+                  reference material behind collapsible sections.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <Link
+                  to="/overview"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-eidos-accent bg-eidos-accent px-4 py-2 text-xs font-semibold text-eidos-bg transition-colors hover:bg-green-400"
+                >
+                  Back to overview
+                </Link>
+                <Link
+                  to="/actions"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-eidos-border px-4 py-2 text-xs font-medium text-eidos-text-dim transition-colors hover:border-eidos-elevated hover:text-eidos-text"
+                >
+                  Open action queue
+                </Link>
+              </div>
+            </div>
+
+            <div className="space-y-3 rounded-xl border border-eidos-border bg-eidos-surface p-4">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.24em] text-eidos-muted">what this page covers</div>
+                <BulletList
+                  items={[
+                    'How to install, wrap, and declare your first resource or action.',
+                    'The small set of APIs most people need day to day.',
+                    'Examples for TanStack Query, offline simulation, and queue replay.',
+                  ]}
+                />
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        <section id="quick-start" className="space-y-3">
+          <SectionHeading
+            id="quick-start"
+            eyebrow="quick start"
+            title="Set it up in three moves"
+            description="Each step does one job so the first pass stays easy to follow."
+          />
+
+          <div className="grid gap-4 md:grid-cols-3">
+            <Card className="h-full">
+              <CardHeader
+                title="1. Install"
+                description="Add the package and let the Vite plugin keep the service worker in sync."
+              />
+              <CodeBlock
+                title="setup.ts"
+                code={`npm install @sweidos/eidos
+
+import { eidos } from '@sweidos/eidos/vite'
 import { defineConfig } from 'vite'
 
 export default defineConfig({
   plugins: [eidos()],
-})`}</Pre>
-      <P>
-        No Vite? Copy manually: <Code>cp node_modules/@sweidos/eidos/dist/eidos-sw.js public/eidos-sw.js</Code>
-      </P>
+})`}
+              />
+            </Card>
 
-      {/* ── Quick Setup ──────────────────────────────────────────────────────── */}
-      <H2 id="setup">Quick Setup</H2>
-      <Pre label="main.tsx">{`import { EidosProvider } from '@sweidos/eidos'
-import { createRoot } from 'react-dom/client'
+            <Card className="h-full">
+              <CardHeader
+                title="2. Wrap the app"
+                description="Mount the provider once at the root so the runtime can register the SW."
+              />
+              <CodeBlock
+                title="main.tsx"
+                code={`import { createRoot } from 'react-dom/client'
+import { EidosProvider } from '@sweidos/eidos'
+import { App } from './App'
 
-createRoot(document.getElementById('root')!).render(
+const root = createRoot(document.getElementById('root')!)
+
+root.render(
   <EidosProvider swPath="/eidos-sw.js">
     <App />
   </EidosProvider>
-)`}</Pre>
-      <Pre label="src/lib/eidos.ts">{`// Declare at module scope so actions survive page reload for replay.
-import { resource, action } from '@sweidos/eidos'
+)`}
+              />
+            </Card>
+
+            <Card className="h-full">
+              <CardHeader
+                title="3. Declare intent"
+                description="Keep resources and actions at module scope so replay can find them later."
+              />
+              <CodeBlock
+                title="src/lib/eidos.ts"
+                code={`import { resource, action } from '@sweidos/eidos'
 
 export const products = resource('/api/products', { offline: true })
 
@@ -167,837 +207,420 @@ export const createOrder = action(
       method: 'POST',
       body: JSON.stringify(payload),
     })
+
     return res.json()
   },
   { reliability: 'neverLose', name: 'createOrder' },
-)`}</Pre>
+)`}
+              />
+            </Card>
+          </div>
+        </section>
 
-      {/* ── resource() ───────────────────────────────────────────────────────── */}
-      <H2 id="resource">resource(url, config)</H2>
-      <P>
-        Registers a URL as an offline-capable resource. Sends <Code>EIDOS_REGISTER_RESOURCE</Code> to
-        the service worker. Returns a <Code>ResourceHandle</Code> for fetching, querying, and
-        cache management. Registration is idempotent — calling it twice returns the same handle.
-      </P>
+        <section id="core" className="space-y-3">
+          <SectionHeading
+            id="core"
+            eyebrow="core api"
+            title="The small set of primitives you use most"
+            description="These cards keep one idea per surface so the mental model stays lightweight."
+          />
 
-      <H3>Config options</H3>
-      <Table headers={['Option', 'Type', 'Default', 'Description']}>
-        <PropRow name="offline"    type="boolean"                                                  desc="Required. Enables SW fetch interception and cache persistence for this URL." />
-        <PropRow name="strategy"   type="'cache-first' | 'stale-while-revalidate' | 'network-first'" def="auto" desc="Override the auto-selected caching strategy. If omitted, Eidos picks the best one based on offline." />
-        <PropRow name="cacheName"  type="string"                                                   def="'eidos-resources-v1'" desc="Custom Cache Storage bucket name." />
-        <PropRow name="maxAge"     type="number"                                                   def="∞" desc="TTL in milliseconds. Cached entries older than maxAge are treated as a cache miss and re-fetched from network." />
-      </Table>
-
-      <H3>Strategy auto-selection</H3>
-      <Table headers={['Config', 'Chosen strategy', 'Why']}>
-        <PropRow name="offline: true"                        type="StaleWhileRevalidate" desc="Best balance of speed (instant cache) and freshness (background revalidation)." />
-        <PropRow name="offline: true, strategy: 'cache-first'"  type="CacheFirst"           desc="Maximum speed. Use when data rarely changes (icons, config)." />
-        <PropRow name="offline: true, strategy: 'network-first'" type="NetworkFirst"         desc="Freshness priority. Cache is only a fallback when offline." />
-        <PropRow name="offline: false (default)"             type="NetworkFirst"         desc="No offline support. Always tries network first." />
-      </Table>
-
-      <H3>Handle methods</H3>
-      <Pre>{`const products = resource('/api/products', { offline: true })
-
-// Fetch and update cache status in one call.
-// Throws on non-2xx responses (including offline 503).
-// Concurrent calls are deduplicated — only one network request fires even if
-// multiple components call fetch() simultaneously; each gets its own Response clone.
-const response: Response = await products.fetch()
-
-// Shorthand: fetch() + response.json()
-const data: T = await products.json<T>()
-
-// Returns a TanStack Query-compatible object.
-const { queryKey, queryFn } = products.query<T>()
-// Use: useQuery(products.query<Product[]>())
-
-// Fetch and cache without returning data to the caller.
-await products.prefetch()
-
-// Remove all cached entries for this URL from Cache Storage.
-// Sets status to 'stale' in the devtools store.
-await products.invalidate()
-
-// Remove from registry + send EIDOS_UNREGISTER_RESOURCE to SW.
-// Required before re-registering the same URL with different config.
-products.unregister()`}</Pre>
-
-      <H3>Handle properties</H3>
-      <Pre>{`products.url        // '/api/products'
-products.config     // { offline: true }
-products.strategy   // GeneratedStrategy object (see Types)`}</Pre>
-
-      <H2 id="patterns">URL patterns</H2>
-      <P>
-        Pass a pattern instead of an exact URL to cache entire route families automatically.
-        The SW intercepts every matching request — no individual registrations needed.
-        Three wildcard syntaxes are supported:
-      </P>
-      <Table headers={['Syntax', 'Matches', 'Example pattern']}>
-        <PropRow name="*"       type="single path segment" def="/api/products/123"           desc="Matches any non-slash characters between two slashes." />
-        <PropRow name="**"      type="multiple segments"   def="/api/products/123/reviews"   desc="Matches any characters including slashes." />
-        <PropRow name=":param"  type="named single segment" def="/api/users/abc"             desc="Named placeholder — equivalent to * but documents intent." />
-      </Table>
-      <Pre label="src/lib/eidos.ts">{`// Register once — all product detail pages are intercepted automatically
-resource('/api/products/*', { offline: true })
-// → /api/products/1, /api/products/abc all cached by StaleWhileRevalidate
-
-resource('/api/users/:id/orders', { offline: true })
-// → /api/users/alice/orders, /api/users/bob/orders
-
-resource('/api/v2/**', { offline: true })
-// → /api/v2/anything/nested/deeply
-
-// Your fetch() calls — no code change required, the SW handles it
-const res = await fetch('/api/products/123')   // ← intercepted + cached
-const { data } = useQuery({
-  queryKey: ['product', id],
-  queryFn:  () => fetch(\`/api/products/\${id}\`).then(r => r.json()),
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Card className="h-full">
+              <CardHeader
+                title="resource(url, config)"
+                description="Register a GET endpoint as offline-capable and let Eidos pick the cache strategy."
+                action={<span className="rounded-full border border-eidos-border px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-eidos-muted">cache</span>}
+              />
+              <BulletList
+                items={[
+                  'Use `offline: true` to enable fetch interception and cache persistence.',
+                  'Override `strategy` only when you want to force a specific cache policy.',
+                  'Add `maxAge` when the data should refresh after a short TTL.',
+                ]}
+              />
+              <CodeBlock
+                className="mt-4"
+                title="resource.ts"
+                code={`const products = resource('/api/products', {
+  offline: true,
 })
 
-// invalidate() clears all entries matching the pattern
-await productPattern.invalidate()`}</Pre>
-      <P>
-        Pattern handles do <strong className="text-eidos-text">not</strong> support{' '}
-        <Code>fetch()</Code>, <Code>json()</Code>, <Code>query()</Code>, or{' '}
-        <Code>prefetch()</Code> — these methods throw since there is no single URL to target.
-        Use your own <Code>fetch()</Code> calls; the SW caches them transparently.
-        <Code>invalidate()</Code> and <Code>unregister()</Code> work normally.
-      </P>
+const data = await products.json<Product[]>()`}
+              />
+            </Card>
 
-      {/* ── Cross-origin ─────────────────────────────────────────────────────── */}
-      <H2 id="cross-origin">Cross-Origin Resources</H2>
-      <P>
-        Pass a <strong className="text-eidos-text">full URL</strong> (including origin) to intercept
-        requests to external APIs and CDNs. The SW matches against the complete request URL, so
-        same-origin and cross-origin resources can coexist in the same registry.
-      </P>
-      <Pre label="src/lib/eidos.ts">{`// Same-origin — pathname only
-resource('/api/products', { offline: true })
+            <Card className="h-full">
+              <CardHeader
+                title="action(fn, config)"
+                description="Wrap async mutations so offline writes are persisted and replayed later."
+                action={<span className="rounded-full border border-eidos-border px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-eidos-muted">queue</span>}
+              />
+              <BulletList
+                items={[
+                  'Use `reliability: "neverLose"` when dropping a write would be painful.',
+                  'Give anonymous functions a `name` so replay can find them after refresh.',
+                  'Tune `maxRetries` when you need a shorter or longer retry window.',
+                ]}
+              />
+              <CodeBlock
+                className="mt-4"
+                title="action.ts"
+                code={`const createOrder = action(
+  async (payload: OrderPayload) => {
+    const res = await fetch('/api/orders', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
 
-// Cross-origin — full URL with origin
-resource('https://api.example.com/products',    { offline: true })
-resource('https://cdn.example.com/config.json', { offline: false, strategy: 'cache-first' })
+    return res.json()
+  },
+  { reliability: 'neverLose', name: 'createOrder' },
+)`}
+              />
+            </Card>
 
-// Cross-origin patterns work too
-resource('https://api.example.com/products/*',  { offline: true })
-resource('https://cdn.example.com/assets/**',   { offline: true })
+            <Card className="h-full">
+              <CardHeader
+                title="EidosProvider"
+                description="Register the SW and hydrate the runtime once near the root of the app."
+                action={<span className="rounded-full border border-eidos-border px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-eidos-muted">root</span>}
+              />
+              <BulletList
+                items={[
+                  'Set `swPath` if the worker lives somewhere other than `/eidos-sw.js`.',
+                  'Leave `autoReplay` on unless you want full manual control of queue replay.',
+                  'Keep the provider near the root so status hooks stay available everywhere.',
+                ]}
+              />
+              <CodeBlock
+                className="mt-4"
+                title="main.tsx"
+                code={`<EidosProvider swPath="/eidos-sw.js" autoReplay>
+  <App />
+</EidosProvider>`}
+              />
+            </Card>
 
-// Your fetch() calls — unchanged
-const res = await fetch('https://api.example.com/products/123')  // ← intercepted + cached`}</Pre>
-      <P>
-        Cross-origin intercepts require the SW to control the page (standard requirement for all
-        SW-managed fetches). No CORS changes are needed — the SW proxies the request transparently.
-        Pattern handles for cross-origin URLs follow the same rules as same-origin patterns:{' '}
-        <Code>fetch()</Code> / <Code>json()</Code> / <Code>query()</Code> throw; <Code>invalidate()</Code>{' '}
-        and <Code>unregister()</Code> work normally.
-      </P>
+            <Card className="h-full">
+              <CardHeader
+                title="replayQueue()"
+                description="Trigger queue replay yourself when you want a manual recovery action."
+                action={<span className="rounded-full border border-eidos-border px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-eidos-muted">replay</span>}
+              />
+              <BulletList
+                items={[
+                  'Usually runs automatically when connectivity returns.',
+                  'Useful for a “Retry now” button or a manual sync control.',
+                  'Returns a result summary so you can surface what happened.',
+                ]}
+              />
+              <CodeBlock
+                className="mt-4"
+                title="recovery.ts"
+                code={`const result = await replayQueue()
+// { attempted, succeeded, failed, retrying, skipped }`}
+              />
+            </Card>
+          </div>
+        </section>
 
-      {/* ── action() ─────────────────────────────────────────────────────────── */}
-      <H2 id="action">action(fn, config)</H2>
-      <P>
-        Wraps any async function with reliability guarantees. The returned handle is a drop-in
-        replacement for the original function — call it identically whether online or offline.
-        The function is registered in a module-scope registry so it survives page reloads for replay.
-      </P>
+        <section id="examples" className="space-y-3">
+          <SectionHeading
+            id="examples"
+            eyebrow="examples"
+            title="A few concrete patterns"
+            description="These are the patterns people usually want on the first pass: query integration, TTLs, and offline recovery."
+          />
 
-      <H3>Config options</H3>
-      <Table headers={['Option', 'Type', 'Default', 'Description']}>
-        <PropRow name="reliability" type="'best-effort' | 'neverLose'" desc="Required. 'best-effort': call directly, no persistence. 'neverLose': persist to IndexedDB before executing." />
-        <PropRow name="name"        type="string" def="fn.name" desc="Human-readable label shown in devtools. Also used as the action registry key for replay — set explicitly if your fn is anonymous." />
-        <PropRow name="maxRetries"  type="number" def="3"       desc="Maximum replay attempts before marking the item as 'failed'." />
-      </Table>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Card className="h-full">
+              <CardHeader
+                title="TanStack Query bridge"
+                description="Keep the existing query layer and let Eidos handle the offline-aware source."
+              />
+              <CodeBlock
+                title="queries.ts"
+                code={`const { data } = useQuery(products.query<Product[]>())
 
-      <H3>Reliability modes</H3>
-      <Table headers={['Mode', 'Online', 'Offline', 'Network failure']}>
-        <PropRow name="best-effort" type="Calls fn directly" def="Drops the call" desc="fn throws → error propagates, nothing queued." />
-        <PropRow name="neverLose"   type="Calls fn, queues on throw" def="Queues to IndexedDB" desc="fn throws → serialised to IDB, replayed on reconnect with exponential backoff." />
-      </Table>
-      <P>
-        <strong className="text-eidos-text">Exponential backoff:</strong> failed retries are delayed
-        by <Code>min(2s × 2^retryCount, 5min)</Code> with ±20% jitter. The{' '}
-        <Code>nextRetryAt</Code> field on each queue item tells you when the next attempt is
-        scheduled. Items not yet due are skipped silently on each <Code>replayQueue()</Code> pass.
-      </P>
+const mutation = useEidosMutation(createOrder, {
+  invalidates: [products],
+})`}
+              />
+            </Card>
 
-      <H3>Return type</H3>
-      <Pre>{`// Online + successful
-const order: Order = await createOrder(payload)
+            <Card className="h-full">
+              <CardHeader
+                title="TTL-backed resource"
+                description="Use a small max age when the data should stay fresh without constant refetching."
+              />
+              <CodeBlock
+                title="orders.ts"
+                code={`export const ordersHistory = resource('/api/orders-history', {
+  offline: true,
+  strategy: 'cache-first',
+  maxAge: 30_000,
+})`}
+              />
+            </Card>
 
-// Offline or network failure (neverLose only)
-const result = await createOrder(payload)
-if ('queued' in result) {
-  result.queued   // true
-  result.id       // unique queue item ID
-  result.message  // human-readable string
-}`}</Pre>
+            <Card className="h-full">
+              <CardHeader
+                title="Offline test mode"
+                description="Use simulation to exercise the queue flow without physically disconnecting."
+              />
+              <CodeBlock
+                title="test.ts"
+                code={`setOfflineSimulation(true)
 
-      <H3>Function registry</H3>
-      <P>
-        <Code>action()</Code> registers the wrapped function using <Code>config.name || fn.name</Code> as
-        the key. On page reload, module-scope <Code>action()</Code> calls re-register the function so
-        <Code>replayQueue()</Code> can call it with the stored args. <strong className="text-eidos-text">Always
-        set <Code>name</Code> explicitly for anonymous functions</strong> to ensure stable registry keys.
-      </P>
-
-      {/* ── replayQueue() ────────────────────────────────────────────────────── */}
-      <H2 id="replay">replayQueue()</H2>
-      <P>
-        Reads the IndexedDB action queue and calls each pending action with its stored arguments.
-        No-op when offline. Called automatically via a store subscription whenever
-        <Code>isOnline</Code> transitions from <Code>false</Code> to <Code>true</Code> — this
-        catches both real network reconnects and <Code>setOfflineSimulation(false)</Code>.
-      </P>
-      <Pre>{`import { replayQueue } from '@sweidos/eidos'
-import type { ReplayResult } from '@sweidos/eidos'
-
-// Returns a result summary — or ignore the return value like before
-const result: ReplayResult = await replayQueue()
-// { attempted: 3, succeeded: 2, failed: 0, retrying: 1, skipped: 0 }
-
-// Replay fires automatically when online state changes.
-// Configure EidosProvider to disable:
-<EidosProvider autoReplay={false} swPath="/eidos-sw.js">`}</Pre>
-
-      <H3>Item lifecycle during replay</H3>
-      <Pre>{`// Status transitions:
-'pending'
-  → 'replaying'   (attempt in progress)
-  → 'succeeded'   (fn resolved, removed from IDB after 3s)
-  → 'failed'      (maxRetries exceeded, stays in IDB for inspection)
-  → 'pending'     (retry count incremented, will attempt again)`}</Pre>
-
-      {/* ── clearQueue() ─────────────────────────────────────────────────────── */}
-      <H2 id="clear">clearQueue()</H2>
-      <P>
-        Removes all items from the action queue — both IndexedDB and the in-memory store.
-        Useful for "clear all failed" UI controls and test teardown.
-      </P>
-      <Pre>{`import { clearQueue } from '@sweidos/eidos'
-
-await clearQueue()
-// → IDB action-queue store emptied
-// → in-memory queue reset to []`}</Pre>
-
-      {/* ── EidosProvider ────────────────────────────────────────────────────── */}
-      <H2 id="provider">EidosProvider</H2>
-      <P>Mount once at the root. Registers the SW, hydrates the IDB queue, and sets up the online watcher.</P>
-      <Table headers={['Prop', 'Type', 'Default', 'Description']}>
-        <PropRow name="swPath"      type="string"  def="'/eidos-sw.js'" desc="URL path to the eidos service worker file." />
-        <PropRow name="autoReplay"  type="boolean" def="true"           desc="Automatically replay the action queue when isOnline transitions to true." />
-        <PropRow name="children"    type="ReactNode" desc="Your application tree." />
-      </Table>
-
-      {/* ── Hooks ────────────────────────────────────────────────────────────── */}
-      <H2 id="hooks">Hooks</H2>
-
-      <H3>useEidosStatus()</H3>
-      <P>Online + SW status. Cheap — safe to use in layout components that re-render often.</P>
-      <Pre>{`const { isOnline, swStatus, swError } = useEidosStatus()
-// isOnline: boolean
-// swStatus: 'idle' | 'registering' | 'active' | 'error' | 'unsupported'
-// swError:  string | undefined`}</Pre>
-
-      <H3>useEidosResource(url)</H3>
-      <P>Live cache state for a single resource. Updates whenever the cache is hit or written.</P>
-      <Pre>{`const entry = useEidosResource('/api/products')
-// entry: ResourceEntry | undefined
-//   .status:     'idle' | 'fetching' | 'fresh' | 'stale' | 'error' | 'offline'
-//   .cacheHits:  number
-//   .cacheMisses:number
-//   .cachedAt:   number | undefined  (epoch ms)
-//   .fetchedAt:  number | undefined
-//   .lastEvent:  'cache-hit' | 'cache-updated' | 'network-error' | 'cache-cleared'
-//   .strategy:   GeneratedStrategy
-//   .config:     ResourceConfig`}</Pre>
-
-      <H3>useEidosQueue()</H3>
-      <P>The full action queue. Re-renders on every status change.</P>
-      <Pre>{`const queue = useEidosQueue()
-// queue: ActionQueueItem[]
-// Each item: { id, actionId, actionName, args, queuedAt,
-//              retryCount, maxRetries, status, error?, completedAt? }`}</Pre>
-
-      <H3>useEidosQueueStats()</H3>
-      <P>Count-only subscription — returns <Code>{`{ pending, failed, replaying, total }`}</Code>. Four independent primitive selectors so each count only triggers a re-render when it changes. Use for badges and status bars instead of <Code>useEidosQueue()</Code> when you only need numbers, not full items.</P>
-      <Pre>{`import { useEidosQueueStats } from '@sweidos/eidos'
-
-const { pending, failed, replaying, total } = useEidosQueueStats()
-// pending   — items waiting for next replay pass
-// failed    — maxRetries exceeded, needs user attention
-// replaying — currently in-flight
-// total     — all items in queue
-
-// Example: header badge
-{pending > 0 && <span>{pending}</span>}
-{failed  > 0 && <span className="text-red-400">{failed} failed</span>}`}</Pre>
-
-      <H3>useEidosAction(id)</H3>
-      <P>Live state for a single queue item by ID. Only re-renders when <em>that specific item</em> changes — cheaper than <Code>useEidosQueue().find(id)</Code> which re-renders on any queue mutation.</P>
-      <Pre>{`import { useEidosAction } from '@sweidos/eidos'
-
-// Returned when the action is called with reliability: 'neverLose'
-const result = await createOrder(payload)
-// { queued: true, id: 'abc123', message: '...' }
-
-// In a component:
-const item = useEidosAction(result.id)
-// item: ActionQueueItem | undefined
-// item?.status → 'pending' | 'replaying' | 'succeeded' | 'failed'
-// undefined once the item is removed from the queue`}</Pre>
-
-      <H3>useEidosOnDrain(callback)</H3>
-      <P>Calls <Code>callback</Code> once each time the action queue drains from non-empty → 0. Always calls the latest callback version — no stale closure issues. Use for "all synced" toasts or side-effects after queue replay.</P>
-      <Pre>{`import { useEidosOnDrain } from '@sweidos/eidos'
-
-useEidosOnDrain(() => {
-  toast.success('All offline actions synced!')
+await createOrder({
+  productId: 1,
+  quantity: 2,
+  customerName: 'Demo User',
 })
 
-// Also works with notification libraries, analytics, etc.
-useEidosOnDrain(() => analytics.track('queue_drained'))`}</Pre>
+await replayQueue()`}
+              />
+            </Card>
 
-      <H3>useEidosStore (devtools)</H3>
-      <P>Plain store object for devtools, tests, and non-React code. Not a hook — use the named hooks above for reactive subscriptions inside components.</P>
-      <Pre>{`import { useEidosStore } from '@sweidos/eidos'
+            <Card className="h-full">
+              <CardHeader
+                title="Status hook"
+                description="Drive header chips, connection badges, or any other lightweight status UI."
+              />
+              <CodeBlock
+                title="header.tsx"
+                code={`const { isOnline, swStatus } = useEidosStatus()
+const { pending, failed } = useEidosQueueStats()`}
+              />
+            </Card>
+          </div>
+        </section>
 
-// Read state once (non-reactive — snapshot only)
-const isOnline = useEidosStore.getState().isOnline
-const queue    = useEidosStore.getState().queue
+        <section id="hooks" className="space-y-3">
+          <SectionHeading
+            id="hooks"
+            eyebrow="hooks & stores"
+            title="React hooks for live UI, stores for everything else"
+            description="Use the narrower hook whenever you can; reach for the full store only when you need a broad snapshot."
+          />
 
-// Subscribe manually (for Vue / Svelte bindings or vanilla JS)
-const unsub = useEidosStore.subscribe(() => {
-  const state = useEidosStore.getState()
-  // re-render or update external UI
-})
-unsub() // remove listener
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Card className="h-full">
+              <CardHeader
+                title="React hooks"
+                description="The common set you’ll use for status, cache state, and queue counters."
+              />
+              <BulletList
+                items={[
+                  '`useEidosStatus()` for online / service-worker state in headers and shell UI.',
+                  '`useEidosResource(url)` for live cache state on a single resource.',
+                  '`useEidosQueueStats()` for lightweight pending / failed / replaying counters.',
+                  '`useEidosAction(id)` for a single queue item and `useEidosOnDrain()` for sync notifications.',
+                ]}
+              />
+              <CodeBlock
+                className="mt-4"
+                title="hooks.tsx"
+                code={`const { isOnline, swStatus } = useEidosStatus()
+const { pending, failed } = useEidosQueueStats()
 
-// Test / devtools helper — merge partial state
-useEidosStore.setState({ isOnline: false })`}</Pre>
+useEidosOnDrain(() => toast.success('All offline actions synced'))`}
+              />
+            </Card>
 
-      <H3>useEidos()</H3>
-      <P>Returns the entire store. Prefer the narrower hooks above — this causes a re-render on any state change.</P>
-      <Pre>{`const state = useEidos()
-// state: EidosStore (full state + all action setters)`}</Pre>
-
-      {/* ── Svelte / Vue / Vanilla JS ────────────────────────────────────────── */}
-      <H2 id="svelte-vue">Svelte / Vue / Vanilla JS</H2>
-      <P>
-        Eidos ships framework-agnostic reactive stores that implement the{' '}
-        <a href="https://svelte.dev/docs/svelte-components#script-4-prefix-stores-with-$-to-access-their-values"
-           target="_blank" rel="noopener noreferrer" className="text-eidos-accent hover:underline">
-          Svelte store contract
-        </a>{' '}
-        — no extra peer deps, no React required.
-        Import from the same package; tree-shaking removes what you don't use.
-      </P>
-
-      <H3>Available stores</H3>
-      <Table headers={['Export', 'Type', 'Notes']}>
-        <PropRow name="eidosQueue"      type="ActionQueueItem[]"                      desc="Full action queue. Re-notifies on every mutation." />
-        <PropRow name="eidosStatus"     type="{ isOnline, swStatus, swError }"        desc="Online + SW lifecycle. Cheap subscription." />
-        <PropRow name="eidosQueueStats" type="{ pending, failed, replaying, total }"  desc="Queue counts. Compare fields in subscriber to skip work." />
-        <PropRow name="eidosResource(url)" type="ResourceEntry | undefined"           desc="Live cache state for one URL." />
-        <PropRow name="eidosAction(id)" type="ActionQueueItem | undefined"            desc="Single queue item. undefined after removal." />
-        <PropRow name="eidosStore"      type="EidosStore"                             desc="Full snapshot. Prefer narrower stores." />
-      </Table>
-
-      <H3>Svelte</H3>
-      <P>Use the <Code>$</Code> prefix — Svelte auto-subscribes and auto-unsubscribes.</P>
-      <Pre label="Component.svelte">{`<script>
-  import { eidosQueue, eidosStatus, eidosQueueStats, eidosResource } from '@sweidos/eidos'
-</script>
-
-<p>Online: {$eidosStatus.isOnline ? 'yes' : 'no'}</p>
-<p>Pending: {$eidosQueueStats.pending}</p>
-<p>Cache hits: {$eidosResource('/api/products')?.cacheHits ?? 0}</p>
-
-{#each $eidosQueue as item (item.id)}
-  <div>{item.actionName} — {item.status}</div>
-{/each}`}</Pre>
-
-      <H3>Vue (Composition API)</H3>
-      <P>Wrap the store in a <Code>ref</Code> and clean up in <Code>onUnmounted</Code>.</P>
-      <Pre label="composables/useEidos.ts">{`import { ref, onUnmounted } from 'vue'
-import { eidosStatus, eidosQueue, eidosQueueStats } from '@sweidos/eidos'
-
-export function useEidosStatusVue() {
-  const status = ref(eidosStatus.getState())
-  const unsub  = eidosStatus.subscribe((v) => { status.value = v })
-  onUnmounted(unsub)
-  return status
-}
-
-export function useEidosQueueVue() {
-  const queue = ref(eidosQueue.getState())
-  const unsub = eidosQueue.subscribe((v) => { queue.value = v })
-  onUnmounted(unsub)
-  return queue
-}`}</Pre>
-      <Pre label="Component.vue">{`<script setup>
-import { useEidosStatusVue, useEidosQueueVue } from './composables/useEidos'
-const status = useEidosStatusVue()
-const queue  = useEidosQueueVue()
-</script>
-
-<template>
-  <p>Online: {{ status.isOnline }}</p>
-  <div v-for="item in queue" :key="item.id">{{ item.actionName }}</div>
-</template>`}</Pre>
-
-      <H3>Vanilla JS</H3>
-      <Pre>{`import { eidosStatus, eidosResource } from '@sweidos/eidos'
-
-// subscribe() returns an unsubscribe function
-const unsub = eidosStatus.subscribe(({ isOnline }) => {
+            <Card className="h-full">
+              <CardHeader
+                title="Framework-agnostic stores"
+                description="Svelte, Vue, and vanilla JS can subscribe to the same store primitives."
+              />
+              <BulletList
+                items={[
+                  'No React dependency is required for the store layer.',
+                  'The stores follow the Svelte `subscribe(run)` contract.',
+                  'Use them directly when you need fine-grained integration in other frameworks.',
+                ]}
+              />
+              <CodeBlock
+                className="mt-4"
+                title="store.ts"
+                code={`const unsub = eidosStatus.subscribe(({ isOnline }) => {
   document.title = isOnline ? 'App' : 'App (offline)'
 })
 
-// Read current value once without subscribing
 const hits = eidosResource('/api/products').getState()?.cacheHits ?? 0
-
-// Unsubscribe when done
-unsub()`}</Pre>
-
-      {/* ── Types ────────────────────────────────────────────────────────────── */}
-      <H2 id="types">Types</H2>
-
-      <Collapse title="ResourceConfig">
-        <Pre>{`interface ResourceConfig {
-  offline:    boolean
-  strategy?:  'cache-first' | 'stale-while-revalidate' | 'network-first'
-  cacheName?: string
-  maxAge?:    number  // TTL in ms — expired entries trigger network fetch
-}`}</Pre>
-      </Collapse>
-
-      <Collapse title="ResourceHandle<T>">
-        <Pre>{`interface ResourceHandle<T = unknown> {
-  readonly url:      string
-  readonly config:   ResourceConfig
-  readonly strategy: GeneratedStrategy
-  fetch():           Promise<Response>
-  json():            Promise<T>
-  query():           { queryKey: [string, string]; queryFn: () => Promise<T> }
-  prefetch():        Promise<void>
-  invalidate():      Promise<void>
-  unregister():      void   // remove from SW + registry
-}`}</Pre>
-      </Collapse>
-
-      <Collapse title="ResourceEntry">
-        <Pre>{`interface ResourceEntry {
-  url:         string
-  config:      ResourceConfig
-  strategy:    GeneratedStrategy
-  status:      'idle' | 'fetching' | 'fresh' | 'stale' | 'error' | 'offline'
-  cachedAt?:   number
-  fetchedAt?:  number
-  cacheHits:   number
-  cacheMisses: number
-  lastEvent?:  'cache-hit' | 'cache-updated' | 'network-error' | 'cache-cleared'
-}`}</Pre>
-      </Collapse>
-
-      <Collapse title="GeneratedStrategy">
-        <Pre>{`interface GeneratedStrategy {
-  name:           string          // e.g. 'StaleWhileRevalidate'
-  swStrategy:     CacheStrategy   // the SW enum value
-  cacheName:      string
-  reasoning:      string          // one-line rationale for the choice
-  behavior:       string[]        // human-readable step list
-  equivalentCode: string          // equivalent Workbox snippet
-}`}</Pre>
-      </Collapse>
-
-      <Collapse title="ActionConfig">
-        <Pre>{`interface ActionConfig {
-  reliability: 'best-effort' | 'neverLose'
-  maxRetries?: number   // default 3
-  name?:       string   // explicit registry key
-}`}</Pre>
-      </Collapse>
-
-      <Collapse title="ActionQueueItem">
-        <Pre>{`interface ActionQueueItem {
-  id:           string
-  actionId:     string   // registry key (= config.name || fn.name)
-  actionName:   string   // display label
-  args:         unknown[]
-  queuedAt:     number   // epoch ms
-  retryCount:   number
-  maxRetries:   number
-  status:       'pending' | 'replaying' | 'succeeded' | 'failed'
-  error?:       string
-  completedAt?: number
-  nextRetryAt?: number   // epoch ms — set by exponential backoff after a failure
-}`}</Pre>
-      </Collapse>
-
-      <Collapse title="QueuedResult">
-        <Pre>{`interface QueuedResult {
-  readonly queued:  true
-  readonly id:      string
-  readonly message: string
-}`}</Pre>
-      </Collapse>
-
-      <Collapse title="ReplayResult">
-        <Pre>{`interface ReplayResult {
-  attempted: number  // items where fn was found and called
-  succeeded: number  // resolved successfully
-  failed:    number  // maxRetries exceeded, stays in queue
-  retrying:  number  // failed, will retry later (nextRetryAt set)
-  skipped:   number  // fn not in registry (module not imported yet)
-}`}</Pre>
-      </Collapse>
-
-      <Collapse title="EidosState">
-        <Pre>{`interface EidosState {
-  isOnline:  boolean
-  swStatus:  'idle' | 'registering' | 'active' | 'error' | 'unsupported'
-  swError?:  string
-  resources: Record<string, ResourceEntry>
-  queue:     ActionQueueItem[]
-}`}</Pre>
-      </Collapse>
-
-      {/* ── Strategies ───────────────────────────────────────────────────────── */}
-      <H2 id="strategies">Caching Strategies</H2>
-
-      {[
-        {
-          name: 'StaleWhileRevalidate',
-          sw:   'stale-while-revalidate',
-          steps: [
-            'Check Cache Storage for a matching response',
-            'If cached: return immediately, start a background fetch',
-            'Background fetch succeeds: update the cache silently',
-            'If not cached: fetch from network, cache the response, return it',
-            'If network fails (offline): return cached response or throw',
-          ],
-          use: 'Data that should be fast but stay reasonably fresh. Good default for offline: true.',
-        },
-        {
-          name: 'CacheFirst',
-          sw:   'cache-first',
-          steps: [
-            'Check Cache Storage for a matching response',
-            'If cached: return immediately — no network request at all',
-            'If not cached: fetch from network, cache the response, return it',
-            'If offline with no cache: throw (status: offline)',
-          ],
-          use: 'Static or rarely-changing data (config, reference data, images).',
-        },
-        {
-          name: 'NetworkFirst',
-          sw:   'network-first',
-          steps: [
-            'Attempt to fetch from the network',
-            'Network succeeds: cache the response and return it',
-            'Network fails: look for a cached response',
-            'Both fail (offline, no cache): throw (status: offline)',
-          ],
-          use: 'Frequently updated data where stale responses cause problems.',
-        },
-      ].map(s => (
-        <Collapse key={s.name} title={`${s.name} — ${s.sw}`}>
-          <p className="text-xs text-eidos-muted mb-3 leading-relaxed">{s.use}</p>
-          <ol className="space-y-1.5">
-            {s.steps.map((step, i) => (
-              <li key={i} className="flex gap-2 text-xs text-eidos-text-dim">
-                <span className="font-mono text-eidos-accent shrink-0">{i + 1}.</span>
-                {step}
-              </li>
-            ))}
-          </ol>
-        </Collapse>
-      ))}
-
-      {/* ── Offline Simulation ───────────────────────────────────────────────── */}
-      <H2 id="simulation">Offline Simulation</H2>
-      <P>
-        <Code>setOfflineSimulation(enabled)</Code> lets you test offline behaviour without
-        actually disconnecting. It does two things simultaneously: sets{' '}
-        <Code>isOnline = !enabled</Code> in the store (so action() and replayQueue()
-        behave correctly) and sends <Code>EIDOS_SIMULATE_OFFLINE</Code> to the service worker
-        (so fetch interception returns cached responses only).
-      </P>
-      <Pre>{`import { setOfflineSimulation } from '@sweidos/eidos'
-
-setOfflineSimulation(true)   // go offline
-// → action() queues new calls to IndexedDB
-// → resource.fetch() returns from cache or throws
-// → SW serves only cached responses
-
-setOfflineSimulation(false)  // go back online
-// → isOnline becomes true
-// → replayQueue() fires automatically after 600ms`}</Pre>
-
-      {/* ── Background Sync ──────────────────────────────────────────────────── */}
-      <H2 id="bg-sync">Background Sync</H2>
-      <P>
-        When a <Code>neverLose</Code> action is queued, Eidos registers the{' '}
-        <Code>'eidos-queue-replay'</Code> Background Sync tag with the browser. If the user
-        briefly navigates away and back while offline, the browser fires a{' '}
-        <Code>sync</Code> event on the SW when connectivity returns — even before the store's
-        own <Code>online</Code> subscription fires. The SW forwards{' '}
-        <Code>EIDOS_BACKGROUND_SYNC</Code> to all open clients, which call{' '}
-        <Code>replayQueue()</Code> with a 200 ms debounce.
-      </P>
-      <P>
-        Falls back silently to online-event replay on browsers without Background Sync
-        support (Firefox, older Safari).
-      </P>
-      <Pre>{`import { isBgSyncSupported } from '@sweidos/eidos'
-
-// Check support — useful for conditionally surfacing sync status in your UI
-if (isBgSyncSupported()) {
-  // browser will auto-trigger 'eidos-queue-replay' when connectivity returns
-}
-
-// Both replay paths fire replayQueue() — whichever arrives first wins:
-// a) store subscription (online event)  → replayQueue() after 600 ms
-// b) Background Sync API (sync event)   → replayQueue() after 200 ms`}</Pre>
-
-      {/* ── TanStack Query ───────────────────────────────────────────────────── */}
-      <H2 id="tanstack">TanStack Query Integration</H2>
-      <P>
-        <Code>@sweidos/eidos/query</Code> provides first-class hooks for{' '}
-        <a href="https://tanstack.com/query/latest" target="_blank" rel="noreferrer" className="text-eidos-accent hover:underline">
-          TanStack Query v5
-        </a>. Install <Code>@tanstack/react-query</Code> alongside Eidos — it is an optional peer dependency.
-      </P>
-
-      <H3>Setup — register the QueryClient once</H3>
-      <Pre label="main.tsx">{`import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { withEidosQueryClient } from '@sweidos/eidos/query'
-
-const queryClient = new QueryClient()
-withEidosQueryClient(queryClient) // bridges handle.invalidate() → TQ cache
-
-root.render(
-  <QueryClientProvider client={queryClient}>
-    <EidosProvider swPath="/eidos-sw.js">
-      <App />
-    </EidosProvider>
-  </QueryClientProvider>
-)`}</Pre>
-
-      <H3>useEidosQuery(handle, options?)</H3>
-      <P>
-        Wraps <Code>useQuery</Code> with two Eidos-smart defaults:{' '}
-        <Code>networkMode: 'always'</Code> (queries run even when <Code>navigator.onLine</Code> is false — Eidos owns the cache layer) and{' '}
-        <Code>retry: false</Code> (Eidos handles retries at the SW/replay layer).
-      </P>
-      <Pre label="ProductList.tsx">{`import { useEidosQuery } from '@sweidos/eidos/query'
-
-function ProductList() {
-  const { data, isPending, isError } = useEidosQuery<Product[]>(products)
-  if (isPending) return <Spinner />
-  return <ul>{data?.map(p => <li key={p.id}>{p.name}</li>)}</ul>
-}`}</Pre>
-
-      <H3>useEidosMutation(handle, options?)</H3>
-      <P>
-        Wraps <Code>useMutation</Code> for a single-argument action handle.{' '}
-        <Code>networkMode: 'always'</Code> lets the action queue offline.{' '}
-        The <Code>invalidates</Code> option clears Eidos Cache Storage and the matching TanStack Query entries on success.
-        Return type is <Code>TData | QueuedResult</Code> — narrow with{' '}
-        <Code>{'\'queued\' in data'}</Code> to detect the offline-queued case.
-      </P>
-      <Pre label="OrderForm.tsx">{`import { useEidosMutation } from '@sweidos/eidos/query'
-
-function OrderForm() {
-  const mutation = useEidosMutation(createOrder, {
-    invalidates: [products],           // refetch product list after mutation
-    onSuccess(data) {
-      if ('queued' in data) toast('Saved offline — will sync when back online')
-      else toast(\`Order #\${data.id} created!\`)
-    },
-  })
-
-  return (
-    <button onClick={() => mutation.mutate({ productId: 1, qty: 2 })}>
-      {mutation.isPending ? 'Saving…' : 'Buy'}
-    </button>
-  )
-}`}</Pre>
-
-      <H3>withEidosQueryClient(client)</H3>
-      <P>
-        After calling this, <Code>handle.invalidate()</Code> also triggers{' '}
-        <Code>queryClient.invalidateQueries({'{ queryKey: [\'eidos\', url] }'})</Code>.
-        Both caches stay in sync even when the cache is cleared outside of mutations (e.g. from devtools or on reconnect).
-      </P>
-
-      {/* ── Testing ──────────────────────────────────────────────────────────── */}
-      <H2 id="testing">Testing Utilities</H2>
-      <P>
-        <Code>@sweidos/eidos/testing</Code> ships first-class helpers for Vitest, Jest, and Playwright.
-        Import only in test files — never in production code.
-      </P>
-      <Pre label="vitest setup (optional global reset)">{`// vitest.setup.ts
-import { resetEidos } from '@sweidos/eidos/testing'
-
-beforeEach(async () => {
-  await resetEidos()
-  // queue cleared, resources cleared, online restored, _initialized reset
-})`}</Pre>
-
-      <H3>Testing offline queuing</H3>
-      <Pre label="queue.test.ts">{`import { mockOffline, getEidosState } from '@sweidos/eidos/testing'
-
-it('queues action while offline', async () => {
-  mockOffline()
-  await savePost({ title: 'Draft' })
-
-  expect(getEidosState().queue).toHaveLength(1)
-  expect(getEidosState().isOnline).toBe(false)
-})`}</Pre>
-
-      <H3>Testing queue replay</H3>
-      <Pre label="replay.test.ts">{`import { mockOffline, drainQueue } from '@sweidos/eidos/testing'
-
-it('replays queue on reconnect', async () => {
-  mockOffline()
-  await savePost({ title: 'Draft' })
-
-  const result = await drainQueue()   // forces online + replays
-  expect(result.succeeded).toBe(1)
-  expect(result.failed).toBe(0)
-})`}</Pre>
-
-      <H3>Testing cache state</H3>
-      <Pre label="cache.test.ts">{`import { getCachedEntry } from '@sweidos/eidos/testing'
-
-it('caches the resource after first fetch', async () => {
-  const products = resource('/api/products', { offline: true })
-  await products.fetch()
-
-  const cached = await getCachedEntry('/api/products')
-  expect(cached).toBeDefined()
-})`}</Pre>
-
-      <H3>stubFetch option</H3>
-      <P>
-        Pass <Code>{'{ stubFetch: true }'}</Code> to <Code>mockOffline()</Code> to also stub{' '}
-        <Code>globalThis.fetch</Code> — useful when testing code that calls{' '}
-        <Code>fetch()</Code> directly outside the Eidos resource layer.
-      </P>
-      <Pre>{`mockOffline({ stubFetch: true })
-await expect(fetch('/api/anything')).rejects.toThrow(TypeError)
-mockOnline() // restores original fetch`}</Pre>
-
-      <H3>API summary</H3>
-      <table className="w-full text-sm border-collapse mb-6">
-        <thead>
-          <tr className="border-b border-white/10">
-            <th className="text-left py-2 pr-4 text-slate-300 font-medium">Helper</th>
-            <th className="text-left py-2 text-slate-300 font-medium">Description</th>
-          </tr>
-        </thead>
-        <tbody className="text-slate-400">
-          {[
-            ['mockOffline(opts?)', 'Set isOnline = false. stubFetch: true also stubs fetch().'],
-            ['mockOnline()', 'Restore isOnline = true. Removes fetch stub if present.'],
-            ['drainQueue()', 'Force-replay queue now. Returns ReplayResult.'],
-            ['waitForQueueDrain(opts?)', 'Wait until no pending/replaying items. Timeout default 5 s.'],
-            ['getCachedEntry(url, name?)', 'Read a Response from Cache Storage. undefined if missing.'],
-            ['clearEidosCache(name?)', 'Delete an entire cache namespace (default: eidos-resources-v1).'],
-            ['resetEidos()', 'Full teardown: queue, resources, SW status, online, runtime flag.'],
-            ['getEidosState()', 'Plain-object snapshot of store state for inline assertions.'],
-          ].map(([name, desc]) => (
-            <tr key={name as string} className="border-b border-white/5">
-              <td className="py-2 pr-4 font-mono text-eidos-accent whitespace-nowrap">{name}</td>
-              <td className="py-2">{desc}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      {/* ── Architecture ─────────────────────────────────────────────────────── */}
-      <H2 id="architecture">Architecture</H2>
-      <Pre>{`┌─────────────────────────────────────────────────────────┐
-│  Application Layer                                       │
-│  resource(url, config)  action(fn, config)               │  ← you write this
-│  EidosProvider          useEidosStatus() / useEidosQueue  │
-└────────────────────────────┬────────────────────────────┘
-                             │ postMessage(EIDOS_REGISTER_RESOURCE)
-                             │ postMessage(EIDOS_SIMULATE_OFFLINE)
-┌────────────────────────────▼────────────────────────────┐
-│  Runtime Layer  (@sweidos/eidos)                            │
-│  Strategy derivation · reactive store · SW bridge           │  ← npm package
-│  IDB queue · status-index scan (idbGetPendingItems)     │
-│  Pre-activation message buffer · flushed on SW active   │
-└────────────────────────────┬────────────────────────────┘
-                             │ fetch event intercept
-┌────────────────────────────▼────────────────────────────┐
-│  Worker Layer  (eidos-sw.js)                             │
-│  CacheFirst · StaleWhileRevalidate · NetworkFirst        │  ← generated SW
-│  App shell caching (eidos-shell-v1)                      │
-│  EIDOS_CACHE_HIT / EIDOS_CACHE_UPDATED → postMessage    │
-└────────────────────────────┬────────────────────────────┘
-                             │ Cache API  /  IndexedDB
-┌────────────────────────────▼────────────────────────────┐
-│  Storage Layer  (browser APIs)                           │
-│  Cache Storage: eidos-resources-v1, eidos-shell-v1      │
-│  IndexedDB: eidos / action-queue store                  │
-└─────────────────────────────────────────────────────────┘`}</Pre>
-
-      <H3>postMessage protocol</H3>
-      <Table headers={['Direction', 'Message type', 'Payload', 'Purpose']}>
-        <PropRow name="App → SW"  type="EIDOS_REGISTER_RESOURCE"   def="url, strategy, cacheName"   desc="Add fetch-intercept rule for a resource pathname." />
-        <PropRow name="App → SW"  type="EIDOS_UNREGISTER_RESOURCE" def="url"                        desc="Remove fetch-intercept rule." />
-        <PropRow name="App → SW"  type="EIDOS_CLEAR_CACHE"         def="url?"                       desc="Evict cache entries for a URL (or all entries)." />
-        <PropRow name="App → SW"  type="EIDOS_SIMULATE_OFFLINE"    def="enabled: boolean"           desc="Toggle offline simulation — SW serves only cached responses." />
-        <PropRow name="App → SW"  type="EIDOS_PING"                def="—"                          desc="Health check — SW replies with EIDOS_PONG." />
-        <PropRow name="SW → App"  type="EIDOS_CACHE_HIT"           def="url, strategy"              desc="A cached response was served." />
-        <PropRow name="SW → App"  type="EIDOS_CACHE_UPDATED"       def="url, strategy"              desc="Cache entry was written from a network response." />
-        <PropRow name="SW → App"  type="EIDOS_NETWORK_ERROR"       def="url"                        desc="Fetch failed and no cached fallback was found." />
-        <PropRow name="SW → App"  type="EIDOS_CACHE_CLEARED"       def="url?"                       desc="Cache entry(ies) were deleted." />
-        <PropRow name="SW → App"  type="EIDOS_BACKGROUND_SYNC"     def="—"                          desc="Browser fired the 'eidos-queue-replay' sync tag — runtime calls replayQueue()." />
-      </Table>
-
-      {/* ── Limitations ──────────────────────────────────────────────────────── */}
-      <H2 id="limitations">Limitations</H2>
-      <div className="space-y-2 mb-8">
-        {[
-          { l: 'GET-only SW interception', d: 'The SW fetch handler ignores non-GET methods. POST/PUT/DELETE actions go through the action queue, not SW caching.' },
-          { l: 'Query string ignored', d: 'Resources match by pathname for same-origin, or full URL for cross-origin. The query string is not part of the match key — /api/products?page=2 and /api/products share the same SW rule but are cached as separate entries.' },
-          { l: 'Module-scope actions required', d: 'action() must execute at module import time for replay to work after page reload. Actions declared inside components or event handlers are not available in the replay registry.' },
-          { l: 'maxAge is client-side only', d: 'The maxAge TTL is enforced in the main thread. The SW still serves the cached response to other tabs or after a page reload until invalidate() is called.' },
-          { l: 'Single SW registration', d: 'EidosProvider assumes one /eidos-sw.js per origin. Registering multiple service workers from the same provider is unsupported.' },
-          { l: 'Background Sync requires open client', d: 'The Background Sync API wakes up the SW and notifies open clients, but actual function execution still runs in the main thread. If no tab is open, the sync tag is queued until the user reopens the app.' },
-          { l: 'CacheStorage availability', d: 'In Firefox private browsing mode, CacheStorage and IndexedDB may be unavailable. Eidos degrades gracefully — resources fetch from the network, actions silently fail without queuing.' },
-        ].map(({ l, d }) => (
-          <div key={l} className="flex gap-3 p-3 rounded-lg border border-eidos-border bg-eidos-elevated text-xs">
-            <span className="text-eidos-amber shrink-0 mt-0.5">⚠</span>
-            <div>
-              <p className="font-semibold text-eidos-text mb-0.5">{l}</p>
-              <p className="text-eidos-muted leading-relaxed">{d}</p>
-            </div>
+unsub()`}
+              />
+            </Card>
           </div>
-        ))}
+        </section>
+
+        <section id="advanced" className="space-y-3">
+          <SectionHeading
+            id="advanced"
+            eyebrow="advanced"
+            title="Keep the heavy reference tucked away"
+            description="These are the details that are useful, but not worth putting in the main reading path."
+          />
+
+          <div className="space-y-3">
+            <Collapse title="URL patterns and cross-origin resources">
+              <div className="space-y-3">
+                <p className="text-sm leading-relaxed text-eidos-text-dim">
+                  Use <InlineCode>*</InlineCode> for one path segment, <InlineCode>**</InlineCode> for nested paths, and{' '}
+                  <InlineCode>:param</InlineCode> for named segments. For external APIs, pass the full URL including origin.
+                </p>
+                <CodeBlock
+                  title="patterns.ts"
+                  code={`resource('/api/products/*', { offline: true })
+resource('/api/users/:id/orders', { offline: true })
+resource('https://cdn.example.com/assets/**', { offline: true })`}
+                />
+              </div>
+            </Collapse>
+
+            <Collapse title="Caching strategies">
+              <div className="space-y-3">
+                <BulletList
+                  items={[
+                    '`stale-while-revalidate` is the default when `offline: true` is set.',
+                    '`cache-first` is best for data that rarely changes.',
+                    '`network-first` favors freshness and only falls back to cache when offline.',
+                  ]}
+                />
+                <CodeBlock
+                  title="strategies.ts"
+                  code={`resource('/api/products', { offline: true })
+resource('/api/config', { offline: true, strategy: 'cache-first' })
+resource('/api/feed', { offline: true, strategy: 'network-first' })`}
+                />
+              </div>
+            </Collapse>
+
+            <Collapse title="Testing utilities">
+              <div className="space-y-3">
+                <p className="text-sm leading-relaxed text-eidos-text-dim">
+                  The testing helpers let you flip the runtime between online and offline states, drain the queue, and inspect cache entries.
+                </p>
+                <CodeBlock
+                  title="tests.ts"
+                  code={`import {
+  mockOffline, mockOnline,
+  drainQueue, resetEidos,
+  getCachedEntry,
+} from '@sweidos/eidos/testing'`}
+                />
+              </div>
+            </Collapse>
+
+            <Collapse title="Types and limits">
+              <div className="space-y-3">
+                <BulletList
+                  items={[
+                    'GET requests are cached; actions are queued separately through IndexedDB.',
+                    'Module-scope actions are required so replay can re-register them after refresh.',
+                    'The full README carries the exhaustive API details and architecture notes.',
+                  ]}
+                />
+              </div>
+            </Collapse>
+          </div>
+        </section>
+
+        <section id="references" className="space-y-3">
+          <SectionHeading
+            id="references"
+            eyebrow="further reading"
+            title="Primary references"
+            description="Open these when you want the underlying platform docs or the project README."
+          />
+
+          <div className="grid gap-3 md:grid-cols-2">
+            {[
+              { label: 'Project README', href: 'https://github.com/iamadi11/eidos#readme' },
+              { label: 'MDN - Service Worker API', href: 'https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API' },
+              { label: 'MDN - Cache API', href: 'https://developer.mozilla.org/en-US/docs/Web/API/Cache' },
+              { label: 'MDN - IndexedDB API', href: 'https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API' },
+            ].map(link => (
+              <a
+                key={link.href}
+                href={link.href}
+                target={link.href.startsWith('http') ? '_blank' : undefined}
+                rel={link.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+                className="flex items-center justify-between rounded-xl border border-eidos-border bg-eidos-surface px-4 py-3 text-sm text-eidos-text-dim transition-colors hover:border-eidos-accent hover:bg-eidos-accent-dim hover:text-eidos-text"
+              >
+                <span>{link.label}</span>
+                <ExternalLink size={11} className="shrink-0 text-eidos-muted" />
+              </a>
+            ))}
+          </div>
+        </section>
       </div>
 
-      {/* ── Links ────────────────────────────────────────────────────────────── */}
-      <div className="space-y-1.5">
-        {[
-          { label: 'MDN — Service Worker API',    href: 'https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API' },
-          { label: 'MDN — Cache API',              href: 'https://developer.mozilla.org/en-US/docs/Web/API/Cache' },
-          { label: 'MDN — IndexedDB API',          href: 'https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API' },
-          { label: 'web.dev — Offline cookbook',  href: 'https://web.dev/articles/offline-cookbook' },
-          { label: 'Workbox docs (Google)',        href: 'https://developer.chrome.com/docs/workbox' },
-        ].map(({ label, href }) => (
-          <a key={href} href={href} target="_blank" rel="noopener noreferrer"
-            className="flex items-center justify-between p-3 rounded-lg border border-eidos-border bg-eidos-elevated hover:border-eidos-accent hover:bg-eidos-accent-dim transition-all group text-xs">
-            <span className="text-eidos-text-dim group-hover:text-eidos-text transition-colors">{label}</span>
-            <ExternalLink size={11} className="text-eidos-muted group-hover:text-eidos-accent shrink-0 transition-colors" />
-          </a>
-        ))}
-      </div>
+      <aside className="space-y-4 lg:sticky lg:top-4 h-fit">
+        <Card>
+          <CardHeader
+            title="On this page"
+            description="Jump straight to the section you need."
+          />
+          <nav className="space-y-2 text-sm">
+            {quickLinks.map(link => (
+              <a
+                key={link.href}
+                href={link.href}
+                className="flex items-center justify-between rounded-lg border border-eidos-border px-3 py-2 text-eidos-text-dim transition-colors hover:border-eidos-accent hover:text-eidos-text"
+              >
+                <span>{link.label}</span>
+                <span className="text-eidos-border">#</span>
+              </a>
+            ))}
+          </nav>
+        </Card>
+
+        <Card>
+          <CardHeader
+            title="Use this page when..."
+            description="A short checklist keeps the page from feeling like a wall of text."
+          />
+          <BulletList
+            items={[
+              'You want the shortest path from install to a working demo.',
+              'You need a practical example for resources, actions, or query integration.',
+              'You only want to open the heavy reference when there is a real question.',
+            ]}
+          />
+        </Card>
+
+        <Card>
+          <CardHeader
+            title="Next stops"
+            description="Move around the playground without losing the docs context."
+          />
+          <div className="space-y-2">
+            <Link
+              to="/overview"
+              className="flex items-center justify-between rounded-lg border border-eidos-border px-3 py-2 text-sm text-eidos-text-dim transition-colors hover:border-eidos-accent hover:text-eidos-text"
+            >
+              Overview
+              <span className="text-eidos-border">→</span>
+            </Link>
+            <Link
+              to="/resources"
+              className="flex items-center justify-between rounded-lg border border-eidos-border px-3 py-2 text-sm text-eidos-text-dim transition-colors hover:border-eidos-accent hover:text-eidos-text"
+            >
+              Resources
+              <span className="text-eidos-border">→</span>
+            </Link>
+            <Link
+              to="/actions"
+              className="flex items-center justify-between rounded-lg border border-eidos-border px-3 py-2 text-sm text-eidos-text-dim transition-colors hover:border-eidos-accent hover:text-eidos-text"
+            >
+              Actions
+              <span className="text-eidos-border">→</span>
+            </Link>
+          </div>
+        </Card>
+      </aside>
     </div>
   )
 }

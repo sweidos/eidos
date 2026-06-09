@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { RefreshCw, ShoppingCart, CheckCircle, WifiOff, ArrowRight, Clock, Zap, ArrowUp, AlertTriangle, X } from 'lucide-react'
 import { useEidosQueue, useEidosStatus, useEidosResource, useEidosStore, replayQueue } from '@sweidos/eidos'
 import type { ActionQueueItem, ResourceEntry } from '@sweidos/eidos'
+import { Card, CardHeader } from '../components/Card'
+import { CodeBlock } from '../components/CodeBlock'
 import { productsResource, createOrder, type Product } from '../lib/eidos'
 
 // ── Event feed types ──────────────────────────────────────────────────────────
@@ -31,11 +33,14 @@ function now()  { return new Date().toLocaleTimeString('en', { hour12: false }) 
 
 export function Demo() {
   const navigate = useNavigate()
-  const [events, setEvents]   = useState<SwEvent[]>([])
-  const evRef                  = useRef<SwEvent[]>([])
-  const queue                      = useEidosQueue()
-  const { isOnline, swStatus }     = useEidosStatus()
-  const resourceEntry              = useEidosResource('/api/products')
+  const [events, setEvents] = useState<SwEvent[]>([])
+  const evRef = useRef<SwEvent[]>([])
+  const queue = useEidosQueue()
+  const { isOnline, swStatus } = useEidosStatus()
+  const resourceEntry = useEidosResource('/api/products')
+  const pendingCount = queue.filter(q => q.status === 'pending').length
+  const replayingCount = queue.filter(q => q.status === 'replaying').length
+  const completedCount = queue.filter(q => q.status === 'succeeded' || q.status === 'failed').length
 
   // Queue events
   const prevQLen = useRef(0)
@@ -56,122 +61,253 @@ export function Demo() {
     setEvents([...evRef.current])
   }
 
+  const examples = [
+    {
+      badge: 'resource()',
+      title: 'Cache the product catalog',
+      description: 'Register a GET endpoint once and let the runtime keep it fresh in the background.',
+      code: `import { resource } from '@sweidos/eidos'
+
+export const products = resource('/api/products', {
+  offline: true,
+})
+
+const data = await products.json<Product[]>()`,
+    },
+    {
+      badge: 'action()',
+      title: 'Queue writes when offline',
+      description: 'Persist order submissions to IndexedDB and replay them when the connection returns.',
+      code: `export const createOrder = action(
+  async (payload: OrderPayload) => {
+    const res = await fetch('/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+
+    return res.json()
+  },
+  { reliability: 'neverLose', name: 'createOrder' },
+)`,
+    },
+    {
+      badge: 'query()',
+      title: 'Bridge into TanStack Query',
+      description: 'Keep the cache in sync with an existing query layer instead of replacing it.',
+      code: `const { data } = useQuery(productsResource.query<Product[]>())
+
+const mutation = useEidosMutation(createOrder, {
+  invalidates: [productsResource],
+})`,
+    },
+    {
+      badge: 'testing',
+      title: 'Simulate offline and replay',
+      description: 'Toggle the runtime into offline mode, then bring the queue back with a single call.',
+      code: `setOfflineSimulation(true)
+
+await createOrder({
+  productId: 1,
+  quantity: 2,
+  customerName: 'Demo User',
+})
+
+await replayQueue()`,
+    },
+  ] as const
+
   return (
-    <div className="flex flex-col h-full">
-      {/* ── Hero strip ─────────────────────────────────────────────────────── */}
-      <div className="shrink-0 border-b border-eidos-border bg-eidos-surface px-6 py-5">
-        <div className="flex items-start justify-between flex-wrap gap-4">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-6 lg:px-6 animate-fade-in">
+      <Card glow className="overflow-hidden">
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="space-y-4">
+            <div className="inline-flex items-center gap-2 rounded-full border border-eidos-border bg-eidos-elevated/70 px-3 py-1 text-[10px] uppercase tracking-[0.24em] text-eidos-muted">
+              overview
+            </div>
+            <div className="space-y-3">
+              <h1 className="text-2xl font-semibold text-eidos-text text-balance md:text-3xl">
+                Stop wiring service-worker details by hand.
+              </h1>
+              <p className="max-w-2xl text-sm leading-relaxed text-eidos-text-dim md:text-[15px]">
+                Eidos turns offline behavior into explicit, readable declarations. The homepage
+                shows the patterns, the docs explain the API, and the live panels below prove that
+                the runtime is actually doing the work.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => navigate('/docs')}
+                className="inline-flex items-center gap-1.5 rounded-full border border-eidos-accent bg-eidos-accent px-4 py-2 text-xs font-semibold text-eidos-bg transition-colors hover:bg-green-400 cursor-pointer"
+              >
+                Open docs <ArrowRight size={11} />
+              </button>
+              <button
+                onClick={() => navigate('/actions')}
+                className="inline-flex items-center gap-1.5 rounded-full border border-eidos-border px-4 py-2 text-xs font-medium text-eidos-text-dim transition-colors hover:border-eidos-elevated hover:text-eidos-text cursor-pointer"
+              >
+                View action queue
+              </button>
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+            <div className="rounded-xl border border-eidos-border bg-eidos-surface p-4">
+              <div className="text-[10px] uppercase tracking-[0.24em] text-eidos-muted">live state</div>
+              <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
+                <div>
+                  <div className="text-eidos-muted">network</div>
+                  <div className={`font-semibold ${isOnline ? 'text-eidos-accent' : 'text-eidos-amber'}`}>
+                    {isOnline ? 'online' : 'offline'}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-eidos-muted">service worker</div>
+                  <div className="font-semibold text-eidos-text">{swStatus}</div>
+                </div>
+                <div>
+                  <div className="text-eidos-muted">cache hits</div>
+                  <div className="font-tabular font-semibold text-eidos-accent">{resourceEntry?.cacheHits ?? 0}</div>
+                </div>
+                <div>
+                  <div className="text-eidos-muted">queued</div>
+                  <div className="font-tabular font-semibold text-eidos-amber">{pendingCount}</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-eidos-border bg-eidos-surface p-4">
+              <div className="text-[10px] uppercase tracking-[0.24em] text-eidos-muted">what to try</div>
+              <ul className="mt-3 space-y-2 text-xs leading-relaxed text-eidos-text-dim">
+                <li>1. Fetch the product list while online, then turn offline simulation on.</li>
+                <li>2. Submit an order and watch it move into the queue.</li>
+                <li>3. Open docs for a shorter explanation of each API surface.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      <section className="space-y-3">
+        <div className="flex items-end justify-between gap-4">
           <div>
-            <h1 className="text-lg font-bold text-eidos-text mb-1">
-              Stop writing service workers.
-            </h1>
-            <p className="text-sm text-eidos-muted max-w-xl">
-              Declare intent in 2 lines. @sweidos/eidos generates the fetch intercept rules,
-              picks the right caching strategy, and queues offline actions to IndexedDB — automatically.
-            </p>
+            <p className="text-[10px] uppercase tracking-[0.24em] text-eidos-muted">examples</p>
+            <h2 className="text-sm font-semibold text-eidos-text md:text-base">
+              Concrete patterns you can copy first
+            </h2>
           </div>
           <button
-            onClick={() => navigate('/learn')}
-            className="flex items-center gap-1.5 text-xs text-eidos-accent border border-eidos-accent px-3 py-1.5 hover:bg-eidos-accent hover:text-eidos-bg transition-colors duration-150 cursor-pointer"
+            onClick={() => navigate('/docs')}
+            className="text-xs font-medium text-eidos-accent transition-colors hover:text-green-400 cursor-pointer"
           >
-            API reference <ArrowRight size={11} />
+            open full reference
           </button>
         </div>
 
-        {/* Before/After code comparison */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
-          <div className="border border-eidos-border bg-eidos-bg p-3">
-            <div className="text-2xs text-eidos-red mb-2">// before — workbox config</div>
-            <pre className="text-2xs text-eidos-muted leading-relaxed overflow-x-auto">{`registerRoute(
-  /\\/api\\/products/,
-  new StaleWhileRevalidate({
-    cacheName: 'api-cache',
-    plugins: [new ExpirationPlugin({
-      maxEntries: 60,
-    })],
-  })
-)
-self.addEventListener('sync', ev => {
-  if (ev.tag === 'create-order')
-    ev.waitUntil(replayOrders())  // +40 lines
-})`}</pre>
-          </div>
-          <div className="border border-eidos-accent/40 bg-eidos-bg p-3">
-            <div className="text-2xs text-eidos-accent mb-2">// after — eidos</div>
-            <pre className="text-2xs text-eidos-text leading-relaxed">{`import { resource, action } from '@sweidos/eidos'
-
-resource('/api/products', {
-  offline: true,  // → StaleWhileRevalidate
-})
-
-action(createOrder, {
-  reliability: 'neverLose',  // → IDB queue
-})`}</pre>
-          </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          {examples.map(example => (
+            <Card key={example.title} className="h-full">
+              <CardHeader
+                title={example.title}
+                description={example.description}
+                action={(
+                  <span className="rounded-full border border-eidos-border px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-eidos-muted">
+                    {example.badge}
+                  </span>
+                )}
+              />
+              <CodeBlock code={example.code} title={example.badge} />
+            </Card>
+          ))}
         </div>
-      </div>
+      </section>
 
-      {/* ── Main area: demos + event feed ──────────────────────────────────── */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_360px] min-h-0 overflow-hidden">
-
-        {/* Left: interactive demos */}
-        <div className="overflow-y-auto border-r border-eidos-border divide-y divide-eidos-border">
-          <ProductsDemo onEmit={emit} resourceEntry={resourceEntry} isOnline={isOnline} />
-          <OrdersDemo onEmit={emit} queue={queue} isOnline={isOnline} />
-        </div>
-
-        {/* Right: live event stream + stats */}
-        <div className="flex flex-col overflow-hidden bg-eidos-bg">
-          {/* Stream header */}
-          <div className="flex items-center justify-between px-4 py-2 border-b border-eidos-border shrink-0">
-            <div className="flex items-center gap-2 text-2xs text-eidos-muted">
-              <span className="w-1.5 h-1.5 bg-eidos-accent animate-pulse" />
-              runtime events
+      <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="space-y-4">
+          <Card className="p-0 overflow-hidden">
+            <div className="border-b border-eidos-border bg-eidos-elevated/30 px-5 py-4">
+              <div className="text-[10px] uppercase tracking-[0.24em] text-eidos-muted">interactive demo</div>
+              <h3 className="mt-1 text-sm font-semibold text-eidos-text">Cache a resource and compare online vs offline behavior</h3>
             </div>
-            <button onClick={() => setEvents([])} className="text-2xs text-eidos-muted hover:text-eidos-red cursor-pointer transition-colors">
+            <ProductsDemo onEmit={emit} resourceEntry={resourceEntry} isOnline={isOnline} />
+          </Card>
+
+          <Card className="p-0 overflow-hidden">
+            <div className="border-b border-eidos-border bg-eidos-elevated/30 px-5 py-4">
+              <div className="text-[10px] uppercase tracking-[0.24em] text-eidos-muted">interactive demo</div>
+              <h3 className="mt-1 text-sm font-semibold text-eidos-text">Submit actions, queue them offline, and replay on reconnect</h3>
+            </div>
+            <OrdersDemo onEmit={emit} queue={queue} isOnline={isOnline} />
+          </Card>
+        </div>
+
+        <Card className="flex h-full flex-col overflow-hidden p-0">
+          <div className="flex items-center justify-between border-b border-eidos-border px-4 py-3">
+            <div>
+              <div className="text-[10px] uppercase tracking-[0.24em] text-eidos-muted">runtime feed</div>
+              <p className="text-xs text-eidos-text-dim">
+                Cache hits, queue updates, and service-worker status changes in one place.
+              </p>
+            </div>
+            <button
+              onClick={() => setEvents([])}
+              className="text-2xs text-eidos-muted transition-colors hover:text-eidos-red cursor-pointer"
+            >
               clear
             </button>
           </div>
 
-          {/* Event rows */}
           <div className="flex-1 overflow-y-auto p-3 space-y-0.5">
-            {events.length === 0 && (
-              <div className="text-2xs text-eidos-muted text-center py-8">
+            {events.length === 0 ? (
+              <div className="py-10 text-center text-2xs text-eidos-muted">
                 waiting for activity...
               </div>
+            ) : (
+              events.map(ev => (
+                <div key={ev.id} className="flex gap-2 text-2xs leading-5 font-tabular animate-slide-right">
+                  <span className="w-16 shrink-0 text-eidos-border">{ev.time}</span>
+                  <span className={`w-12 shrink-0 font-bold ${KIND_COLOR[ev.kind]}`}>{ev.kind}</span>
+                  <span className="truncate text-eidos-text-dim">{ev.msg}</span>
+                </div>
+              ))
             )}
-            {events.map(ev => (
-              <div key={ev.id} className="flex gap-2 text-2xs leading-5 font-tabular animate-slide-right">
-                <span className="text-eidos-border shrink-0 w-16">{ev.time}</span>
-                <span className={`shrink-0 w-12 font-bold ${KIND_COLOR[ev.kind]}`}>{ev.kind}</span>
-                <span className="text-eidos-text-dim truncate">{ev.msg}</span>
-              </div>
-            ))}
           </div>
 
-          {/* Stats strip */}
-          <div className="border-t border-eidos-border px-4 py-2.5 shrink-0 grid grid-cols-3 gap-2 text-2xs">
+          <div className="grid grid-cols-3 gap-2 border-t border-eidos-border px-4 py-3 text-2xs">
             <div>
               <div className="text-eidos-muted">cache hits</div>
-              <div className="text-eidos-accent font-bold font-tabular">{resourceEntry?.cacheHits ?? 0}</div>
+              <div className="font-tabular font-semibold text-eidos-accent">{resourceEntry?.cacheHits ?? 0}</div>
             </div>
             <div>
               <div className="text-eidos-muted">queued</div>
-              <div className="text-eidos-amber font-bold font-tabular">
-                {queue.filter(q => q.status === 'pending').length}
-              </div>
+              <div className="font-tabular font-semibold text-eidos-amber">{pendingCount}</div>
+            </div>
+            <div>
+              <div className="text-eidos-muted">replaying</div>
+              <div className="font-tabular font-semibold text-eidos-blue">{replayingCount}</div>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-2 border-t border-eidos-border px-4 py-3 text-2xs">
+            <div>
+              <div className="text-eidos-muted">done</div>
+              <div className="font-tabular font-semibold text-eidos-text">{completedCount}</div>
+            </div>
+            <div>
+              <div className="text-eidos-muted">status</div>
+              <div className="font-semibold text-eidos-text">{swStatus}</div>
             </div>
             <div>
               <div className="text-eidos-muted">cached at</div>
-              <div className="text-eidos-text-dim font-tabular">
+              <div className="font-tabular text-eidos-text-dim">
                 {resourceEntry?.cachedAt
                   ? new Date(resourceEntry.cachedAt).toLocaleTimeString('en', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
                   : '—'}
               </div>
             </div>
           </div>
-        </div>
-      </div>
+        </Card>
+      </section>
     </div>
   )
 }

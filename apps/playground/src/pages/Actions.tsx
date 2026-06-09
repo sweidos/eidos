@@ -86,7 +86,7 @@ export function Actions() {
         <div className="border border-eidos-border p-8 text-center">
           <p className="text-sm text-eidos-text mb-1">queue is empty</p>
           <p className="text-xs text-eidos-muted">
-            go to demo → simulate offline → submit an order
+            go to overview → simulate offline → submit an order
           </p>
         </div>
       ) : (

@@ -19,13 +19,15 @@ export function App() {
         <Header />
         <main id="main-content" className="flex-1 overflow-y-auto">
           <Routes>
-            <Route path="/" element={<Navigate to="/demo" replace />} />
-            <Route path="/demo"      element={<Demo />} />
+            <Route path="/" element={<Navigate to="/overview" replace />} />
+            <Route path="/overview" element={<Demo />} />
+            <Route path="/demo" element={<Navigate to="/overview" replace />} />
             <Route path="/resources" element={<Resources />} />
-            <Route path="/actions"   element={<Actions />} />
+            <Route path="/actions" element={<Actions />} />
             <Route path="/inspector" element={<Inspector />} />
-            <Route path="/learn"     element={<Learn />} />
-            <Route path="*"          element={<Navigate to="/demo" replace />} />
+            <Route path="/docs" element={<Learn />} />
+            <Route path="/learn" element={<Navigate to="/docs" replace />} />
+            <Route path="*" element={<Navigate to="/overview" replace />} />
           </Routes>
         </main>
       </div>

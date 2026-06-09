@@ -4,11 +4,11 @@ import { useEidosStatus, useEidosQueueStats, setOfflineSimulation, VERSION } fro
 import { useState } from 'react'
 
 const TABS = [
-  { path: '/demo',      label: 'demo'      },
+  { path: '/overview',  label: 'overview'  },
   { path: '/resources', label: 'resources' },
   { path: '/actions',   label: 'actions'   },
   { path: '/inspector', label: 'inspector' },
-  { path: '/learn',     label: 'api'       },
+  { path: '/docs',      label: 'docs'      },
 ]
 
 export function Header() {
