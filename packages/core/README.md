@@ -115,7 +115,16 @@ export const createOrder = action(
 ### 5. Use in components
 
 ```tsx
-// TanStack Query
+// TanStack Query — first-class hooks
+import { useEidosQuery, useEidosMutation } from '@sweidos/eidos/query'
+
+const { data, isPending } = useEidosQuery<Product[]>(products)
+
+const mutation = useEidosMutation(createOrder, {
+  invalidates: [products], // clears cache + refetches on success
+})
+
+// Or with plain useQuery
 const { data } = useQuery(products.query<Product[]>())
 
 // Or plain async
@@ -523,6 +532,74 @@ No more manual `cp` step. The plugin runs on `buildStart` (prod builds) and `con
 
 ---
 
+## TanStack Query Integration
+
+`@sweidos/eidos/query` provides first-class hooks for [TanStack Query v5](https://tanstack.com/query/latest). Requires `@tanstack/react-query` — already optional in Eidos, just install it.
+
+### Setup (once)
+
+```ts
+// main.tsx
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { withEidosQueryClient } from '@sweidos/eidos/query'
+
+const queryClient = new QueryClient()
+withEidosQueryClient(queryClient) // bridges handle.invalidate() → TQ cache
+
+root.render(
+  <QueryClientProvider client={queryClient}>
+    <EidosProvider swPath="/eidos-sw.js">
+      <App />
+    </EidosProvider>
+  </QueryClientProvider>
+)
+```
+
+### `useEidosQuery(handle, options?)`
+
+Wraps `useQuery` with Eidos-smart defaults:
+- `networkMode: 'always'` — Eidos owns offline; queries run even when `navigator.onLine` is false
+- `retry: false` — Eidos handles retries at the SW/replay layer
+
+```tsx
+import { useEidosQuery } from '@sweidos/eidos/query'
+
+function ProductList() {
+  const { data, isPending, isError } = useEidosQuery<Product[]>(products)
+  // ...
+}
+```
+
+### `useEidosMutation(handle, options?)`
+
+Wraps `useMutation` for a single-argument action handle:
+- `networkMode: 'always'` — action queues offline automatically
+- `invalidates` — clears Eidos cache + invalidates TQ entries on success
+
+```tsx
+import { useEidosMutation } from '@sweidos/eidos/query'
+
+function OrderForm() {
+  const mutation = useEidosMutation(createOrder, {
+    invalidates: [products],           // refetch product list after order
+    onSuccess(data) {
+      if ('queued' in data) toast('Saved offline — will sync when back online')
+      else toast(`Order #${data.id} created!`)
+    },
+  })
+
+  return <button onClick={() => mutation.mutate({ productId: 1, qty: 2 })}>Buy</button>
+}
+```
+
+### `withEidosQueryClient(client)`
+
+Registers a `QueryClient` with Eidos. After calling this:
+- `handle.invalidate()` also calls `queryClient.invalidateQueries({ queryKey: ['eidos', url] })`
+- Both systems stay in sync automatically, even when cache is cleared outside of mutations
+
+---
+
 ## Known Limitations
 
 | Limitation | Detail |
@@ -531,6 +608,7 @@ No more manual `cp` step. The plugin runs on `buildStart` (prod builds) and `con
 | Query string ignored | Resources match by pathname (or full URL for cross-origin). `/api/products?page=2` and `/api/products` share the same SW rule but are cached as separate entries. |
 | Module-scope actions | `action()` must be called at module scope so functions are registered before a page reload triggers queue replay. |
 | Single SW | `EidosProvider` assumes one SW at `/eidos-sw.js`. Multiple registrations are unsupported. |
+| React in main bundle | The published ESM bundle is a single file — consumers who import `resource()` or `eidosStore` (no React) still pull in the `react` import declaration. Since `react` is an optional peer dep, bundlers handle it correctly (import is skipped if unused), but Vue/Svelte projects should ensure `react` is available as a dep. A future `preserveModules` refactor will fix this properly. |
 
 ---
 
@@ -545,7 +623,25 @@ No more manual `cp` step. The plugin runs on `buildStart` (prod builds) and `con
 - [x] Background Sync API integration
 - [x] Vite plugin (`@sweidos/eidos/vite` subpath — ships in the main package)
 - [x] Vue / Svelte bindings (framework-agnostic reactive stores)
-- [ ] TanStack Query integration package
+- [x] TanStack Query integration (`@sweidos/eidos/query` subpath — `useEidosQuery`, `useEidosMutation`, `withEidosQueryClient`)
+
+**Core reliability**
+- [ ] Optimistic updates — `onOptimistic` / `onRollback` callbacks on `action()` for instant UI feedback before server confirms
+- [ ] Conflict resolution hook — `onConflict` callback when replaying a queued action returns 4xx; decide per-item: retry, skip, or merge
+- [ ] Queue prioritization — `priority: 'high' | 'normal' | 'low'` on `action()`; high-priority items replay first
+
+**DX / Tooling**
+- [ ] Devtools panel component — drop-in `<EidosDevtools />` showing cache entries, queue state, replay status, and offline toggle
+- [ ] Testing utilities (`@sweidos/eidos/testing`) — `mockOffline()`, `drainQueue()`, `getCachedEntry(url)` for Vitest / Playwright
+- [ ] SvelteKit / Next.js adapters — SSR-aware init helpers that skip SW registration server-side
+
+**Performance**
+- [ ] Request deduplication — multiple simultaneous `resource.fetch()` calls share one in-flight network request
+- [ ] Cache warming — `warmCache(handles[])` bulk-prefetches a list of resources on init (e.g. on login)
+
+**Ecosystem**
+- [ ] React Native support — AsyncStorage + fetch-based backend (no Cache API / SW); same `resource` / `action` API surface
+- [ ] OpenAPI codegen CLI — `npx eidos-gen ./openapi.json` generates typed `resource()` and `action()` declarations
 
 ---
 
