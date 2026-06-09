@@ -624,6 +624,24 @@ Registers a `QueryClient` with Eidos. After calling this:
 - [x] Vue / Svelte bindings (framework-agnostic reactive stores)
 - [x] TanStack Query integration (`@sweidos/eidos/query` subpath — `useEidosQuery`, `useEidosMutation`, `withEidosQueryClient`)
 
+**Core reliability**
+- [ ] Optimistic updates — `onOptimistic` / `onRollback` callbacks on `action()` for instant UI feedback before server confirms
+- [ ] Conflict resolution hook — `onConflict` callback when replaying a queued action returns 4xx; decide per-item: retry, skip, or merge
+- [ ] Queue prioritization — `priority: 'high' | 'normal' | 'low'` on `action()`; high-priority items replay first
+
+**DX / Tooling**
+- [ ] Devtools panel component — drop-in `<EidosDevtools />` showing cache entries, queue state, replay status, and offline toggle
+- [ ] Testing utilities (`@sweidos/eidos/testing`) — `mockOffline()`, `drainQueue()`, `getCachedEntry(url)` for Vitest / Playwright
+- [ ] SvelteKit / Next.js adapters — SSR-aware init helpers that skip SW registration server-side
+
+**Performance**
+- [ ] Request deduplication — multiple simultaneous `resource.fetch()` calls share one in-flight network request
+- [ ] Cache warming — `warmCache(handles[])` bulk-prefetches a list of resources on init (e.g. on login)
+
+**Ecosystem**
+- [ ] React Native support — AsyncStorage + fetch-based backend (no Cache API / SW); same `resource` / `action` API surface
+- [ ] OpenAPI codegen CLI — `npx eidos-gen ./openapi.json` generates typed `resource()` and `action()` declarations
+
 ---
 
 ## Contributing
