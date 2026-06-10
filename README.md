@@ -305,6 +305,26 @@ Panel shows: live queue state · cache entries · SW status · offline simulatio
 
 ---
 
+## How it compares
+
+| | **Eidos** | Workbox | RTK Query / TanStack Query |
+|---|---|---|---|
+| Service worker setup | Generated for you — `resource()`/`action()` declarations drive the SW | Hand-write `routing` + `strategies` config | None — no SW |
+| Caching strategy | Auto-derived from intent (`offline: true` → SWR, etc.), inspectable via devtools | Manually chosen per route | Configurable `staleTime`/`gcTime`, no Cache Storage integration |
+| Offline writes | `action()` + `reliability: 'neverLose'` → IndexedDB queue, auto-replay, exponential backoff | Background Sync plugin, you wire the queue | No built-in offline mutation queue |
+| Framework support | React, Svelte, Vue, Next.js, React Native, vanilla JS | Framework-agnostic (SW only) | Per-library (RTK Query = Redux, TanStack = many) |
+| TanStack Query bridge | `@sweidos/eidos/query` — drop-in `useEidosQuery`/`useEidosMutation` | — | Native |
+| Bundle size (core, gzip) | ~9 kB | ~3-6 kB (modular) | ~13 kB (TanStack Query core) |
+
+Eidos isn't a replacement for TanStack Query — `@sweidos/eidos/query` is a thin
+adapter so you keep TQ's cache/devtools while Eidos owns the offline layer
+(SW caching + IndexedDB write queue). Workbox is a lower-level toolkit Eidos
+generates strategies *for*; Eidos picks and configures the strategy from your
+`resource()`/`action()` declarations instead of you writing `workbox-*` config
+by hand.
+
+---
+
 ## Contributing
 
 ```bash
