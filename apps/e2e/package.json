@@ -14,7 +14,7 @@
   },
   "devDependencies": {
     "dotenv": "^16.4.5",
-    "typescript": "^5.4.5",
+    "typescript": "^6.0.3",
     "vitest": "^2.1.9"
   }
 }
