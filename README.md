@@ -115,13 +115,13 @@ if ('queued' in result) {
 ## What you get
 
 | Feature                     | Description                                                                          |
-| --------------------------- | ------------------------------------------------------------------------------------ | -------- | ----------------------------------------- |
+| --------------------------- | ------------------------------------------------------------------------------------ |
 | **Auto strategy selection** | `offline: true` → StaleWhileRevalidate. No config needed. Override when you want.    |
 | **Persistent action queue** | Failed writes go to IndexedDB and replay with exponential backoff on reconnect.      |
 | **Request deduplication**   | Concurrent `resource.fetch()` calls share one in-flight request.                     |
 | **Optimistic updates**      | `onOptimistic` / `onRollback` callbacks for instant UI feedback.                     |
 | **Conflict resolution**     | `onConflict` decides per 4xx whether to retry or drop a queued action.               |
-| **Queue prioritization**    | `priority: 'high'                                                                    | 'normal' | 'low'` — high items replay before normal. |
+| **Queue prioritization**    | `priority: 'high' \| 'normal' \| 'low'` — high items replay before normal.           |
 | **Cache warming**           | `warmCache(handles[])` bulk-prefetches resources on login/init.                      |
 | **URL patterns**            | `/api/products/*`, `/api/users/:id`, `**` wildcards — SW intercepts all matches.     |
 | **Background Sync**         | Registers a `sync` tag so queued actions replay even after tab close.                |
@@ -314,14 +314,14 @@ Panel shows: live queue state · cache entries · SW status · offline simulatio
 
 ## How it compares
 
-|                          | **Eidos**                                                                                   | Workbox                                    | RTK Query / TanStack Query                                      |
-| ------------------------ | ------------------------------------------------------------------------------------------- | ------------------------------------------ | --------------------------------------------------------------- |
-| Service worker setup     | Generated for you — `resource()`/`action()` declarations drive the SW                       | Hand-write `routing` + `strategies` config | None — no SW                                                    |
-| Caching strategy         | Auto-derived from intent (`offline: true` → SWR, etc.), inspectable via devtools            | Manually chosen per route                  | Configurable `staleTime`/`gcTime`, no Cache Storage integration |
-| Offline writes           | `action()` + `reliability: 'neverLose'` → IndexedDB queue, auto-replay, exponential backoff | Background Sync plugin, you wire the queue | No built-in offline mutation queue                              |
-| Framework support        | React, Svelte, Vue, Next.js, React Native, vanilla JS                                       | Framework-agnostic (SW only)               | Per-library (RTK Query = Redux, TanStack = many)                |
-| TanStack Query bridge    | `@sweidos/eidos/query` — drop-in `useEidosQuery`/`useEidosMutation`                         | —                                          | Native                                                          |
-| Bundle size (core, gzip) | ~9 kB                                                                                       | ~3-6 kB (modular)                          | ~13 kB (TanStack Query core)                                    |
+|                            | **Eidos**                                                                                   | Workbox                                    | RTK Query / TanStack Query                                      |
+| -------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------ | --------------------------------------------------------------- |
+| Service worker setup       | Generated for you — `resource()`/`action()` declarations drive the SW                       | Hand-write `routing` + `strategies` config | None — no SW                                                    |
+| Caching strategy           | Auto-derived from intent (`offline: true` → SWR, etc.), inspectable via devtools            | Manually chosen per route                  | Configurable `staleTime`/`gcTime`, no Cache Storage integration |
+| Offline writes             | `action()` + `reliability: 'neverLose'` → IndexedDB queue, auto-replay, exponential backoff | Background Sync plugin, you wire the queue | No built-in offline mutation queue                              |
+| Framework support          | React, Svelte, Vue, Next.js, React Native, vanilla JS                                       | Framework-agnostic (SW only)               | Per-library (RTK Query = Redux, TanStack = many)                |
+| TanStack Query bridge      | `@sweidos/eidos/query` — drop-in `useEidosQuery`/`useEidosMutation`                         | —                                          | Native                                                          |
+| Bundle size (core, brotli) | ~5.4 kB                                                                                     | ~3-6 kB (modular)                          | ~13 kB (TanStack Query core)                                    |
 
 Eidos isn't a replacement for TanStack Query — `@sweidos/eidos/query` is a thin
 adapter so you keep TQ's cache/devtools while Eidos owns the offline layer
