@@ -85,6 +85,7 @@
   },
   "files": [
     "dist",
+    "!dist/**/*.map",
     "README.md"
   ],
   "scripts": {
@@ -94,8 +95,26 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "size": "size-limit",
     "prepublishOnly": "pnpm build"
   },
+  "size-limit": [
+    {
+      "name": "core (resource + action + store)",
+      "path": "dist/index.js",
+      "limit": "6 KB"
+    },
+    {
+      "name": "react hooks",
+      "path": "dist/react/hooks.js",
+      "limit": "1.5 KB"
+    },
+    {
+      "name": "cjs bundle",
+      "path": "dist/eidos.cjs.js",
+      "limit": "8 KB"
+    }
+  ],
   "peerDependencies": {
     "@tanstack/react-query": ">=5.0.0",
     "react": ">=18.0.0",
@@ -117,6 +136,7 @@
     }
   },
   "devDependencies": {
+    "@size-limit/preset-small-lib": "^12.1.0",
     "@tanstack/react-query": "^5.45.0",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
@@ -124,6 +144,7 @@
     "@vitest/coverage-v8": "^2.1.9",
     "fake-indexeddb": "^6.2.5",
     "jsdom": "^29.1.1",
+    "size-limit": "^12.1.0",
     "typescript": "^5.4.5",
     "vite": "^5.3.1",
     "vite-plugin-dts": "^3.9.1",

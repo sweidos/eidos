@@ -33,6 +33,10 @@ jobs:
         run: pnpm lint
       - name: Format check
         run: pnpm format:check
+      - name: Build core
+        run: pnpm build:core
+      - name: Bundle size check
+        run: pnpm --filter @sweidos/eidos size
 
   # ── Deploy playground to Vercel ───────────────────────────────────────────────
   deploy:
