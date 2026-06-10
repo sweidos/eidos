@@ -40,7 +40,9 @@ export function Inspector() {
       content: (
         <div className="bg-eidos-bg border border-eidos-border p-3">
           <div className="flex items-center gap-2 text-xs mb-2">
-            <code className="text-eidos-muted">offline: true</code>
+            <code className="text-eidos-muted">
+              offline: {String(sel.config.offline)}{sel.config.strategy ? `, strategy: '${sel.config.strategy}'` : ''}
+            </code>
             <span className="text-eidos-border">→</span>
             <code className="text-eidos-accent font-bold">{sel.strategy.name}</code>
           </div>

@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { ExternalLink, ChevronDown, ChevronRight } from 'lucide-react'
 import { Card, CardHeader } from '../components/Card'
@@ -103,6 +103,31 @@ export function Learn() {
     { href: '#advanced', label: 'Advanced' },
     { href: '#references', label: 'Further reading' },
   ]
+
+  const [activeId, setActiveId] = useState<string>(quickLinks[0].href.slice(1))
+
+  useEffect(() => {
+    const ids = quickLinks.map(link => link.href.slice(1))
+    const sections = ids
+      .map(id => document.getElementById(id))
+      .filter((el): el is HTMLElement => el !== null)
+
+    if (sections.length === 0) return
+
+    const observer = new IntersectionObserver(
+      entries => {
+        const visible = entries
+          .filter(e => e.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)
+        if (visible[0]) setActiveId(visible[0].target.id)
+      },
+      { rootMargin: '-15% 0px -70% 0px', threshold: 0 }
+    )
+
+    sections.forEach(el => observer.observe(el))
+    return () => observer.disconnect()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <div className="mx-auto grid max-w-6xl gap-5 px-4 py-6 lg:grid-cols-[minmax(0,1fr)_280px] lg:px-6 animate-fade-in">
@@ -582,16 +607,24 @@ resource('/api/feed', { offline: true, strategy: 'network-first' })`}
             description="Jump straight to the section you need."
           />
           <nav className="space-y-2 text-sm">
-            {quickLinks.map(link => (
-              <a
-                key={link.href}
-                href={link.href}
-                className="flex items-center justify-between rounded-lg border border-eidos-border px-3 py-2 text-eidos-text-dim transition-colors hover:border-eidos-accent hover:text-eidos-text"
-              >
-                <span>{link.label}</span>
-                <span className="text-eidos-border">#</span>
-              </a>
-            ))}
+            {quickLinks.map(link => {
+              const active = activeId === link.href.slice(1)
+              return (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  aria-current={active ? 'true' : undefined}
+                  className={`flex items-center justify-between rounded-lg border px-3 py-2 transition-colors ${
+                    active
+                      ? 'border-eidos-accent bg-eidos-accent-dim text-eidos-text'
+                      : 'border-eidos-border text-eidos-text-dim hover:border-eidos-accent hover:text-eidos-text'
+                  }`}
+                >
+                  <span>{link.label}</span>
+                  <span className={active ? 'text-eidos-accent' : 'text-eidos-border'}>#</span>
+                </a>
+              )
+            })}
           </nav>
         </Card>
 

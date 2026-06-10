@@ -1,11 +1,11 @@
 # Eidos
 
-[![npm version](https://img.shields.io/npm/v/@sweidos/eidos?color=38bdf8&label=npm)](https://www.npmjs.com/package/@sweidos/eidos)
-[![npm downloads](https://img.shields.io/npm/dm/@sweidos/eidos?color=38bdf8)](https://www.npmjs.com/package/@sweidos/eidos)
-[![bundle size](https://img.shields.io/bundlephobia/minzip/@sweidos/eidos?label=minzip&color=38bdf8)](https://bundlephobia.com/package/@sweidos/eidos)
-[![TypeScript](https://img.shields.io/badge/TypeScript-strict-38bdf8)](https://www.typescriptlang.org/)
+[![npm version](https://img.shields.io/npm/v/@sweidos/eidos?color=22C55E&label=npm)](https://www.npmjs.com/package/@sweidos/eidos)
+[![npm downloads](https://img.shields.io/npm/dm/@sweidos/eidos?color=22C55E)](https://www.npmjs.com/package/@sweidos/eidos)
+[![bundle size](https://img.shields.io/bundlephobia/minzip/@sweidos/eidos?label=minzip&color=22C55E)](https://bundlephobia.com/package/@sweidos/eidos)
+[![TypeScript](https://img.shields.io/badge/TypeScript-strict-22C55E)](https://www.typescriptlang.org/)
 [![CI](https://github.com/iamadi11/eidos/actions/workflows/deploy.yml/badge.svg)](https://github.com/iamadi11/eidos/actions)
-[![License: MIT](https://img.shields.io/badge/License-MIT-38bdf8.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-22C55E.svg)](LICENSE)
 
 > **Describe intent. The runtime figures out how.**
 

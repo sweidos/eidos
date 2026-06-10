@@ -6,6 +6,23 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.0.32] — 2026-06-10
+
+### Changed
+
+- **Bundle size** — `equivalentCode` strategy-explainer strings (Workbox-equivalent snippets, devtools-only) are now stripped from production builds via `import.meta.env.DEV`. `reasoning` and `behavior` stay in all builds since the playground renders them from live resource state.
+- **`idbGetPendingItems`** — replaced a manual done-counter with `Promise.all` over two parallel cursor reads (pending + failed), removing a class of subtle off-by-one bugs.
+- **`unregisterResource`** — rewritten with `Object.fromEntries` + `.filter()`, removing an eslint-disable and unused destructuring.
+- **Store selectors** (`eidosStatus`, `eidosQueueStats`) — extracted a `shallowEq` helper, replacing verbose inline type casts.
+
+### Docs
+
+- README (root + npm) rewritten from 1026 → ~324 lines: badge block, before/after comparison, 3-step quick start, framework support matrix, compact API reference, links out to the docs site.
+- `package.json`: added `homepage` (https://sweidos.vercel.app/overview), `bugs`, `funding`, `engines`.
+- Playground: GitHub + npm links in header, framework-support chips, before/after "what Eidos replaces" comparison, fixed stale links, branded favicon, OG/Twitter meta tags, corrected PWA manifest theme colors.
+
+---
+
 ## [1.0.31] — 2026-06-10
 
 ### Added
