@@ -68,9 +68,11 @@ export async function initEidos(config: EidosConfig = {}): Promise<void> {
       }
     })
 
-    // Replay any pending items that survived a page reload
+    // Replay any pending items that survived a page reload.
+    // 'failed' items have already exhausted maxRetries and are never
+    // re-replayed (see _doReplayQueue), so they don't count here.
     const store = useEidosStore.getState()
-    const hasPending = store.queue.some((q) => q.status === 'pending' || q.status === 'failed')
+    const hasPending = store.queue.some((q) => q.status === 'pending')
     if (store.isOnline && hasPending) {
       setTimeout(replayQueue, 1200)
     }

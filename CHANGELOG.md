@@ -6,6 +6,14 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.0.34] — 2026-06-10
+
+### Fixed
+
+- `initEidos()` / `initEidosRN()` no longer schedule a startup `replayQueue()` for queues that only contain `'failed'` items. Following the 1.0.33 fix, `'failed'` items (maxRetries exhausted) are never replayed automatically — counting them toward "has pending work" was misleading and triggered a no-op replay pass on every app start.
+
+---
+
 ## [1.0.33] — 2026-06-10
 
 ### Fixed

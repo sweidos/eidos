@@ -51,9 +51,11 @@ export async function initEidosRN(config: EidosRNConfig): Promise<void> {
       }
     })
 
-    // Replay items that survived an app restart
+    // Replay items that survived an app restart.
+    // 'failed' items have already exhausted maxRetries and are never
+    // re-replayed (see _doReplayQueue), so they don't count here.
     const store = useEidosStore.getState()
-    const hasPending = store.queue.some((q) => q.status === 'pending' || q.status === 'failed')
+    const hasPending = store.queue.some((q) => q.status === 'pending')
     if (store.isOnline && hasPending) {
       setTimeout(replayQueue, 1200)
     }
