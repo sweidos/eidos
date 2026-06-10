@@ -47,6 +47,23 @@ resource('/api/feed', { offline: true, strategy: 'network-first' })`}
           </div>
         </Collapse>
 
+        <Collapse title="OpenAPI codegen">
+          <div className="space-y-3">
+            <p className="text-sm leading-relaxed text-eidos-text-dim">
+              <InlineCode>eidos-gen</InlineCode> reads an OpenAPI spec and writes typed{' '}
+              <InlineCode>resource()</InlineCode> + <InlineCode>action()</InlineCode> declarations
+              — including path params, <InlineCode>$ref</InlineCode> resolution, request/response
+              types, and DELETE body omission.
+            </p>
+            <CodeBlock
+              language="bash"
+              title="terminal"
+              code={`npx eidos-gen openapi.json
+# → writes eidos.generated.ts`}
+            />
+          </div>
+        </Collapse>
+
         <Collapse title="Testing utilities">
           <div className="space-y-3">
             <p className="text-sm leading-relaxed text-eidos-text-dim">

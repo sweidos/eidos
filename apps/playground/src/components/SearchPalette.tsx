@@ -96,6 +96,12 @@ const INDEX: SearchEntry[] = [
     keywords: 'strategy cache-first network-first stale-while-revalidate',
   },
   {
+    label: 'OpenAPI codegen',
+    description: 'Generate typed resource()/action() declarations from a spec',
+    path: '/docs/advanced',
+    keywords: 'eidos-gen openapi codegen generate types',
+  },
+  {
     label: 'Testing utilities',
     description: 'mockOffline, drainQueue, resetEidos',
     path: '/docs/advanced',
