@@ -86,7 +86,10 @@ export function useEidosOnDrain(callback: () => void) {
   const total = useStore((s) => s.queue.length);
   const prevRef = useRef(0);
   const callbackRef = useRef(callback);
-  callbackRef.current = callback;
+
+  useEffect(() => {
+    callbackRef.current = callback;
+  });
 
   useEffect(() => {
     if (prevRef.current > 0 && total === 0) {

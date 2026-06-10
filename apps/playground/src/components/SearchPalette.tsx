@@ -147,15 +147,24 @@ export function SearchPalette() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
 
-  useEffect(() => {
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
     if (open) {
       setQuery('');
       setActiveIndex(0);
-      requestAnimationFrame(() => inputRef.current?.focus());
     }
-  }, [open]);
+  }
 
-  useEffect(() => setActiveIndex(0), [query]);
+  const [prevQuery, setPrevQuery] = useState(query);
+  if (query !== prevQuery) {
+    setPrevQuery(query);
+    setActiveIndex(0);
+  }
+
+  useEffect(() => {
+    if (open) requestAnimationFrame(() => inputRef.current?.focus());
+  }, [open]);
 
   function go(entry: SearchEntry) {
     navigate(entry.path);

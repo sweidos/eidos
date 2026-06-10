@@ -140,19 +140,22 @@ if ('queued' in result) {
 }
 
 function RetryCountdown({ nextRetryAt }: { nextRetryAt: number }) {
-  const [secs, setSecs] = useState(Math.max(0, Math.ceil((nextRetryAt - Date.now()) / 1000)));
+  const [secs, setSecs] = useState<number | null>(null);
 
   useEffect(() => {
-    if (secs <= 0) return;
-    const id = setInterval(() => {
+    const tick = () => {
       const remaining = Math.max(0, Math.ceil((nextRetryAt - Date.now()) / 1000));
       setSecs(remaining);
-      if (remaining === 0) clearInterval(id);
+      return remaining;
+    };
+    if (tick() <= 0) return;
+    const id = setInterval(() => {
+      if (tick() <= 0) clearInterval(id);
     }, 500);
     return () => clearInterval(id);
-  }, [nextRetryAt, secs]);
+  }, [nextRetryAt]);
 
-  if (secs <= 0) return null;
+  if (secs === null || secs <= 0) return null;
   return <span className="text-eidos-blue">retry in {secs}s</span>;
 }
 
