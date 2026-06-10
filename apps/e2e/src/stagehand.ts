@@ -1,7 +1,7 @@
 import { Stagehand } from '@browserbasehq/stagehand'
 
 export const PLAYGROUND_URL =
-  process.env.PLAYGROUND_URL ?? 'https://playground-iamadi11s-projects.vercel.app'
+  process.env.PLAYGROUND_URL ?? 'https://sweidos.vercel.app'
 
 export function createStagehand() {
   const apiKey = process.env.BROWSERBASE_API_KEY
