@@ -273,7 +273,13 @@ async function _replayTier(
 async function _doReplayQueue(store: ReturnType<typeof useEidosStore.getState>): Promise<ReplayResult> {
   const candidates = await qs().getPending()
   const now = Date.now()
-  const pending = candidates.filter((item) => !item.nextRetryAt || item.nextRetryAt <= now)
+  // getPending() includes 'failed' items (for UI/queue-stats visibility), but
+  // items that already exhausted maxRetries must not be auto-replayed again —
+  // otherwise every reconnect re-executes the action and re-fires onRollback.
+  // Those items stay 'failed' until the host app explicitly clears/re-queues them.
+  const pending = candidates.filter(
+    (item) => item.retryCount < item.maxRetries && (!item.nextRetryAt || item.nextRetryAt <= now),
+  )
 
   const result: ReplayResult = { attempted: 0, succeeded: 0, failed: 0, retrying: 0, skipped: 0, conflicted: 0 }
 

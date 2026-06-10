@@ -6,6 +6,14 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.0.33] — 2026-06-10
+
+### Fixed
+
+- **`replayQueue()` no longer re-executes permanently failed `neverLose` actions.** Previously, items whose `retryCount` had reached `maxRetries` (status `'failed'`) were still returned by `getPending()` for queue-stats/UI purposes, but `replayQueue()` would also pick them up on every reconnect — re-running the action and re-firing `onRollback` indefinitely. Items that have exhausted retries now stay untouched until the host app explicitly clears or re-queues them.
+
+---
+
 ## [1.0.32] — 2026-06-10
 
 ### Changed

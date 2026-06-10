@@ -254,6 +254,37 @@ describe('replayQueue', () => {
     expect(item?.status).toBe('failed')
     expect(item?.retryCount).toBe(1)
   })
+
+  it('does not re-execute or re-rollback an item already marked failed', async () => {
+    let calls = 0
+    const onRollback = vi.fn()
+    const fn = vi.fn().mockImplementation(async () => {
+      calls++
+      throw new Error('always fails')
+    })
+    const wrapped = action(fn, {
+      reliability: 'neverLose',
+      name: 'rq-no-rereplay',
+      maxRetries: 1,
+      onRollback,
+    })
+
+    useEidosStore.setState({ isOnline: false, swStatus: 'active', resources: {}, queue: [] })
+    await wrapped('x')
+
+    useEidosStore.setState({ isOnline: true })
+
+    // First replay exhausts maxRetries → status 'failed', onRollback called once
+    await replayQueue()
+    expect(calls).toBe(1)
+    expect(onRollback).toHaveBeenCalledTimes(1)
+
+    // Subsequent replays (e.g. on later reconnects) must skip the failed item
+    await replayQueue()
+    await replayQueue()
+    expect(calls).toBe(1)
+    expect(onRollback).toHaveBeenCalledTimes(1)
+  })
 })
 
 // ── priority ──────────────────────────────────────────────────────────────────
