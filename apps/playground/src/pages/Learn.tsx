@@ -601,9 +601,17 @@ resource('/api/feed', { offline: true, strategy: 'network-first' })`}
                   items={[
                     'GET requests are cached; actions are queued separately through IndexedDB.',
                     'Module-scope actions are required so replay can re-register them after refresh.',
-                    'The full README carries the exhaustive API details and architecture notes.',
                   ]}
                 />
+                <a
+                  href="https://github.com/iamadi11/eidos/blob/main/README.md"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between rounded-lg border border-eidos-border px-3 py-2 text-sm text-eidos-text-dim transition-colors hover:border-eidos-accent hover:text-eidos-text"
+                >
+                  <span>Full API reference (README on GitHub)</span>
+                  <ExternalLink size={11} className="shrink-0 text-eidos-muted" />
+                </a>
               </div>
             </Collapse>
           </div>
@@ -619,7 +627,10 @@ resource('/api/feed', { offline: true, strategy: 'network-first' })`}
 
           <div className="grid gap-3 md:grid-cols-2">
             {[
-              { label: 'Project README', href: 'https://sweidos.vercel.app/overview' },
+              {
+                label: 'Project README',
+                href: 'https://github.com/iamadi11/eidos/blob/main/README.md',
+              },
               {
                 label: 'MDN - Service Worker API',
                 href: 'https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API',
