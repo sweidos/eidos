@@ -232,7 +232,10 @@ export function SearchPalette() {
 
             <ul className="max-h-80 overflow-y-auto p-2">
               {results.length === 0 && (
-                <li className="px-3 py-6 text-center text-sm text-eidos-muted">No matches.</li>
+                <li className="px-3 py-6 text-center text-sm text-eidos-muted">
+                  No matches for &ldquo;{query}&rdquo;. Try &ldquo;resource&rdquo;,
+                  &ldquo;action&rdquo;, or &ldquo;hooks&rdquo;.
+                </li>
               )}
               {results.map((entry, i) => (
                 <li key={`${entry.label}-${entry.path}`}>
