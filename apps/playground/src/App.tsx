@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { Analytics } from '@vercel/analytics/react'
 import { Header } from './components/Header'
 
 const Demo      = lazy(() => import('./pages/Demo').then(m => ({ default: m.Demo })))
@@ -43,6 +44,7 @@ export function App() {
           </Suspense>
         </main>
       </div>
+      <Analytics />
     </BrowserRouter>
   )
 }
