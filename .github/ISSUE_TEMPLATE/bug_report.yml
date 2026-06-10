@@ -1,0 +1,53 @@
+name: Bug report
+description: Report something that isn't working as expected
+labels: ["bug"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: A clear description of the bug. Include error messages if any.
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction
+      description: |
+        Minimal steps to reproduce, or a link to a repo / StackBlitz that reproduces it.
+        For service-worker / cache issues, please include the `resource()`/`action()` declarations involved.
+      placeholder: |
+        1. resource('/api/foo', { offline: true })
+        2. ...
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: "@sweidos/eidos version"
+      placeholder: "1.0.32"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: framework
+    attributes:
+      label: Framework
+      options:
+        - React
+        - Next.js (App Router)
+        - SvelteKit
+        - Vue
+        - React Native
+        - Vanilla JS
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser / environment
+      placeholder: "Chrome 124, macOS 14"

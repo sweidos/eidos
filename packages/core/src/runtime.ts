@@ -78,7 +78,7 @@ export async function initEidos(config: EidosConfig = {}): Promise<void> {
 
   if (import.meta.env.DEV) {
     const store = useEidosStore.getState()
-    console.groupCollapsed('%c⚡ Eidos', 'color:#38bdf8;font-weight:bold')
+    console.groupCollapsed('%c⚡ Eidos', 'color:#22C55E;font-weight:bold')
     console.log('SW path    :', swPath)
     console.log('Auto-replay:', autoReplay)
     console.log('SW status  :', store.swStatus)

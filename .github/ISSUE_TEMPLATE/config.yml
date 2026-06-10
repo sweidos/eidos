@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://sweidos.vercel.app/overview
+    about: Check the docs and live playground before filing an issue.
+  - name: Security vulnerability
+    url: https://github.com/iamadi11/eidos/security/advisories/new
+    about: Please report security issues privately, not as a public issue.
