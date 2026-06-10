@@ -44,43 +44,43 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
-      "require": "./dist/eidos.cjs",
-      "types": "./dist/index.d.ts"
+      "require": "./dist/eidos.cjs"
     },
     "./sw": {
       "default": "./dist/eidos-sw.js"
     },
     "./vite": {
+      "types": "./dist/vite.d.ts",
       "import": "./dist/vite.js",
-      "require": "./dist/vite.cjs",
-      "types": "./dist/vite.d.ts"
+      "require": "./dist/vite.cjs"
     },
     "./query": {
+      "types": "./dist/query.d.ts",
       "import": "./dist/query.js",
-      "require": "./dist/query.cjs",
-      "types": "./dist/query.d.ts"
+      "require": "./dist/query.cjs"
     },
     "./testing": {
+      "types": "./dist/testing.d.ts",
       "import": "./dist/testing.js",
-      "require": "./dist/testing.cjs",
-      "types": "./dist/testing.d.ts"
+      "require": "./dist/testing.cjs"
     },
     "./nextjs": {
-      "import": "./dist/nextjs.js",
-      "types": "./dist/nextjs.d.ts"
+      "types": "./dist/nextjs.d.ts",
+      "import": "./dist/nextjs.js"
     },
     "./sveltekit": {
-      "import": "./dist/sveltekit.js",
-      "types": "./dist/sveltekit.d.ts"
+      "types": "./dist/sveltekit.d.ts",
+      "import": "./dist/sveltekit.js"
     },
     "./devtools": {
-      "import": "./dist/devtools.js",
-      "types": "./dist/devtools.d.ts"
+      "types": "./dist/devtools.d.ts",
+      "import": "./dist/devtools.js"
     },
     "./react-native": {
-      "import": "./dist/react-native.js",
-      "types": "./dist/react-native.d.ts"
+      "types": "./dist/react-native.d.ts",
+      "import": "./dist/react-native.js"
     }
   },
   "files": [

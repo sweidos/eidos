@@ -1,6 +1,8 @@
 import { Card, CardHeader } from '../../components/Card';
 import { CodeBlock } from '../../components/CodeBlock';
-import { BulletList, SectionHeading } from './shared';
+import { BulletList, OnThisPage, SectionHeading, slugify } from './shared';
+
+const SECTIONS = ['React hooks', 'Framework-agnostic stores'];
 
 export function Hooks() {
   return (
@@ -12,8 +14,10 @@ export function Hooks() {
         description="Use the narrower hook whenever you can; reach for the full store only when you need a broad snapshot."
       />
 
+      <OnThisPage items={SECTIONS} />
+
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="h-full">
+        <Card className="h-full scroll-mt-20" id={slugify(SECTIONS[0])}>
           <CardHeader
             title="React hooks"
             description="The common set you’ll use for status, cache state, and queue counters."
@@ -36,7 +40,7 @@ useEidosOnDrain(() => toast.success('All offline actions synced'))`}
           />
         </Card>
 
-        <Card className="h-full">
+        <Card className="h-full scroll-mt-20" id={slugify(SECTIONS[1])}>
           <CardHeader
             title="Framework-agnostic stores"
             description="Svelte, Vue, and vanilla JS can subscribe to the same store primitives."

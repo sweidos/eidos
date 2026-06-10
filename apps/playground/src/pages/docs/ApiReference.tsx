@@ -1,6 +1,8 @@
 import { Card, CardHeader } from '../../components/Card';
 import { CodeBlock } from '../../components/CodeBlock';
-import { BulletList, SectionHeading } from './shared';
+import { BulletList, OnThisPage, SectionHeading, slugify } from './shared';
+
+const SECTIONS = ['resource(url, config)', 'action(fn, config)', 'EidosProvider', 'replayQueue()'];
 
 export function ApiReference() {
   return (
@@ -12,8 +14,10 @@ export function ApiReference() {
         description="These cards keep one idea per surface so the mental model stays lightweight."
       />
 
+      <OnThisPage items={SECTIONS} />
+
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="h-full">
+        <Card className="h-full scroll-mt-20" id={slugify(SECTIONS[0])}>
           <CardHeader
             title="resource(url, config)"
             description="Register a GET endpoint as offline-capable and let Eidos pick the cache strategy."
@@ -41,7 +45,7 @@ const data = await products.json<Product[]>()`}
           />
         </Card>
 
-        <Card className="h-full">
+        <Card className="h-full scroll-mt-20" id={slugify(SECTIONS[1])}>
           <CardHeader
             title="action(fn, config)"
             description="Wrap async mutations so offline writes are persisted and replayed later."
@@ -80,7 +84,7 @@ const data = await products.json<Product[]>()`}
           />
         </Card>
 
-        <Card className="h-full">
+        <Card className="h-full scroll-mt-20" id={slugify(SECTIONS[2])}>
           <CardHeader
             title="EidosProvider"
             description="Register the SW and hydrate the runtime once near the root of the app."
@@ -106,7 +110,7 @@ const data = await products.json<Product[]>()`}
           />
         </Card>
 
-        <Card className="h-full">
+        <Card className="h-full scroll-mt-20" id={slugify(SECTIONS[3])}>
           <CardHeader
             title="replayQueue()"
             description="Trigger queue replay yourself when you want a manual recovery action."
