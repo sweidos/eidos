@@ -2,6 +2,7 @@ import { Wifi, WifiOff, Cpu, Github, ExternalLink } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useEidosStatus, useEidosQueueStats, setOfflineSimulation, VERSION } from '@sweidos/eidos';
 import { useState } from 'react';
+import { SearchPalette } from './SearchPalette';
 
 const TABS = [
   { path: '/overview', label: 'overview' },
@@ -58,6 +59,8 @@ export function Header() {
 
         {/* Status chips */}
         <div className="flex flex-wrap items-center gap-2 text-2xs sm:justify-end">
+          <SearchPalette />
+
           <span
             className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 ${
               swStatus === 'active'
