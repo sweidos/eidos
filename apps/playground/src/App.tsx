@@ -8,6 +8,14 @@ const Actions   = lazy(() => import('./pages/Actions').then(m => ({ default: m.A
 const Inspector = lazy(() => import('./pages/Inspector').then(m => ({ default: m.Inspector })))
 const Learn     = lazy(() => import('./pages/Learn').then(m => ({ default: m.Learn })))
 
+function RouteFallback() {
+  return (
+    <div className="mx-auto flex max-w-6xl items-center justify-center px-4 py-24">
+      <div className="h-5 w-5 animate-spin rounded-full border-2 border-eidos-border border-t-eidos-accent" />
+    </div>
+  )
+}
+
 export function App() {
   return (
     <BrowserRouter>
@@ -20,7 +28,7 @@ export function App() {
       <div className="flex min-h-dvh flex-col overflow-hidden bg-eidos-bg">
         <Header />
         <main id="main-content" className="flex-1 overflow-y-auto">
-          <Suspense>
+          <Suspense fallback={<RouteFallback />}>
             <Routes>
               <Route path="/" element={<Navigate to="/overview" replace />} />
               <Route path="/overview" element={<Demo />} />
