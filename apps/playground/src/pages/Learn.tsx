@@ -178,6 +178,29 @@ export function Learn() {
           </div>
         </Card>
 
+        <nav
+          aria-label="On this page"
+          className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 lg:hidden"
+        >
+          {quickLinks.map((link) => {
+            const active = activeId === link.href.slice(1);
+            return (
+              <a
+                key={link.href}
+                href={link.href}
+                aria-current={active ? 'true' : undefined}
+                className={`shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-xs transition-colors ${
+                  active
+                    ? 'border-eidos-accent bg-eidos-accent-dim text-eidos-text'
+                    : 'border-eidos-border text-eidos-text-dim hover:border-eidos-accent hover:text-eidos-text'
+                }`}
+              >
+                {link.label}
+              </a>
+            );
+          })}
+        </nav>
+
         <section id="quick-start" className="space-y-3">
           <SectionHeading
             id="quick-start"
