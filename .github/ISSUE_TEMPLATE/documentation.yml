@@ -1,0 +1,26 @@
+name: Documentation
+description: Report missing, unclear, or incorrect docs
+labels: ["documentation"]
+body:
+  - type: textarea
+    id: location
+    attributes:
+      label: Where?
+      description: Link to the README section, docs page (sweidos.vercel.app), or source file.
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What's wrong or missing?
+    validations:
+      required: true
+
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested fix
+      description: Optional — proposed wording, example, or correction.
+    validations:
+      required: false

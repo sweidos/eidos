@@ -3,6 +3,9 @@
 Thanks for taking the time to contribute! This is a pnpm monorepo containing the
 core library, a Vite-based playground, and a couple of supporting packages.
 
+By participating in this project, you agree to abide by the
+[Code of Conduct](CODE_OF_CONDUCT.md).
+
 ## Project layout
 
 ```

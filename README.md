@@ -2,7 +2,7 @@
 
 [![npm version](https://img.shields.io/npm/v/@sweidos/eidos?color=22C55E&label=npm)](https://www.npmjs.com/package/@sweidos/eidos)
 [![npm downloads](https://img.shields.io/npm/dm/@sweidos/eidos?color=22C55E)](https://www.npmjs.com/package/@sweidos/eidos)
-[![bundle size](https://img.shields.io/bundlephobia/minzip/@sweidos/eidos?label=minzip&color=22C55E)](https://bundlephobia.com/package/@sweidos/eidos)
+[![bundle size](https://deno.bundlejs.com/badge?q=@sweidos/eidos&badge=detailed&color=22C55E)](https://bundlejs.com/?q=@sweidos/eidos)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-22C55E)](https://www.typescriptlang.org/)
 [![CI](https://github.com/iamadi11/eidos/actions/workflows/deploy.yml/badge.svg)](https://github.com/iamadi11/eidos/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-22C55E.svg)](LICENSE)
