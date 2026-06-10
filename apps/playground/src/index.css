@@ -6,20 +6,26 @@
 @tailwind utilities;
 
 @layer base {
-  *, *::before, *::after { box-sizing: border-box; }
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
 
   html {
     scroll-behavior: smooth;
   }
 
-  html, body, #root {
+  html,
+  body,
+  #root {
     height: 100%;
     margin: 0;
     padding: 0;
     background:
       radial-gradient(circle at top, rgba(56, 189, 248, 0.08), transparent 30%),
       linear-gradient(180deg, #08111d 0%, #0f172a 45%, #0b1220 100%);
-    color: #F8FAFC;
+    color: #f8fafc;
     font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
     font-size: 16px;
     line-height: 1.65;
@@ -27,29 +33,47 @@
   }
 
   /* Slim scrollbars without making content feel cramped */
-  ::-webkit-scrollbar            { width: 4px; height: 4px; }
-  ::-webkit-scrollbar-track      { background: transparent; }
-  ::-webkit-scrollbar-thumb      { background: #475569; }
-  ::-webkit-scrollbar-thumb:hover{ background: #64748b; }
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #475569;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #64748b;
+  }
 
   /* Selection color — subtle blue-green accent */
-  ::selection { background: rgba(34, 197, 94, 0.25); color: #F8FAFC; }
+  ::selection {
+    background: rgba(34, 197, 94, 0.25);
+    color: #f8fafc;
+  }
 
   /* Focus rings — visible but restrained */
   :focus-visible {
-    outline: 1px solid #22C55E;
+    outline: 1px solid #22c55e;
     outline-offset: 2px;
   }
 }
 
 @layer utilities {
-  .font-tabular { font-variant-numeric: tabular-nums; }
-  .text-balance  { text-wrap: balance; }
+  .font-tabular {
+    font-variant-numeric: tabular-nums;
+  }
+  .text-balance {
+    text-wrap: balance;
+  }
 }
 
 /* Respect prefers-reduced-motion — disable all custom animations */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;

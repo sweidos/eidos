@@ -4,7 +4,7 @@
 //
 // Usage:
 //   import { EidosProvider, useEidosStatus } from '@sweidos/eidos/nextjs'
-export { EidosProvider } from '@sweidos/eidos'
+export { EidosProvider } from '@sweidos/eidos';
 export {
   useEidos,
   useEidosStatus,
@@ -13,4 +13,4 @@ export {
   useEidosResource,
   useEidosAction,
   useEidosOnDrain,
-} from '@sweidos/eidos'
+} from '@sweidos/eidos';

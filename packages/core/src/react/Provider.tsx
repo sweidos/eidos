@@ -1,8 +1,8 @@
-import { useEffect, type ReactNode } from 'react'
-import { initEidos, type EidosConfig } from '../runtime'
+import { useEffect, type ReactNode } from 'react';
+import { initEidos, type EidosConfig } from '../runtime';
 
 interface EidosProviderProps extends EidosConfig {
-  children: ReactNode
+  children: ReactNode;
 }
 
 /**
@@ -16,10 +16,10 @@ interface EidosProviderProps extends EidosConfig {
  */
 export function EidosProvider({ children, swPath, autoReplay }: EidosProviderProps) {
   useEffect(() => {
-    initEidos({ swPath, autoReplay })
+    initEidos({ swPath, autoReplay });
     // Run once on mount only
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, []);
 
-  return <>{children}</>
+  return <>{children}</>;
 }

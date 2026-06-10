@@ -1,13 +1,13 @@
-import { copyFileSync, existsSync, mkdirSync } from 'fs'
-import { resolve, dirname } from 'path'
-import type { Plugin, ViteDevServer } from 'vite'
+import { copyFileSync, existsSync, mkdirSync } from 'fs';
+import { resolve, dirname } from 'path';
+import type { Plugin, ViteDevServer } from 'vite';
 
 export interface EidosPluginOptions {
   /**
    * Destination path for the service worker, relative to the project root.
    * @default 'public/eidos-sw.js'
    */
-  swDest?: string
+  swDest?: string;
 }
 
 /**
@@ -29,34 +29,34 @@ export interface EidosPluginOptions {
  * ```
  */
 export function eidos(options?: EidosPluginOptions): Plugin {
-  const swDest = options?.swDest ?? 'public/eidos-sw.js'
+  const swDest = options?.swDest ?? 'public/eidos-sw.js';
 
   function copySW(root: string): void {
-    const src = resolve(root, 'node_modules/@sweidos/eidos/dist/eidos-sw.js')
+    const src = resolve(root, 'node_modules/@sweidos/eidos/dist/eidos-sw.js');
 
     if (!existsSync(src)) {
       console.warn(
         '[eidos-vite] Could not locate eidos-sw.js in node_modules. ' +
           'Make sure @sweidos/eidos is installed.',
-      )
-      return
+      );
+      return;
     }
 
-    const dest = resolve(root, swDest)
-    const destDir = dirname(dest)
-    if (!existsSync(destDir)) mkdirSync(destDir, { recursive: true })
+    const dest = resolve(root, swDest);
+    const destDir = dirname(dest);
+    if (!existsSync(destDir)) mkdirSync(destDir, { recursive: true });
 
-    copyFileSync(src, dest)
-    console.log(`[eidos-vite] eidos-sw.js → ${swDest} ✓`)
+    copyFileSync(src, dest);
+    console.log(`[eidos-vite] eidos-sw.js → ${swDest} ✓`);
   }
 
   return {
     name: 'eidos',
     buildStart() {
-      copySW(process.cwd())
+      copySW(process.cwd());
     },
     configureServer(server: ViteDevServer) {
-      copySW(server.config.root)
+      copySW(server.config.root);
     },
-  }
+  };
 }

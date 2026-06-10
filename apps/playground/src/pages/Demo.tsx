@@ -1,33 +1,56 @@
-import { useState, useEffect, useRef, useCallback, memo } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { RefreshCw, ShoppingCart, CheckCircle, WifiOff, ArrowRight, Clock, Zap, ArrowUp, AlertTriangle, X, Github } from 'lucide-react'
-import { useEidosQueue, useEidosQueueStats, useEidosStatus, useEidosResource, useEidosStore, replayQueue } from '@sweidos/eidos'
-import type { ResourceEntry } from '@sweidos/eidos'
-import { Card, CardHeader } from '../components/Card'
-import { CodeBlock } from '../components/CodeBlock'
-import { productsResource, createOrder, type Product } from '../lib/eidos'
+import { useState, useEffect, useRef, useCallback, memo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  RefreshCw,
+  ShoppingCart,
+  CheckCircle,
+  WifiOff,
+  ArrowRight,
+  Clock,
+  Zap,
+  ArrowUp,
+  AlertTriangle,
+  X,
+  Github,
+} from 'lucide-react';
+import {
+  useEidosQueue,
+  useEidosQueueStats,
+  useEidosStatus,
+  useEidosResource,
+  useEidosStore,
+  replayQueue,
+} from '@sweidos/eidos';
+import type { ResourceEntry } from '@sweidos/eidos';
+import { Card, CardHeader } from '../components/Card';
+import { CodeBlock } from '../components/CodeBlock';
+import { productsResource, createOrder, type Product } from '../lib/eidos';
 
 // ── Event feed types ──────────────────────────────────────────────────────────
 
 interface SwEvent {
-  id: string
-  time: string
-  kind: 'HIT' | 'STORE' | 'ERR' | 'QUEUE' | 'REPLAY' | 'SW' | 'INFO'
-  msg: string
+  id: string;
+  time: string;
+  kind: 'HIT' | 'STORE' | 'ERR' | 'QUEUE' | 'REPLAY' | 'SW' | 'INFO';
+  msg: string;
 }
 
 const KIND_COLOR: Record<SwEvent['kind'], string> = {
-  HIT:   'text-eidos-accent',
+  HIT: 'text-eidos-accent',
   STORE: 'text-eidos-blue',
-  ERR:   'text-eidos-red',
+  ERR: 'text-eidos-red',
   QUEUE: 'text-eidos-amber',
-  REPLAY:'text-eidos-accent',
-  SW:    'text-eidos-muted',
-  INFO:  'text-eidos-text-dim',
-}
+  REPLAY: 'text-eidos-accent',
+  SW: 'text-eidos-muted',
+  INFO: 'text-eidos-text-dim',
+};
 
-function uid()  { return Math.random().toString(36).slice(2, 7) }
-function now()  { return new Date().toLocaleTimeString('en', { hour12: false }) }
+function uid() {
+  return Math.random().toString(36).slice(2, 7);
+}
+function now() {
+  return new Date().toLocaleTimeString('en', { hour12: false });
+}
 
 // ── Module-scope constants (not recreated on every render) ────────────────────
 
@@ -35,13 +58,14 @@ const HERO_STEPS = [
   'Fetch the product list while online, then turn offline simulation on.',
   'Submit an order and watch it move into the queue.',
   'Open docs for a shorter explanation of each API surface.',
-] as const
+] as const;
 
 const EXAMPLES = [
   {
     badge: 'resource()',
     title: 'Cache the product catalog',
-    description: 'Register a GET endpoint once and let the runtime keep it fresh in the background.',
+    description:
+      'Register a GET endpoint once and let the runtime keep it fresh in the background.',
     code: `import { resource } from '@sweidos/eidos'
 
 export const products = resource('/api/products', {
@@ -53,7 +77,8 @@ const data = await products.json<Product[]>()`,
   {
     badge: 'action()',
     title: 'Queue writes when offline',
-    description: 'Persist order submissions to IndexedDB and replay them when the connection returns.',
+    description:
+      'Persist order submissions to IndexedDB and replay them when the connection returns.',
     code: `export const createOrder = action(
   async (payload: OrderPayload) => {
     const res = await fetch('/api/orders', {
@@ -80,7 +105,8 @@ const mutation = useEidosMutation(createOrder, {
   {
     badge: 'testing',
     title: 'Simulate offline and replay',
-    description: 'Toggle the runtime into offline mode, then bring the queue back with a single call.',
+    description:
+      'Toggle the runtime into offline mode, then bring the queue back with a single call.',
     code: `setOfflineSimulation(true)
 
 await createOrder({
@@ -94,7 +120,8 @@ await replayQueue()`,
   {
     badge: 'patterns',
     title: 'Register an entire route family',
-    description: 'One wildcard declaration intercepts every matching URL — no per-route setup needed.',
+    description:
+      'One wildcard declaration intercepts every matching URL — no per-route setup needed.',
     code: `// * matches one segment, ** matches anything
 resource('/api/products/*', { offline: true })
 // → /api/products/1, /api/products/abc
@@ -111,7 +138,8 @@ resource('https://cdn.example.com/assets/**', {
   {
     badge: 'before / after',
     title: 'What it replaces',
-    description: 'Eidos generates the service-worker rules and the retry logic so you never write them by hand.',
+    description:
+      'Eidos generates the service-worker rules and the retry logic so you never write them by hand.',
     code: `// ✗ before — 40+ lines of Workbox config
 registerRoute(/\\/api\\/products/, new StaleWhileRevalidate({
   cacheName: 'api-cache',
@@ -125,39 +153,44 @@ self.addEventListener('sync', ev => {
 resource('/api/products', { offline: true })
 action(createOrder, { reliability: 'neverLose' })`,
   },
-] as const
+] as const;
 
 // ── Demo Page ─────────────────────────────────────────────────────────────────
 
 export function Demo() {
-  const navigate = useNavigate()
-  const [events, setEvents] = useState<SwEvent[]>([])
-  const evRef = useRef<SwEvent[]>([])
-  const { isOnline, swStatus } = useEidosStatus()
-  const resourceEntry = useEidosResource('/api/products')
-  const { pending: pendingCount, replaying: replayingCount, total: queueTotal } = useEidosQueueStats()
-  const completedCount = queueTotal - pendingCount - replayingCount
+  const navigate = useNavigate();
+  const [events, setEvents] = useState<SwEvent[]>([]);
+  const evRef = useRef<SwEvent[]>([]);
+  const { isOnline, swStatus } = useEidosStatus();
+  const resourceEntry = useEidosResource('/api/products');
+  const {
+    pending: pendingCount,
+    replaying: replayingCount,
+    total: queueTotal,
+  } = useEidosQueueStats();
+  const completedCount = queueTotal - pendingCount - replayingCount;
 
   const emit = useCallback((kind: SwEvent['kind'], msg: string) => {
-    const e: SwEvent = { id: uid(), time: now(), kind, msg }
-    evRef.current = [e, ...evRef.current].slice(0, 80)
-    setEvents([...evRef.current])
-  }, [])
+    const e: SwEvent = { id: uid(), time: now(), kind, msg };
+    evRef.current = [e, ...evRef.current].slice(0, 80);
+    setEvents([...evRef.current]);
+  }, []);
 
-  const clearEvents = useCallback(() => setEvents([]), [])
+  const clearEvents = useCallback(() => setEvents([]), []);
 
   // Queue feed events — driven by active count (pending + replaying)
-  const activeCount = pendingCount + replayingCount
-  const prevActiveRef = useRef(0)
+  const activeCount = pendingCount + replayingCount;
+  const prevActiveRef = useRef(0);
   useEffect(() => {
-    if (activeCount > prevActiveRef.current) emit('QUEUE', 'createOrder queued → IndexedDB')
-    else if (activeCount < prevActiveRef.current && prevActiveRef.current > 0) emit('REPLAY', 'replayQueue() executed')
-    prevActiveRef.current = activeCount
-  }, [activeCount, emit])
+    if (activeCount > prevActiveRef.current) emit('QUEUE', 'createOrder queued → IndexedDB');
+    else if (activeCount < prevActiveRef.current && prevActiveRef.current > 0)
+      emit('REPLAY', 'replayQueue() executed');
+    prevActiveRef.current = activeCount;
+  }, [activeCount, emit]);
 
   useEffect(() => {
-    if (swStatus === 'active') emit('SW', 'eidos-sw.js activated · scope /')
-  }, [swStatus, emit])
+    if (swStatus === 'active') emit('SW', 'eidos-sw.js activated · scope /');
+  }, [swStatus, emit]);
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-6 lg:px-6 animate-fade-in">
@@ -189,8 +222,11 @@ export function Demo() {
             {/* Framework support */}
             <div className="flex flex-wrap items-center gap-1.5">
               <span className="text-2xs text-eidos-muted">works with</span>
-              {['React', 'Next.js', 'Svelte', 'Vue', 'React Native', 'Vanilla JS'].map(f => (
-                <span key={f} className="rounded-full border border-eidos-border px-2 py-0.5 text-2xs text-eidos-text-dim">
+              {['React', 'Next.js', 'Svelte', 'Vue', 'React Native', 'Vanilla JS'].map((f) => (
+                <span
+                  key={f}
+                  className="rounded-full border border-eidos-border px-2 py-0.5 text-2xs text-eidos-text-dim"
+                >
                   {f}
                 </span>
               ))}
@@ -222,11 +258,15 @@ export function Demo() {
 
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
             <div className="rounded-xl border border-eidos-border bg-eidos-surface p-4">
-              <div className="text-[10px] uppercase tracking-[0.24em] text-eidos-muted">live state</div>
+              <div className="text-[10px] uppercase tracking-[0.24em] text-eidos-muted">
+                live state
+              </div>
               <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
                 <div>
                   <div className="text-eidos-muted">network</div>
-                  <div className={`mt-1 font-semibold ${isOnline ? 'text-eidos-accent' : 'text-eidos-amber'}`}>
+                  <div
+                    className={`mt-1 font-semibold ${isOnline ? 'text-eidos-accent' : 'text-eidos-amber'}`}
+                  >
                     {isOnline ? 'online' : 'offline'}
                   </div>
                 </div>
@@ -236,17 +276,23 @@ export function Demo() {
                 </div>
                 <div>
                   <div className="text-eidos-muted">cache hits</div>
-                  <div className="mt-1 font-tabular font-semibold text-eidos-accent">{resourceEntry?.cacheHits ?? 0}</div>
+                  <div className="mt-1 font-tabular font-semibold text-eidos-accent">
+                    {resourceEntry?.cacheHits ?? 0}
+                  </div>
                 </div>
                 <div>
                   <div className="text-eidos-muted">queued</div>
-                  <div className="mt-1 font-tabular font-semibold text-eidos-amber">{pendingCount}</div>
+                  <div className="mt-1 font-tabular font-semibold text-eidos-amber">
+                    {pendingCount}
+                  </div>
                 </div>
               </div>
             </div>
 
             <div className="rounded-xl border border-eidos-border bg-eidos-surface p-4">
-              <div className="text-[10px] uppercase tracking-[0.24em] text-eidos-muted">what to try</div>
+              <div className="text-[10px] uppercase tracking-[0.24em] text-eidos-muted">
+                what to try
+              </div>
               <ul className="mt-3 space-y-3 text-xs leading-relaxed text-eidos-text-dim">
                 {HERO_STEPS.map((step, index) => (
                   <li key={step} className="flex gap-2">
@@ -270,16 +316,24 @@ export function Demo() {
         <div className="space-y-4">
           <Card className="p-0 overflow-hidden">
             <div className="border-b border-eidos-border bg-eidos-elevated/30 px-5 py-4">
-              <div className="text-[10px] uppercase tracking-[0.24em] text-eidos-muted">interactive demo</div>
-              <h3 className="mt-1 text-sm font-semibold text-eidos-text">Cache a resource and compare online vs offline behavior</h3>
+              <div className="text-[10px] uppercase tracking-[0.24em] text-eidos-muted">
+                interactive demo
+              </div>
+              <h3 className="mt-1 text-sm font-semibold text-eidos-text">
+                Cache a resource and compare online vs offline behavior
+              </h3>
             </div>
             <ProductsDemo onEmit={emit} resourceEntry={resourceEntry} isOnline={isOnline} />
           </Card>
 
           <Card className="p-0 overflow-hidden">
             <div className="border-b border-eidos-border bg-eidos-elevated/30 px-5 py-4">
-              <div className="text-[10px] uppercase tracking-[0.24em] text-eidos-muted">interactive demo</div>
-              <h3 className="mt-1 text-sm font-semibold text-eidos-text">Submit actions, queue them offline, and replay on reconnect</h3>
+              <div className="text-[10px] uppercase tracking-[0.24em] text-eidos-muted">
+                interactive demo
+              </div>
+              <h3 className="mt-1 text-sm font-semibold text-eidos-text">
+                Submit actions, queue them offline, and replay on reconnect
+              </h3>
             </div>
             <OrdersDemo onEmit={emit} isOnline={isOnline} />
           </Card>
@@ -296,13 +350,13 @@ export function Demo() {
         />
       </section>
     </div>
-  )
+  );
 }
 
 // ── Examples Grid — static content, memoized to avoid re-renders on state changes ──
 
 const ExamplesGrid = memo(function ExamplesGrid() {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
   return (
     <section className="space-y-3">
       <div className="flex items-end justify-between gap-4">
@@ -320,24 +374,24 @@ const ExamplesGrid = memo(function ExamplesGrid() {
         </button>
       </div>
       <div className="grid gap-4 md:grid-cols-2">
-        {EXAMPLES.map(example => (
+        {EXAMPLES.map((example) => (
           <Card key={example.title} className="h-full">
             <CardHeader
               title={example.title}
               description={example.description}
-              action={(
+              action={
                 <span className="rounded-full border border-eidos-border px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-eidos-muted">
                   {example.badge}
                 </span>
-              )}
+              }
             />
             <CodeBlock code={example.code} title={example.badge} />
           </Card>
         ))}
       </div>
     </section>
-  )
-})
+  );
+});
 
 // ── Eliminates Card — static, memoized ───────────────────────────────────────
 
@@ -350,18 +404,20 @@ const MANUAL = [
   'Reconnect listener + replay trigger',
   'Background Sync tag registration',
   'Cache versioning + stale cleanup',
-] as const
+] as const;
 
 const EIDOS_API = [
   { token: 'resource(url, { offline: true })', note: 'cache strategy auto-selected' },
   { token: "action(fn, { reliability: 'neverLose' })", note: 'queue + replay included' },
-] as const
+] as const;
 
 const EliminatesCard = memo(function EliminatesCard() {
   return (
     <section>
       <div className="mb-3">
-        <p className="text-[10px] uppercase tracking-[0.24em] text-eidos-muted">what eidos replaces</p>
+        <p className="text-[10px] uppercase tracking-[0.24em] text-eidos-muted">
+          what eidos replaces
+        </p>
         <h2 className="text-sm font-semibold text-eidos-text md:text-base">
           Eight manual concerns reduced to two declarations
         </h2>
@@ -377,7 +433,7 @@ const EliminatesCard = memo(function EliminatesCard() {
               <span className="ml-auto text-2xs text-eidos-muted">~200 lines across 3 files</span>
             </div>
             <ul className="space-y-2">
-              {MANUAL.map(item => (
+              {MANUAL.map((item) => (
                 <li key={item} className="flex items-start gap-2 text-xs text-eidos-text-dim">
                   <span className="mt-1 h-1 w-1 shrink-0 rounded-full bg-eidos-border" />
                   {item}
@@ -395,22 +451,25 @@ const EliminatesCard = memo(function EliminatesCard() {
             </div>
             <div className="space-y-3">
               {EIDOS_API.map(({ token, note }) => (
-                <div key={token} className="rounded-lg border border-eidos-border bg-eidos-bg px-3 py-2.5">
+                <div
+                  key={token}
+                  className="rounded-lg border border-eidos-border bg-eidos-bg px-3 py-2.5"
+                >
                   <code className="block font-mono text-2xs text-eidos-accent">{token}</code>
                   <span className="mt-1 block text-2xs text-eidos-muted">{note}</span>
                 </div>
               ))}
             </div>
             <p className="mt-4 text-2xs leading-relaxed text-eidos-text-dim">
-              Eidos generates the service worker rules, picks the cache strategy, persists
-              the queue, and replays on reconnect — no configuration required.
+              Eidos generates the service worker rules, picks the cache strategy, persists the
+              queue, and replays on reconnect — no configuration required.
             </p>
           </div>
         </div>
       </Card>
     </section>
-  )
-})
+  );
+});
 
 // ── Event Feed — memoized so re-renders are isolated to events/stats changes ──
 
@@ -423,19 +482,21 @@ const EventFeed = memo(function EventFeed({
   completedCount,
   swStatus,
 }: {
-  events: SwEvent[]
-  onClear: () => void
-  resourceEntry: ResourceEntry | undefined
-  pendingCount: number
-  replayingCount: number
-  completedCount: number
-  swStatus: string
+  events: SwEvent[];
+  onClear: () => void;
+  resourceEntry: ResourceEntry | undefined;
+  pendingCount: number;
+  replayingCount: number;
+  completedCount: number;
+  swStatus: string;
 }) {
   return (
     <Card className="flex h-full flex-col overflow-hidden p-0">
       <div className="flex items-start justify-between gap-3 border-b border-eidos-border px-4 py-3">
         <div>
-          <div className="text-[10px] uppercase tracking-[0.24em] text-eidos-muted">runtime feed</div>
+          <div className="text-[10px] uppercase tracking-[0.24em] text-eidos-muted">
+            runtime feed
+          </div>
           <p className="text-xs text-eidos-text-dim">
             Cache hits, queue updates, and service-worker status changes in one place.
           </p>
@@ -450,12 +511,13 @@ const EventFeed = memo(function EventFeed({
 
       <div className="flex-1 overflow-y-auto p-3 space-y-1">
         {events.length === 0 ? (
-          <div className="py-10 text-center text-xs text-eidos-muted">
-            waiting for activity...
-          </div>
+          <div className="py-10 text-center text-xs text-eidos-muted">waiting for activity...</div>
         ) : (
-          events.map(ev => (
-            <div key={ev.id} className="flex gap-2 text-xs leading-6 font-tabular animate-slide-right">
+          events.map((ev) => (
+            <div
+              key={ev.id}
+              className="flex gap-2 text-xs leading-6 font-tabular animate-slide-right"
+            >
               <span className="w-20 shrink-0 text-eidos-border">{ev.time}</span>
               <span className={`w-14 shrink-0 font-bold ${KIND_COLOR[ev.kind]}`}>{ev.kind}</span>
               <span className="truncate text-eidos-text-dim">{ev.msg}</span>
@@ -465,73 +527,91 @@ const EventFeed = memo(function EventFeed({
       </div>
 
       <div className="grid grid-cols-3 gap-2 border-t border-eidos-border px-4 py-3 text-xs">
-        {([
-          { label: 'cache hits', value: resourceEntry?.cacheHits ?? 0,                                                                                  tone: 'text-eidos-accent'  },
-          { label: 'queued',     value: pendingCount,                                                                                                    tone: 'text-eidos-amber'   },
-          { label: 'replaying',  value: replayingCount,                                                                                                  tone: 'text-eidos-blue'    },
-          { label: 'done',       value: completedCount,                                                                                                  tone: 'text-eidos-text'    },
-          { label: 'sw status',  value: swStatus,                                                                                                        tone: 'text-eidos-text'    },
-          { label: 'cached at',  value: resourceEntry?.cachedAt ? new Date(resourceEntry.cachedAt).toLocaleTimeString('en', { hour12: false }) : '—',    tone: 'text-eidos-text-dim' },
-        ] as const).map(({ label, value, tone }) => (
-          <div key={label} className="rounded-lg border border-eidos-border bg-eidos-bg/40 px-3 py-2">
+        {(
+          [
+            {
+              label: 'cache hits',
+              value: resourceEntry?.cacheHits ?? 0,
+              tone: 'text-eidos-accent',
+            },
+            { label: 'queued', value: pendingCount, tone: 'text-eidos-amber' },
+            { label: 'replaying', value: replayingCount, tone: 'text-eidos-blue' },
+            { label: 'done', value: completedCount, tone: 'text-eidos-text' },
+            { label: 'sw status', value: swStatus, tone: 'text-eidos-text' },
+            {
+              label: 'cached at',
+              value: resourceEntry?.cachedAt
+                ? new Date(resourceEntry.cachedAt).toLocaleTimeString('en', { hour12: false })
+                : '—',
+              tone: 'text-eidos-text-dim',
+            },
+          ] as const
+        ).map(({ label, value, tone }) => (
+          <div
+            key={label}
+            className="rounded-lg border border-eidos-border bg-eidos-bg/40 px-3 py-2"
+          >
             <div className="text-eidos-muted">{label}</div>
             <div className={`mt-1 font-tabular font-semibold truncate ${tone}`}>{value}</div>
           </div>
         ))}
       </div>
     </Card>
-  )
-})
+  );
+});
 
 // ── Products Demo ─────────────────────────────────────────────────────────────
 
-type EmitFn = (kind: SwEvent['kind'], msg: string) => void
+type EmitFn = (kind: SwEvent['kind'], msg: string) => void;
 
 const ProductsDemo = memo(function ProductsDemo({
   onEmit,
   resourceEntry,
   isOnline,
 }: {
-  onEmit: EmitFn
-  resourceEntry: ResourceEntry | undefined
-  isOnline: boolean
+  onEmit: EmitFn;
+  resourceEntry: ResourceEntry | undefined;
+  isOnline: boolean;
 }) {
-  const [products, setProducts] = useState<Product[] | null>(null)
-  const [loading,  setLoading]  = useState(false)
-  const [result,   setResult]   = useState<'hit' | 'miss' | 'offline' | 'error' | null>(null)
-  const [elapsed,  setElapsed]  = useState<number | null>(null)
+  const [products, setProducts] = useState<Product[] | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<'hit' | 'miss' | 'offline' | 'error' | null>(null);
+  const [elapsed, setElapsed] = useState<number | null>(null);
 
   async function fetch_() {
-    setLoading(true)
-    setResult(null)
-    setElapsed(null)
-    const t0 = performance.now()
+    setLoading(true);
+    setResult(null);
+    setElapsed(null);
+    const t0 = performance.now();
     try {
-      const data = await productsResource.json() as Product[]
-      const ms   = Math.round(performance.now() - t0)
-      if (!Array.isArray(data)) throw new Error('unexpected shape')
-      setProducts(data)
-      setElapsed(ms)
-      const entry = useEidosStore.getState().resources['/api/products']
-      const hit   = entry?.lastEvent === 'cache-hit'
-      setResult(hit ? 'hit' : 'miss')
-      onEmit(hit ? 'HIT' : 'STORE', `/api/products → ${hit ? 'cache hit' : 'fetched & cached'} · ${ms}ms`)
+      const data = (await productsResource.json()) as Product[];
+      const ms = Math.round(performance.now() - t0);
+      if (!Array.isArray(data)) throw new Error('unexpected shape');
+      setProducts(data);
+      setElapsed(ms);
+      const entry = useEidosStore.getState().resources['/api/products'];
+      const hit = entry?.lastEvent === 'cache-hit';
+      setResult(hit ? 'hit' : 'miss');
+      onEmit(
+        hit ? 'HIT' : 'STORE',
+        `/api/products → ${hit ? 'cache hit' : 'fetched & cached'} · ${ms}ms`,
+      );
     } catch (err) {
-      setElapsed(Math.round(performance.now() - t0))
-      const offline = String(err).includes('offline')
-      setResult(offline ? 'offline' : 'error')
-      onEmit('ERR', `/api/products → ${offline ? 'offline · no cache yet' : String(err)}`)
+      setElapsed(Math.round(performance.now() - t0));
+      const offline = String(err).includes('offline');
+      setResult(offline ? 'offline' : 'error');
+      onEmit('ERR', `/api/products → ${offline ? 'offline · no cache yet' : String(err)}`);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   async function clear() {
-    await productsResource.invalidate()
-    setProducts(null)
-    setResult(null)
-    setElapsed(null)
-    onEmit('INFO', '/api/products cache cleared')
+    await productsResource.invalidate();
+    setProducts(null);
+    setResult(null);
+    setElapsed(null);
+    onEmit('INFO', '/api/products cache cleared');
   }
 
   return (
@@ -544,11 +624,13 @@ const ProductsDemo = memo(function ProductsDemo({
             StaleWhileRevalidate
           </span>
           {elapsed !== null && (
-            <span className={`text-2xs font-tabular font-bold px-1.5 py-0.5 border animate-fade-in ${
-              result === 'hit'
-                ? 'text-eidos-accent border-eidos-accent/40 bg-eidos-accent-dim'
-                : 'text-eidos-blue border-eidos-blue/40 bg-eidos-blue-dim'
-            }`}>
+            <span
+              className={`text-2xs font-tabular font-bold px-1.5 py-0.5 border animate-fade-in ${
+                result === 'hit'
+                  ? 'text-eidos-accent border-eidos-accent/40 bg-eidos-accent-dim'
+                  : 'text-eidos-blue border-eidos-blue/40 bg-eidos-blue-dim'
+              }`}
+            >
               {elapsed}ms
             </span>
           )}
@@ -558,10 +640,12 @@ const ProductsDemo = memo(function ProductsDemo({
 
       {/* Declaration */}
       <div className="mb-4 rounded-lg border border-eidos-border bg-eidos-bg px-3 py-2 text-2xs text-eidos-text-dim leading-relaxed">
-        <span className="text-eidos-muted">resource</span>(<span className="text-eidos-accent">'/api/products'</span>, {'{ '}
-        <span className="text-eidos-text-dim">offline</span>: <span className="text-eidos-accent">true</span>
+        <span className="text-eidos-muted">resource</span>(
+        <span className="text-eidos-accent">{"'/api/products'"}</span>, {'{ '}
+        <span className="text-eidos-text-dim">offline</span>:{' '}
+        <span className="text-eidos-accent">true</span>
         {' }'})<br />
-        <span className="text-eidos-border">// → StaleWhileRevalidate · no maxAge</span>
+        <span className="text-eidos-border">{'// → StaleWhileRevalidate · no maxAge'}</span>
       </div>
 
       {/* Product list */}
@@ -572,14 +656,22 @@ const ProductsDemo = memo(function ProductsDemo({
           </div>
         )}
         {!loading && result === 'offline' && (
-          <div role="alert" className="flex flex-col items-center justify-center py-8 gap-1.5 text-center">
+          <div
+            role="alert"
+            className="flex flex-col items-center justify-center py-8 gap-1.5 text-center"
+          >
             <WifiOff size={16} className="text-eidos-amber" />
             <div className="text-2xs text-eidos-amber">offline · no cached response yet</div>
-            <div className="text-2xs text-eidos-muted">fetch while online first to populate the cache</div>
+            <div className="text-2xs text-eidos-muted">
+              fetch while online first to populate the cache
+            </div>
           </div>
         )}
         {!loading && result === 'error' && (
-          <div role="alert" className="flex flex-col items-center justify-center py-8 gap-1.5 text-center">
+          <div
+            role="alert"
+            className="flex flex-col items-center justify-center py-8 gap-1.5 text-center"
+          >
             <div className="text-2xs text-eidos-red">fetch failed · check network or try again</div>
           </div>
         )}
@@ -590,7 +682,7 @@ const ProductsDemo = memo(function ProductsDemo({
         )}
         {!loading && Array.isArray(products) && (
           <div className="border border-eidos-border divide-y divide-eidos-border">
-            {products.map(p => (
+            {products.map((p) => (
               <div key={p.id} className="flex items-center justify-between gap-4 px-3 py-2 text-xs">
                 <span className="text-eidos-text">{p.name}</span>
                 <div className="flex items-center gap-3">
@@ -624,66 +716,88 @@ const ProductsDemo = memo(function ProductsDemo({
 
       <div className="mt-3 text-2xs text-eidos-muted font-tabular">
         {resourceEntry?.cacheHits ?? 0} hits · {resourceEntry?.cacheMisses ?? 0} misses
-        {resourceEntry?.cachedAt ? ` · cached ${new Date(resourceEntry.cachedAt).toLocaleTimeString('en', { hour12: false })}` : ' · not cached yet'}
+        {resourceEntry?.cachedAt
+          ? ` · cached ${new Date(resourceEntry.cachedAt).toLocaleTimeString('en', { hour12: false })}`
+          : ' · not cached yet'}
         {!isOnline && ' · offline mode active'}
       </div>
     </div>
-  )
-})
+  );
+});
 
 function ResultBadge({ r }: { r: 'hit' | 'miss' | 'offline' | 'error' }) {
   const cfg = {
-    hit:     { icon: <Zap size={9} />,           text: 'cache hit',       cls: 'text-eidos-accent border-eidos-accent/40 bg-eidos-accent-dim' },
-    miss:    { icon: <ArrowUp size={9} />,        text: 'fetched & cached', cls: 'text-eidos-blue border-eidos-blue/40 bg-eidos-blue-dim' },
-    offline: { icon: <AlertTriangle size={9} />,  text: 'offline · no cache', cls: 'text-eidos-amber border-eidos-amber/40 bg-eidos-amber-dim' },
-    error:   { icon: <X size={9} />,              text: 'error',            cls: 'text-eidos-red border-eidos-red/40 bg-eidos-red-dim' },
-  }[r]
+    hit: {
+      icon: <Zap size={9} />,
+      text: 'cache hit',
+      cls: 'text-eidos-accent border-eidos-accent/40 bg-eidos-accent-dim',
+    },
+    miss: {
+      icon: <ArrowUp size={9} />,
+      text: 'fetched & cached',
+      cls: 'text-eidos-blue border-eidos-blue/40 bg-eidos-blue-dim',
+    },
+    offline: {
+      icon: <AlertTriangle size={9} />,
+      text: 'offline · no cache',
+      cls: 'text-eidos-amber border-eidos-amber/40 bg-eidos-amber-dim',
+    },
+    error: {
+      icon: <X size={9} />,
+      text: 'error',
+      cls: 'text-eidos-red border-eidos-red/40 bg-eidos-red-dim',
+    },
+  }[r];
   return (
-    <span className={`flex items-center gap-1 text-2xs border px-2 py-0.5 animate-fade-in ${cfg.cls}`}>
-      {cfg.icon}{cfg.text}
+    <span
+      className={`flex items-center gap-1 text-2xs border px-2 py-0.5 animate-fade-in ${cfg.cls}`}
+    >
+      {cfg.icon}
+      {cfg.text}
     </span>
-  )
+  );
 }
 
 // ── Orders Demo ───────────────────────────────────────────────────────────────
 
 const OrdersDemo = memo(function OrdersDemo({
-  onEmit, isOnline,
+  onEmit,
+  isOnline,
 }: {
-  onEmit: EmitFn
-  isOnline: boolean
+  onEmit: EmitFn;
+  isOnline: boolean;
 }) {
-  const navigate = useNavigate()
-  const queue    = useEidosQueue()
-  const [loading, setLoading] = useState(false)
-  const [result,  setResult]  = useState<{ text: string; ok: boolean } | null>(null)
+  const navigate = useNavigate();
+  const queue = useEidosQueue();
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<{ text: string; ok: boolean } | null>(null);
 
-  const pending = queue.filter(q => q.status === 'pending' || q.status === 'replaying')
+  const pending = queue.filter((q) => q.status === 'pending' || q.status === 'replaying');
 
   async function submit() {
-    setLoading(true)
-    setResult(null)
+    setLoading(true);
+    setResult(null);
     try {
-      const res = await createOrder({ productId: 1, quantity: 1, customerName: 'Demo User' })
+      const res = await createOrder({ productId: 1, quantity: 1, customerName: 'Demo User' });
       if ('queued' in res && res.queued) {
-        setResult({ text: `queued → IDB · will replay on reconnect`, ok: false })
-        onEmit('QUEUE', `createOrder → persisted to IndexedDB`)
+        setResult({ text: `queued → IDB · will replay on reconnect`, ok: false });
+        onEmit('QUEUE', `createOrder → persisted to IndexedDB`);
       } else {
-        const r = res as { id: string }
-        setResult({ text: `${r.id} confirmed`, ok: true })
-        onEmit('STORE', `createOrder → ${r.id}`)
+        const r = res as { id: string };
+        setResult({ text: `${r.id} confirmed`, ok: true });
+        onEmit('STORE', `createOrder → ${r.id}`);
       }
     } catch {
-      setResult({ text: 'request failed', ok: false })
-      onEmit('ERR', 'createOrder → network failure')
+      setResult({ text: 'request failed', ok: false });
+      onEmit('ERR', 'createOrder → network failure');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   async function replay() {
-    onEmit('REPLAY', `replayQueue() · ${pending.length} item(s)`)
-    await replayQueue()
+    onEmit('REPLAY', `replayQueue() · ${pending.length} item(s)`);
+    await replayQueue();
   }
 
   return (
@@ -691,23 +805,34 @@ const OrdersDemo = memo(function OrdersDemo({
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm font-bold text-eidos-text">orders</span>
-          <span className="text-2xs text-eidos-amber border border-eidos-amber/40 px-1.5 py-0.5">neverLose</span>
+          <span className="text-2xs text-eidos-amber border border-eidos-amber/40 px-1.5 py-0.5">
+            neverLose
+          </span>
         </div>
       </div>
 
       {/* Declaration */}
       <div className="mb-4 rounded-lg border border-eidos-border bg-eidos-bg px-3 py-2 text-2xs text-eidos-text-dim leading-relaxed">
-        <span className="text-eidos-muted">action</span>(<span className="text-eidos-text-dim">createOrder</span>, {'{ '}
-        <span className="text-eidos-text-dim">reliability</span>: <span className="text-eidos-amber">'neverLose'</span>
+        <span className="text-eidos-muted">action</span>(
+        <span className="text-eidos-text-dim">createOrder</span>, {'{ '}
+        <span className="text-eidos-text-dim">reliability</span>:{' '}
+        <span className="text-eidos-amber">{"'neverLose'"}</span>
         {' }'})<br />
-        <span className="text-eidos-border">// → IndexedDB queue · auto-replay on reconnect</span>
+        <span className="text-eidos-border">
+          {'// → IndexedDB queue · auto-replay on reconnect'}
+        </span>
       </div>
 
       {/* Result */}
       {result && (
-        <div role="alert" className={`flex items-center gap-2 text-2xs border px-3 py-2 mb-3 ${
-          result.ok ? 'border-eidos-accent/40 text-eidos-accent bg-eidos-accent-dim' : 'border-eidos-amber/40 text-eidos-amber bg-eidos-amber-dim'
-        }`}>
+        <div
+          role="alert"
+          className={`flex items-center gap-2 text-2xs border px-3 py-2 mb-3 ${
+            result.ok
+              ? 'border-eidos-accent/40 text-eidos-accent bg-eidos-accent-dim'
+              : 'border-eidos-amber/40 text-eidos-amber bg-eidos-amber-dim'
+          }`}
+        >
           {result.ok ? <CheckCircle size={11} /> : <Clock size={11} />}
           {result.text}
         </div>
@@ -721,18 +846,27 @@ const OrdersDemo = memo(function OrdersDemo({
           </div>
         ) : (
           <div className="border border-eidos-border divide-y divide-eidos-border">
-            {pending.map(item => (
-              <div key={item.id} className="flex items-center justify-between gap-4 px-3 py-2 text-xs">
+            {pending.map((item) => (
+              <div
+                key={item.id}
+                className="flex items-center justify-between gap-4 px-3 py-2 text-xs"
+              >
                 <div className="flex items-center gap-2">
                   <span className="h-1.5 w-1.5 animate-pulse-fast bg-eidos-amber" />
                   <span className="text-eidos-text">{item.actionName}</span>
-                  <span className="text-eidos-muted">retry {item.retryCount}/{item.maxRetries}</span>
+                  <span className="text-eidos-muted">
+                    retry {item.retryCount}/{item.maxRetries}
+                  </span>
                 </div>
-                <span className={`text-2xs border px-1.5 py-0.5 ${
-                  item.status === 'replaying'
-                    ? 'border-eidos-accent/40 text-eidos-accent'
-                    : 'border-eidos-amber/40 text-eidos-amber'
-                }`}>{item.status}</span>
+                <span
+                  className={`text-2xs border px-1.5 py-0.5 ${
+                    item.status === 'replaying'
+                      ? 'border-eidos-accent/40 text-eidos-accent'
+                      : 'border-eidos-amber/40 text-eidos-amber'
+                  }`}
+                >
+                  {item.status}
+                </span>
               </div>
             ))}
           </div>
@@ -765,5 +899,5 @@ const OrdersDemo = memo(function OrdersDemo({
         view full queue <ArrowRight size={9} />
       </button>
     </div>
-  )
-})
+  );
+});

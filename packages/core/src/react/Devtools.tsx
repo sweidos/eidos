@@ -1,18 +1,18 @@
-import { useState, useCallback } from 'react'
-import { useEidosStatus, useEidosQueue, useEidosQueueStats, useEidosResources } from './hooks'
-import { replayQueue, clearQueue } from '../action'
-import { setOfflineSimulation } from '../sw-bridge'
+import { useState, useCallback } from 'react';
+import { useEidosStatus, useEidosQueue, useEidosQueueStats, useEidosResources } from './hooks';
+import { replayQueue, clearQueue } from '../action';
+import { setOfflineSimulation } from '../sw-bridge';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface EidosDevtoolsProps {
   /** Corner to anchor the panel. Default: 'bottom-right'. */
-  position?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'
+  position?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
   /** Start expanded. Default: false. */
-  defaultOpen?: boolean
+  defaultOpen?: boolean;
 }
 
-type Tab = 'queue' | 'cache'
+type Tab = 'queue' | 'cache';
 
 // ── Colours ───────────────────────────────────────────────────────────────────
 
@@ -28,7 +28,7 @@ const C = {
   blue: '#3b82f6',
   purple: '#a855f7',
   cyan: '#06b6d4',
-} as const
+} as const;
 
 // ── Inline style helpers ──────────────────────────────────────────────────────
 
@@ -44,7 +44,7 @@ function pill(color: string): React.CSSProperties {
     color,
     border: `1px solid ${color}44`,
     fontFamily: 'inherit',
-  }
+  };
 }
 
 function btn(variant: 'ghost' | 'danger' | 'primary' = 'ghost'): React.CSSProperties {
@@ -57,69 +57,76 @@ function btn(variant: 'ghost' | 'danger' | 'primary' = 'ghost'): React.CSSProper
     fontWeight: 500,
     fontFamily: 'inherit',
     transition: 'opacity 0.15s',
-  }
-  if (variant === 'danger') return { ...base, background: `${C.red}22`, color: C.red }
-  if (variant === 'primary') return { ...base, background: `${C.blue}22`, color: C.blue }
-  return { ...base, background: C.surface, color: C.muted }
+  };
+  if (variant === 'danger') return { ...base, background: `${C.red}22`, color: C.red };
+  if (variant === 'primary') return { ...base, background: `${C.blue}22`, color: C.blue };
+  return { ...base, background: C.surface, color: C.muted };
 }
 
 // ── Status helpers ─────────────────────────────────────────────────────────────
 
 function swStatusColor(s: string) {
-  if (s === 'active') return C.green
-  if (s === 'registering') return C.yellow
-  if (s === 'error' || s === 'unsupported') return C.red
-  return C.muted
+  if (s === 'active') return C.green;
+  if (s === 'registering') return C.yellow;
+  if (s === 'error' || s === 'unsupported') return C.red;
+  return C.muted;
 }
 
 function queueStatusColor(s: string) {
-  if (s === 'succeeded') return C.green
-  if (s === 'failed') return C.red
-  if (s === 'replaying') return C.yellow
-  return C.blue
+  if (s === 'succeeded') return C.green;
+  if (s === 'failed') return C.red;
+  if (s === 'replaying') return C.yellow;
+  return C.blue;
 }
 
 function resourceStatusColor(s: string) {
-  if (s === 'fresh') return C.green
-  if (s === 'stale' || s === 'offline') return C.yellow
-  if (s === 'error') return C.red
-  if (s === 'fetching') return C.cyan
-  return C.muted
+  if (s === 'fresh') return C.green;
+  if (s === 'stale' || s === 'offline') return C.yellow;
+  if (s === 'error') return C.red;
+  if (s === 'fetching') return C.cyan;
+  return C.muted;
 }
 
 // ── Corner positions ──────────────────────────────────────────────────────────
 
 function positionStyle(p: EidosDevtoolsProps['position']): React.CSSProperties {
-  const base: React.CSSProperties = { position: 'fixed', zIndex: 99999 }
-  if (p === 'bottom-left') return { ...base, bottom: 16, left: 16 }
-  if (p === 'top-right') return { ...base, top: 16, right: 16 }
-  if (p === 'top-left') return { ...base, top: 16, left: 16 }
-  return { ...base, bottom: 16, right: 16 } // default: bottom-right
+  const base: React.CSSProperties = { position: 'fixed', zIndex: 99999 };
+  if (p === 'bottom-left') return { ...base, bottom: 16, left: 16 };
+  if (p === 'top-right') return { ...base, top: 16, right: 16 };
+  if (p === 'top-left') return { ...base, top: 16, left: 16 };
+  return { ...base, bottom: 16, right: 16 }; // default: bottom-right
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function EidosDevtools({ position = 'bottom-right', defaultOpen = false }: EidosDevtoolsProps) {
-  const [open, setOpen] = useState(defaultOpen)
-  const [tab, setTab] = useState<Tab>('queue')
-  const [simOffline, setSimOffline] = useState(false)
+export function EidosDevtools({
+  position = 'bottom-right',
+  defaultOpen = false,
+}: EidosDevtoolsProps) {
+  const [open, setOpen] = useState(defaultOpen);
+  const [tab, setTab] = useState<Tab>('queue');
+  const [simOffline, setSimOffline] = useState(false);
 
-  const { isOnline, swStatus, swError } = useEidosStatus()
-  const queue = useEidosQueue()
-  const { pending, failed, replaying } = useEidosQueueStats()
-  const resources = useEidosResources()
-  const resourceList = Object.values(resources)
+  const { isOnline, swStatus, swError } = useEidosStatus();
+  const queue = useEidosQueue();
+  const { pending, failed, replaying } = useEidosQueueStats();
+  const resources = useEidosResources();
+  const resourceList = Object.values(resources);
 
-  const badgeCount = pending + failed + replaying
+  const badgeCount = pending + failed + replaying;
 
   const toggleOffline = useCallback(() => {
-    const next = !simOffline
-    setSimOffline(next)
-    setOfflineSimulation(next)
-  }, [simOffline])
+    const next = !simOffline;
+    setSimOffline(next);
+    setOfflineSimulation(next);
+  }, [simOffline]);
 
-  const handleReplay = useCallback(() => { void replayQueue() }, [])
-  const handleClear = useCallback(() => { void clearQueue() }, [])
+  const handleReplay = useCallback(() => {
+    void replayQueue();
+  }, []);
+  const handleClear = useCallback(() => {
+    void clearQueue();
+  }, []);
 
   // ── Toggle button ─────────────────────────────────────────────────────────
 
@@ -148,66 +155,80 @@ export function EidosDevtools({ position = 'bottom-right', defaultOpen = false }
       <span style={{ color: C.cyan }}>⚡</span>
       <span>eidos</span>
       {badgeCount > 0 && (
-        <span style={{
-          background: failed > 0 ? C.red : C.yellow,
-          color: '#fff',
-          borderRadius: 9999,
-          minWidth: 16,
-          height: 16,
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: 9,
-          fontWeight: 700,
-          padding: '0 4px',
-        }}>
+        <span
+          style={{
+            background: failed > 0 ? C.red : C.yellow,
+            color: '#fff',
+            borderRadius: 9999,
+            minWidth: 16,
+            height: 16,
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 9,
+            fontWeight: 700,
+            padding: '0 4px',
+          }}
+        >
           {badgeCount}
         </span>
       )}
     </button>
-  )
+  );
 
   if (!open) {
-    return <div style={positionStyle(position)}>{toggleBtn}</div>
+    return <div style={positionStyle(position)}>{toggleBtn}</div>;
   }
 
   // ── Panel ─────────────────────────────────────────────────────────────────
 
   return (
-    <div style={{ ...positionStyle(position), display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
-      {/* Main panel */}
-      <div style={{
-        width: 340,
-        maxHeight: 480,
+    <div
+      style={{
+        ...positionStyle(position),
         display: 'flex',
         flexDirection: 'column',
-        background: C.bg,
-        border: `1px solid ${C.border}`,
-        borderRadius: 10,
-        overflow: 'hidden',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
-        fontFamily: 'ui-monospace, "Cascadia Code", "Fira Mono", monospace',
-        fontSize: 11,
-        color: C.text,
-      }}>
-        {/* Header */}
-        <div style={{
+        alignItems: 'flex-end',
+        gap: 6,
+      }}
+    >
+      {/* Main panel */}
+      <div
+        style={{
+          width: 340,
+          maxHeight: 480,
           display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          padding: '8px 12px',
-          background: C.surface,
-          borderBottom: `1px solid ${C.border}`,
-          flexShrink: 0,
-        }}>
+          flexDirection: 'column',
+          background: C.bg,
+          border: `1px solid ${C.border}`,
+          borderRadius: 10,
+          overflow: 'hidden',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+          fontFamily: 'ui-monospace, "Cascadia Code", "Fira Mono", monospace',
+          fontSize: 11,
+          color: C.text,
+        }}
+      >
+        {/* Header */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '8px 12px',
+            background: C.surface,
+            borderBottom: `1px solid ${C.border}`,
+            flexShrink: 0,
+          }}
+        >
           <span style={{ color: C.cyan, fontSize: 13 }}>⚡</span>
-          <span style={{ fontWeight: 700, fontSize: 12, color: C.text, flex: 1 }}>Eidos Devtools</span>
+          <span style={{ fontWeight: 700, fontSize: 12, color: C.text, flex: 1 }}>
+            Eidos Devtools
+          </span>
 
           {/* Online/offline + simulation toggle */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={pill(isOnline ? C.green : C.red)}>
-              {isOnline ? 'online' : 'offline'}
-            </span>
+            <span style={pill(isOnline ? C.green : C.red)}>{isOnline ? 'online' : 'offline'}</span>
             <button
               onClick={toggleOffline}
               title={simOffline ? 'Disable offline simulation' : 'Enable offline simulation'}
@@ -225,27 +246,44 @@ export function EidosDevtools({ position = 'bottom-right', defaultOpen = false }
         </div>
 
         {/* SW status row */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          padding: '6px 12px',
-          borderBottom: `1px solid ${C.border}`,
-          flexShrink: 0,
-          background: C.bg,
-        }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '6px 12px',
+            borderBottom: `1px solid ${C.border}`,
+            flexShrink: 0,
+            background: C.bg,
+          }}
+        >
           <span style={{ color: C.muted, fontSize: 10 }}>SW</span>
           <span style={pill(swStatusColor(swStatus))}>{swStatus}</span>
-          {swError && <span style={{ color: C.red, fontSize: 10, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{swError}</span>}
+          {swError && (
+            <span
+              style={{
+                color: C.red,
+                fontSize: 10,
+                flex: 1,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {swError}
+            </span>
+          )}
         </div>
 
         {/* Tabs */}
-        <div style={{
-          display: 'flex',
-          borderBottom: `1px solid ${C.border}`,
-          flexShrink: 0,
-          background: C.surface,
-        }}>
+        <div
+          style={{
+            display: 'flex',
+            borderBottom: `1px solid ${C.border}`,
+            flexShrink: 0,
+            background: C.surface,
+          }}
+        >
           {(['queue', 'cache'] as Tab[]).map((t) => (
             <button
               key={t}
@@ -283,7 +321,7 @@ export function EidosDevtools({ position = 'bottom-right', defaultOpen = false }
       {/* Toggle button below panel */}
       {toggleBtn}
     </div>
-  )
+  );
 }
 
 // ── Queue tab ─────────────────────────────────────────────────────────────────
@@ -293,22 +331,28 @@ function QueueTab({
   onReplay,
   onClear,
 }: {
-  queue: ReturnType<typeof useEidosQueue>
-  onReplay: () => void
-  onClear: () => void
+  queue: ReturnType<typeof useEidosQueue>;
+  onReplay: () => void;
+  onClear: () => void;
 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Actions */}
-      <div style={{
-        display: 'flex',
-        gap: 6,
-        padding: '8px 12px',
-        borderBottom: `1px solid ${C.border}`,
-        flexShrink: 0,
-      }}>
-        <button onClick={onReplay} style={btn('primary')}>▶ Replay queue</button>
-        <button onClick={onClear} style={btn('danger')}>✕ Clear queue</button>
+      <div
+        style={{
+          display: 'flex',
+          gap: 6,
+          padding: '8px 12px',
+          borderBottom: `1px solid ${C.border}`,
+          flexShrink: 0,
+        }}
+      >
+        <button onClick={onReplay} style={btn('primary')}>
+          ▶ Replay queue
+        </button>
+        <button onClick={onClear} style={btn('danger')}>
+          ✕ Clear queue
+        </button>
         <span style={{ marginLeft: 'auto', color: C.muted, fontSize: 10, alignSelf: 'center' }}>
           {queue.length} item{queue.length !== 1 ? 's' : ''}
         </span>
@@ -322,18 +366,31 @@ function QueueTab({
           </div>
         ) : (
           queue.map((item) => (
-            <div key={item.id} style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              padding: '7px 12px',
-              borderBottom: `1px solid ${C.border}`,
-            }}>
+            <div
+              key={item.id}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '7px 12px',
+                borderBottom: `1px solid ${C.border}`,
+              }}
+            >
               <span style={pill(queueStatusColor(item.status))}>{item.status}</span>
               {item.priority && item.priority !== 'normal' && (
-                <span style={pill(item.priority === 'high' ? C.purple : C.muted)}>{item.priority}</span>
+                <span style={pill(item.priority === 'high' ? C.purple : C.muted)}>
+                  {item.priority}
+                </span>
               )}
-              <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: C.text }}>
+              <span
+                style={{
+                  flex: 1,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  color: C.text,
+                }}
+              >
                 {item.actionName}
               </span>
               {item.retryCount > 0 && (
@@ -346,7 +403,7 @@ function QueueTab({
         )}
       </div>
     </div>
-  )
+  );
 }
 
 // ── Cache tab ─────────────────────────────────────────────────────────────────
@@ -360,27 +417,36 @@ function CacheTab({ resources }: { resources: ReturnType<typeof useEidosResource
         </div>
       ) : (
         resources.map((res) => (
-          <div key={res.url} style={{
-            padding: '7px 12px',
-            borderBottom: `1px solid ${C.border}`,
-          }}>
+          <div
+            key={res.url}
+            style={{
+              padding: '7px 12px',
+              borderBottom: `1px solid ${C.border}`,
+            }}
+          >
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
               <span style={pill(resourceStatusColor(res.status))}>{res.status}</span>
               <span style={{ color: C.muted, fontSize: 10 }}>{res.strategy.name}</span>
             </div>
-            <div style={{
-              color: C.text,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              fontSize: 10,
-              marginBottom: 2,
-            }}>
+            <div
+              style={{
+                color: C.text,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                fontSize: 10,
+                marginBottom: 2,
+              }}
+            >
               {res.url}
             </div>
             <div style={{ display: 'flex', gap: 10, color: C.muted, fontSize: 10 }}>
-              <span title="Cache hits">↑{res.cacheHits} hit{res.cacheHits !== 1 ? 's' : ''}</span>
-              <span title="Cache misses">↓{res.cacheMisses} miss{res.cacheMisses !== 1 ? 'es' : ''}</span>
+              <span title="Cache hits">
+                ↑{res.cacheHits} hit{res.cacheHits !== 1 ? 's' : ''}
+              </span>
+              <span title="Cache misses">
+                ↓{res.cacheMisses} miss{res.cacheMisses !== 1 ? 'es' : ''}
+              </span>
               {res.cachedAt && (
                 <span title="Cached at">⏱ {new Date(res.cachedAt).toLocaleTimeString()}</span>
               )}
@@ -389,5 +455,5 @@ function CacheTab({ resources }: { resources: ReturnType<typeof useEidosResource
         ))
       )}
     </div>
-  )
+  );
 }

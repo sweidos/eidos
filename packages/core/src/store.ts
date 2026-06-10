@@ -1,34 +1,34 @@
-import type { EidosState, ResourceEntry, ActionQueueItem } from './types'
+import type { EidosState, ResourceEntry, ActionQueueItem } from './types';
 
 export interface EidosStore extends EidosState {
   // Online
-  setOnline: (online: boolean) => void
+  setOnline: (online: boolean) => void;
   // SW
-  setSwStatus: (status: EidosState['swStatus'], error?: string) => void
+  setSwStatus: (status: EidosState['swStatus'], error?: string) => void;
   // Resources
-  registerResource: (url: string, entry: ResourceEntry) => void
-  updateResource: (url: string, update: Partial<ResourceEntry>) => void
-  unregisterResource: (url: string) => void
+  registerResource: (url: string, entry: ResourceEntry) => void;
+  updateResource: (url: string, update: Partial<ResourceEntry>) => void;
+  unregisterResource: (url: string) => void;
   // Queue
-  addQueueItem: (item: ActionQueueItem) => void
-  updateQueueItem: (id: string, update: Partial<ActionQueueItem>) => void
-  batchUpdateQueueItems: (updates: Array<{ id: string; update: Partial<ActionQueueItem> }>) => void
-  removeQueueItem: (id: string) => void
-  hydrateQueue: (items: ActionQueueItem[]) => void
+  addQueueItem: (item: ActionQueueItem) => void;
+  updateQueueItem: (id: string, update: Partial<ActionQueueItem>) => void;
+  batchUpdateQueueItems: (updates: Array<{ id: string; update: Partial<ActionQueueItem> }>) => void;
+  removeQueueItem: (id: string) => void;
+  hydrateQueue: (items: ActionQueueItem[]) => void;
 }
 
-type Listener = () => void
+type Listener = () => void;
 
-let _state: EidosStore
-const _listeners = new Set<Listener>()
+let _state: EidosStore;
+const _listeners = new Set<Listener>();
 
 function _notify() {
-  _listeners.forEach((fn) => fn())
+  _listeners.forEach((fn) => fn());
 }
 
 function _set(updater: (prev: EidosStore) => Partial<EidosStore>) {
-  _state = { ..._state, ...updater(_state) }
-  _notify()
+  _state = { ..._state, ...updater(_state) };
+  _notify();
 }
 
 _state = {
@@ -43,8 +43,7 @@ _state = {
 
   setSwStatus: (swStatus, swError) => _set(() => ({ swStatus, swError })),
 
-  registerResource: (url, entry) =>
-    _set((s) => ({ resources: { ...s.resources, [url]: entry } })),
+  registerResource: (url, entry) => _set((s) => ({ resources: { ...s.resources, [url]: entry } })),
 
   updateResource: (url, update) =>
     _set((s) => ({
@@ -56,9 +55,7 @@ _state = {
 
   unregisterResource: (url) =>
     _set((s) => ({
-      resources: Object.fromEntries(
-        Object.entries(s.resources).filter(([k]) => k !== url),
-      ),
+      resources: Object.fromEntries(Object.entries(s.resources).filter(([k]) => k !== url)),
     })),
 
   addQueueItem: (item) => _set((s) => ({ queue: [...s.queue, item] })),
@@ -70,27 +67,29 @@ _state = {
 
   batchUpdateQueueItems: (updates) =>
     _set((s) => {
-      const map = new Map(updates.map((u) => [u.id, u.update]))
+      const map = new Map(updates.map((u) => [u.id, u.update]));
       return {
         queue: s.queue.map((item) => {
-          const u = map.get(item.id)
-          return u ? { ...item, ...u } : item
+          const u = map.get(item.id);
+          return u ? { ...item, ...u } : item;
         }),
-      }
+      };
     }),
 
   removeQueueItem: (id) => _set((s) => ({ queue: s.queue.filter((item) => item.id !== id) })),
 
   hydrateQueue: (items) => _set(() => ({ queue: items })),
-}
+};
 
 function _getState() {
-  return _state
+  return _state;
 }
 
 function _subscribe(listener: Listener) {
-  _listeners.add(listener)
-  return () => { _listeners.delete(listener) }
+  _listeners.add(listener);
+  return () => {
+    _listeners.delete(listener);
+  };
 }
 
 export const useEidosStore = {
@@ -98,8 +97,8 @@ export const useEidosStore = {
   subscribe: _subscribe,
   // Test/devtools helper — merges partial state, preserves action methods.
   setState: (partial: Partial<EidosStore> | ((s: EidosStore) => Partial<EidosStore>)) => {
-    const update = typeof partial === 'function' ? partial(_state) : partial
-    _state = { ..._state, ...update }
-    _notify()
+    const update = typeof partial === 'function' ? partial(_state) : partial;
+    _state = { ..._state, ...update };
+    _notify();
   },
-}
+};

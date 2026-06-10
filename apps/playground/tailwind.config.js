@@ -9,33 +9,33 @@ export default {
       colors: {
         eidos: {
           // Core surfaces (slate family — deep navy/dark)
-          bg:           '#0F172A',   // slate-900 — deepest background
-          surface:      '#1E293B',   // slate-800 — cards, panels
-          elevated:     '#334155',   // slate-700 — elevated, hover
-          border:       '#475569',   // slate-600 — visible borders (key for brutalist)
-          'border-dim': '#334155',   // slate-700 — subtle dividers
+          bg: '#0F172A', // slate-900 — deepest background
+          surface: '#1E293B', // slate-800 — cards, panels
+          elevated: '#334155', // slate-700 — elevated, hover
+          border: '#475569', // slate-600 — visible borders (key for brutalist)
+          'border-dim': '#334155', // slate-700 — subtle dividers
 
           // Accent: terminal green — "run", "success", "online"
-          accent:       '#22C55E',   // green-500
+          accent: '#22C55E', // green-500
           'accent-dim': 'rgba(34,197,94,0.08)',
           'accent-mid': 'rgba(34,197,94,0.16)',
 
           // Semantic: network/code blue
-          blue:         '#38BDF8',   // sky-400
-          'blue-dim':   'rgba(56,189,248,0.08)',
+          blue: '#38BDF8', // sky-400
+          'blue-dim': 'rgba(56,189,248,0.08)',
 
           // Semantic: warning/offline amber
-          amber:        '#FBBF24',   // amber-400
-          'amber-dim':  'rgba(251,191,36,0.08)',
+          amber: '#FBBF24', // amber-400
+          'amber-dim': 'rgba(251,191,36,0.08)',
 
           // Semantic: error/danger red
-          red:          '#F87171',   // red-400
-          'red-dim':    'rgba(248,113,113,0.08)',
+          red: '#F87171', // red-400
+          'red-dim': 'rgba(248,113,113,0.08)',
 
           // Text hierarchy
-          text:         '#F8FAFC',   // slate-50  — primary
-          'text-dim':   '#CBD5E1',   // slate-300 — secondary
-          muted:        '#94A3B8',   // slate-400 — muted/placeholder
+          text: '#F8FAFC', // slate-50  — primary
+          'text-dim': '#CBD5E1', // slate-300 — secondary
+          muted: '#94A3B8', // slate-400 — muted/placeholder
         },
       },
       fontFamily: {
@@ -45,39 +45,45 @@ export default {
       },
       fontSize: {
         '2xs': ['10px', '14px'],
-        xs:    ['11px', '16px'],
-        sm:    ['12px', '18px'],
-        base:  ['13px', '20px'],
-        md:    ['14px', '20px'],
+        xs: ['11px', '16px'],
+        sm: ['12px', '18px'],
+        base: ['13px', '20px'],
+        md: ['14px', '20px'],
       },
       borderRadius: {
         // Brutalist — sharp corners, minimal radius
         DEFAULT: '2px',
-        sm:      '2px',
-        md:      '4px',
-        lg:      '4px',
-        xl:      '4px',
-        full:    '9999px',
+        sm: '2px',
+        md: '4px',
+        lg: '4px',
+        xl: '4px',
+        full: '9999px',
       },
       animation: {
-        'fade-in':     'fadeIn 0.15s ease-out',
-        'slide-up':    'slideUp 0.15s ease-out',
+        'fade-in': 'fadeIn 0.15s ease-out',
+        'slide-up': 'slideUp 0.15s ease-out',
         'slide-right': 'slideRight 0.15s ease-out',
-        'pulse-fast':  'pulse 1.5s ease-in-out infinite',
-        'blink':       'blink 1s step-end infinite',
+        'pulse-fast': 'pulse 1.5s ease-in-out infinite',
+        blink: 'blink 1s step-end infinite',
       },
       keyframes: {
-        fadeIn:     { from: { opacity: '0' }, to: { opacity: '1' } },
-        slideUp:    { from: { transform: 'translateY(4px)', opacity: '0' }, to: { transform: 'translateY(0)', opacity: '1' } },
-        slideRight: { from: { transform: 'translateX(-4px)', opacity: '0' }, to: { transform: 'translateX(0)', opacity: '1' } },
-        blink:      { '0%,100%': { opacity: '1' }, '50%': { opacity: '0' } },
+        fadeIn: { from: { opacity: '0' }, to: { opacity: '1' } },
+        slideUp: {
+          from: { transform: 'translateY(4px)', opacity: '0' },
+          to: { transform: 'translateY(0)', opacity: '1' },
+        },
+        slideRight: {
+          from: { transform: 'translateX(-4px)', opacity: '0' },
+          to: { transform: 'translateX(0)', opacity: '1' },
+        },
+        blink: { '0%,100%': { opacity: '1' }, '50%': { opacity: '0' } },
       },
       boxShadow: {
         // Subtle glow for active states — minimal, not decorative
         green: '0 0 0 1px rgba(34,197,94,0.4)',
-        blue:  '0 0 0 1px rgba(56,189,248,0.4)',
+        blue: '0 0 0 1px rgba(56,189,248,0.4)',
       },
     },
   },
   plugins: [],
-}
+};

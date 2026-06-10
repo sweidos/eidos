@@ -8,8 +8,8 @@
  * Provide a `caches` mock when using getCachedEntry / clearEidosCache in jsdom.
  */
 
-import { _resetEidos, clearQueue, replayQueue, useEidosStore } from '@sweidos/eidos'
-import type { EidosState, ReplayResult } from '@sweidos/eidos'
+import { _resetEidos, clearQueue, replayQueue, useEidosStore } from '@sweidos/eidos';
+import type { EidosState, ReplayResult } from '@sweidos/eidos';
 
 // ── Offline simulation ────────────────────────────────────────────────────────
 
@@ -19,10 +19,10 @@ export interface MockOfflineOptions {
    * network failure for code that calls fetch directly, outside the Eidos
    * resource layer). Default: false.
    */
-  stubFetch?: boolean
+  stubFetch?: boolean;
 }
 
-let _originalFetch: typeof globalThis.fetch | null = null
+let _originalFetch: typeof globalThis.fetch | null = null;
 
 /**
  * Put Eidos into offline mode. Actions with `reliability: 'neverLose'` will
@@ -33,14 +33,12 @@ let _originalFetch: typeof globalThis.fetch | null = null
  * afterEach(() => mockOnline())
  */
 export function mockOffline(options: MockOfflineOptions = {}): void {
-  useEidosStore.getState().setOnline(false)
+  useEidosStore.getState().setOnline(false);
 
   if (options.stubFetch && _originalFetch === null) {
-    _originalFetch = globalThis.fetch
+    _originalFetch = globalThis.fetch;
     globalThis.fetch = () =>
-      Promise.reject(
-        new TypeError('Network request failed (stubbed by @sweidos/eidos/testing)'),
-      )
+      Promise.reject(new TypeError('Network request failed (stubbed by @sweidos/eidos/testing)'));
   }
 }
 
@@ -48,11 +46,11 @@ export function mockOffline(options: MockOfflineOptions = {}): void {
  * Restore online mode. Removes any fetch stub installed by `mockOffline`.
  */
 export function mockOnline(): void {
-  useEidosStore.getState().setOnline(true)
+  useEidosStore.getState().setOnline(true);
 
   if (_originalFetch !== null) {
-    globalThis.fetch = _originalFetch
-    _originalFetch = null
+    globalThis.fetch = _originalFetch;
+    _originalFetch = null;
   }
 }
 
@@ -69,15 +67,15 @@ export function mockOnline(): void {
  * expect(result.succeeded).toBe(1)
  */
 export async function drainQueue(): Promise<ReplayResult> {
-  useEidosStore.getState().setOnline(true)
-  return replayQueue()
+  useEidosStore.getState().setOnline(true);
+  return replayQueue();
 }
 
 export interface WaitForQueueDrainOptions {
   /** Maximum wait in milliseconds. Default: 5000. */
-  timeout?: number
+  timeout?: number;
   /** Poll interval in milliseconds. Default: 50. */
-  interval?: number
+  interval?: number;
 }
 
 /**
@@ -91,19 +89,17 @@ export interface WaitForQueueDrainOptions {
  * expect(getEidosState().queue).toHaveLength(0)
  */
 export function waitForQueueDrain(options: WaitForQueueDrainOptions = {}): Promise<void> {
-  const timeout = options.timeout ?? 5_000
-  const interval = options.interval ?? 50
-  const deadline = Date.now() + timeout
+  const timeout = options.timeout ?? 5_000;
+  const interval = options.interval ?? 50;
+  const deadline = Date.now() + timeout;
 
   return new Promise<void>((resolve, reject) => {
     function check() {
-      const { queue } = useEidosStore.getState()
-      const active = queue.filter(
-        (q) => q.status === 'pending' || q.status === 'replaying',
-      )
+      const { queue } = useEidosStore.getState();
+      const active = queue.filter((q) => q.status === 'pending' || q.status === 'replaying');
       if (active.length === 0) {
-        resolve()
-        return
+        resolve();
+        return;
       }
       if (Date.now() >= deadline) {
         reject(
@@ -111,19 +107,19 @@ export function waitForQueueDrain(options: WaitForQueueDrainOptions = {}): Promi
             `[eidos/testing] waitForQueueDrain timed out after ${timeout}ms. ` +
               `${active.length} item(s) still active (statuses: ${active.map((q) => q.status).join(', ')}).`,
           ),
-        )
-        return
+        );
+        return;
       }
-      setTimeout(check, interval)
+      setTimeout(check, interval);
     }
-    check()
-  })
+    check();
+  });
 }
 
 // ── Cache helpers ─────────────────────────────────────────────────────────────
 
 /** Default Eidos cache namespace written by the service worker. */
-export const EIDOS_CACHE_NAME = 'eidos-resources-v1'
+export const EIDOS_CACHE_NAME = 'eidos-resources-v1';
 
 /**
  * Read a cached Response for a URL from Eidos Cache Storage.
@@ -141,10 +137,10 @@ export async function getCachedEntry(
   url: string,
   cacheName = EIDOS_CACHE_NAME,
 ): Promise<Response | undefined> {
-  if (typeof caches === 'undefined') return undefined
-  const cache = await caches.open(cacheName)
-  const match = await cache.match(url)
-  return match ?? undefined
+  if (typeof caches === 'undefined') return undefined;
+  const cache = await caches.open(cacheName);
+  const match = await cache.match(url);
+  return match ?? undefined;
 }
 
 /**
@@ -155,8 +151,8 @@ export async function getCachedEntry(
  * afterEach(() => clearEidosCache())
  */
 export async function clearEidosCache(cacheName = EIDOS_CACHE_NAME): Promise<void> {
-  if (typeof caches === 'undefined') return
-  await caches.delete(cacheName)
+  if (typeof caches === 'undefined') return;
+  await caches.delete(cacheName);
 }
 
 // ── Full reset ────────────────────────────────────────────────────────────────
@@ -177,13 +173,13 @@ export async function clearEidosCache(cacheName = EIDOS_CACHE_NAME): Promise<voi
  */
 export async function resetEidos(): Promise<void> {
   // 1. Unsubscribe store listener and clear _initialized flag
-  _resetEidos()
+  _resetEidos();
 
   // 2. Clear action queue — IDB + in-memory store
-  await clearQueue()
+  await clearQueue();
 
   // 3. Restore online state + remove any fetch stub
-  mockOnline()
+  mockOnline();
 
   // 4. Reset resource entries and SW status to initial values
   useEidosStore.setState((s) => ({
@@ -191,7 +187,7 @@ export async function resetEidos(): Promise<void> {
     resources: {},
     swStatus: 'idle',
     swError: undefined,
-  }))
+  }));
 }
 
 // ── State snapshot ────────────────────────────────────────────────────────────
@@ -205,6 +201,6 @@ export async function resetEidos(): Promise<void> {
  * expect(getEidosState().queue).toHaveLength(1)
  */
 export function getEidosState(): EidosState {
-  const { isOnline, swStatus, swError, resources, queue } = useEidosStore.getState()
-  return { isOnline, swStatus, swError, resources, queue }
+  const { isOnline, swStatus, swError, resources, queue } = useEidosStore.getState();
+  return { isOnline, swStatus, swError, resources, queue };
 }

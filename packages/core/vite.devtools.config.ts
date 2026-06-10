@@ -1,7 +1,7 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import dts from 'vite-plugin-dts'
-import { resolve } from 'path'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import dts from 'vite-plugin-dts';
+import { resolve } from 'path';
 
 // Build for the @sweidos/eidos/devtools subpath.
 // Adds 'use client' banner — required for Next.js App Router.
@@ -41,4 +41,4 @@ export default defineConfig({
     sourcemap: false,
     minify: false,
   },
-})
+});

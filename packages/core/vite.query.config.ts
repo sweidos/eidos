@@ -1,6 +1,6 @@
-import { defineConfig } from 'vite'
-import dts from 'vite-plugin-dts'
-import { resolve } from 'path'
+import { defineConfig } from 'vite';
+import dts from 'vite-plugin-dts';
+import { resolve } from 'path';
 
 // Separate build for the @sweidos/eidos/query subpath export.
 // Runs after the main build; emptyOutDir: false preserves dist/eidos.*.js.
@@ -30,4 +30,4 @@ export default defineConfig({
     sourcemap: false,
     minify: false,
   },
-})
+});

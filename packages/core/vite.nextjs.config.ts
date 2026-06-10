@@ -1,6 +1,6 @@
-import { defineConfig } from 'vite'
-import dts from 'vite-plugin-dts'
-import { resolve } from 'path'
+import { defineConfig } from 'vite';
+import dts from 'vite-plugin-dts';
+import { resolve } from 'path';
 
 // Build for the @sweidos/eidos/nextjs subpath.
 // Adds 'use client' banner so Next.js App Router treats the module as a
@@ -36,4 +36,4 @@ export default defineConfig({
     sourcemap: false,
     minify: false,
   },
-})
+});

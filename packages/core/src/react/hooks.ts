@@ -1,32 +1,32 @@
-import { useEffect, useRef, useSyncExternalStore } from 'react'
-import { useEidosStore } from '../store'
-import type { EidosStore } from '../store'
+import { useEffect, useRef, useSyncExternalStore } from 'react';
+import { useEidosStore } from '../store';
+import type { EidosStore } from '../store';
 
-function useStore(): EidosStore
-function useStore<T>(selector: (state: EidosStore) => T): T
+function useStore(): EidosStore;
+function useStore<T>(selector: (state: EidosStore) => T): T;
 function useStore<T = EidosStore>(selector?: (state: EidosStore) => T): T {
-  const fn = selector ?? ((s: EidosStore) => s as unknown as T)
-  return useSyncExternalStore(useEidosStore.subscribe, () => fn(useEidosStore.getState()))
+  const fn = selector ?? ((s: EidosStore) => s as unknown as T);
+  return useSyncExternalStore(useEidosStore.subscribe, () => fn(useEidosStore.getState()));
 }
 
 /** Full Eidos store — prefer the narrower hooks below for performance. */
 export function useEidos() {
-  return useStore()
+  return useStore();
 }
 
 /** All registered resources — only re-renders when the resources map changes, not on queue mutations. */
 export function useEidosResources() {
-  return useStore((s) => s.resources)
+  return useStore((s) => s.resources);
 }
 
 /** Live state for a single registered resource URL. */
 export function useEidosResource(url: string) {
-  return useStore((s) => s.resources[url])
+  return useStore((s) => s.resources[url]);
 }
 
 /** The current action queue. */
 export function useEidosQueue() {
-  return useStore((s) => s.queue)
+  return useStore((s) => s.queue);
 }
 
 /**
@@ -35,7 +35,7 @@ export function useEidosQueue() {
  * any queue mutation.
  */
 export function useEidosAction(id: string) {
-  return useStore((s) => s.queue.find((item) => item.id === id))
+  return useStore((s) => s.queue.find((item) => item.id === id));
 }
 
 /**
@@ -44,10 +44,10 @@ export function useEidosAction(id: string) {
  * its own value changes (no object-reference churn from a combined selector).
  */
 export function useEidosStatus() {
-  const isOnline = useStore((s) => s.isOnline)
-  const swStatus = useStore((s) => s.swStatus)
-  const swError = useStore((s) => s.swError)
-  return { isOnline, swStatus, swError }
+  const isOnline = useStore((s) => s.isOnline);
+  const swStatus = useStore((s) => s.swStatus);
+  const swError = useStore((s) => s.swError);
+  return { isOnline, swStatus, swError };
 }
 
 /**
@@ -60,16 +60,18 @@ export function useEidosQueueStats() {
   // comparison bails out correctly when counts haven't changed. One loop,
   // one subscription — cheaper than four separate filter() passes.
   const encoded = useStore((s) => {
-    let pending = 0, failed = 0, replaying = 0
+    let pending = 0,
+      failed = 0,
+      replaying = 0;
     for (const q of s.queue) {
-      if (q.status === 'pending') pending++
-      else if (q.status === 'failed') failed++
-      else if (q.status === 'replaying') replaying++
+      if (q.status === 'pending') pending++;
+      else if (q.status === 'failed') failed++;
+      else if (q.status === 'replaying') replaying++;
     }
-    return `${pending},${failed},${replaying},${s.queue.length}`
-  })
-  const [p, f, r, t] = encoded.split(',')
-  return { pending: +p, failed: +f, replaying: +r, total: +t }
+    return `${pending},${failed},${replaying},${s.queue.length}`;
+  });
+  const [p, f, r, t] = encoded.split(',');
+  return { pending: +p, failed: +f, replaying: +r, total: +t };
 }
 
 /**
@@ -81,15 +83,15 @@ export function useEidosQueueStats() {
  * useEidosOnDrain(() => toast.success('All offline actions synced!'))
  */
 export function useEidosOnDrain(callback: () => void) {
-  const total    = useStore((s) => s.queue.length)
-  const prevRef  = useRef(0)
-  const callbackRef = useRef(callback)
-  callbackRef.current = callback
+  const total = useStore((s) => s.queue.length);
+  const prevRef = useRef(0);
+  const callbackRef = useRef(callback);
+  callbackRef.current = callback;
 
   useEffect(() => {
     if (prevRef.current > 0 && total === 0) {
-      callbackRef.current()
+      callbackRef.current();
     }
-    prevRef.current = total
-  }, [total])
+    prevRef.current = total;
+  }, [total]);
 }

@@ -1,8 +1,8 @@
-import React, { useEffect, useRef } from 'react'
-import { useEidosStore } from '@sweidos/eidos'
+import React, { useEffect, useRef } from 'react';
+import { useEidosStore } from '@sweidos/eidos';
 
 export interface EidosProviderRNProps {
-  children: React.ReactNode
+  children: React.ReactNode;
   /**
    * Current network connectivity state.
    * Pass the value from `useNetInfo()` (@react-native-community/netinfo).
@@ -12,7 +12,7 @@ export interface EidosProviderRNProps {
    * const netInfo = useNetInfo()
    * <EidosProviderRN isConnected={netInfo.isConnected ?? true}>
    */
-  isConnected?: boolean
+  isConnected?: boolean;
 }
 
 /**
@@ -23,16 +23,16 @@ export interface EidosProviderRNProps {
  * Render this near the root of your app, after calling `initEidosRN()`.
  */
 export function EidosProviderRN({ children, isConnected }: EidosProviderRNProps) {
-  const prevRef = useRef<boolean | undefined>(undefined)
+  const prevRef = useRef<boolean | undefined>(undefined);
 
   useEffect(() => {
     // Default to online when isConnected is not provided
-    const online = isConnected !== false
+    const online = isConnected !== false;
     if (online !== prevRef.current) {
-      prevRef.current = online
-      useEidosStore.getState().setOnline(online)
+      prevRef.current = online;
+      useEidosStore.getState().setOnline(online);
     }
-  }, [isConnected])
+  }, [isConnected]);
 
-  return <>{children}</>
+  return <>{children}</>;
 }

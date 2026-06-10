@@ -1,6 +1,6 @@
-import { defineConfig } from 'vite'
-import dts from 'vite-plugin-dts'
-import { resolve } from 'path'
+import { defineConfig } from 'vite';
+import dts from 'vite-plugin-dts';
+import { resolve } from 'path';
 
 // Build for the @sweidos/eidos/sveltekit subpath.
 // Provides initEidosSvelteKit() — an onMount-compatible helper that keeps
@@ -33,4 +33,4 @@ export default defineConfig({
     sourcemap: false,
     minify: false,
   },
-})
+});

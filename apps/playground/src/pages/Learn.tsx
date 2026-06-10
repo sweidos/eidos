@@ -1,8 +1,8 @@
-import { useEffect, useState, type ReactNode } from 'react'
-import { Link } from 'react-router-dom'
-import { ExternalLink, ChevronDown, ChevronRight } from 'lucide-react'
-import { Card, CardHeader } from '../components/Card'
-import { CodeBlock } from '../components/CodeBlock'
+import { useEffect, useState, type ReactNode } from 'react';
+import { Link } from 'react-router-dom';
+import { ExternalLink, ChevronDown, ChevronRight } from 'lucide-react';
+import { Card, CardHeader } from '../components/Card';
+import { CodeBlock } from '../components/CodeBlock';
 
 function SectionHeading({
   id,
@@ -10,10 +10,10 @@ function SectionHeading({
   title,
   description,
 }: {
-  id: string
-  eyebrow: string
-  title: string
-  description?: string
+  id: string;
+  eyebrow: string;
+  title: string;
+  description?: string;
 }) {
   return (
     <div id={id} className="scroll-mt-5">
@@ -30,12 +30,10 @@ function SectionHeading({
         <h2 className="text-base font-semibold text-eidos-text md:text-lg">{title}</h2>
       </div>
       {description && (
-        <p className="mt-2 max-w-3xl text-sm leading-relaxed text-eidos-text-dim">
-          {description}
-        </p>
+        <p className="mt-2 max-w-3xl text-sm leading-relaxed text-eidos-text-dim">{description}</p>
       )}
     </div>
-  )
+  );
 }
 
 function InlineCode({ children }: { children: ReactNode }) {
@@ -43,42 +41,38 @@ function InlineCode({ children }: { children: ReactNode }) {
     <code className="rounded border border-eidos-border bg-eidos-elevated px-1.5 py-0.5 font-mono text-[11px] text-eidos-accent">
       {children}
     </code>
-  )
+  );
 }
 
 // Splits on backtick spans and renders them as inline code.
 function parseBullet(text: string): ReactNode {
-  const parts = text.split(/`([^`]+)`/)
-  if (parts.length === 1) return text
+  const parts = text.split(/`([^`]+)`/);
+  if (parts.length === 1) return text;
   return (
-    <>
-      {parts.map((part, i) =>
-        i % 2 === 1 ? <InlineCode key={i}>{part}</InlineCode> : part
-      )}
-    </>
-  )
+    <>{parts.map((part, i) => (i % 2 === 1 ? <InlineCode key={i}>{part}</InlineCode> : part))}</>
+  );
 }
 
 function BulletList({ items }: { items: string[] }) {
   return (
     <ul className="space-y-2 text-sm leading-relaxed text-eidos-text-dim">
-      {items.map(item => (
+      {items.map((item) => (
         <li key={item} className="flex gap-2">
           <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-eidos-accent" />
           <span>{parseBullet(item)}</span>
         </li>
       ))}
     </ul>
-  )
+  );
 }
 
 function Collapse({ title, children }: { title: string; children: ReactNode }) {
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(false);
 
   return (
     <div className="overflow-hidden rounded-xl border border-eidos-border bg-eidos-surface">
       <button
-        onClick={() => setOpen(value => !value)}
+        onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
         className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-medium text-eidos-text transition-colors hover:bg-eidos-elevated cursor-pointer"
       >
@@ -89,9 +83,11 @@ function Collapse({ title, children }: { title: string; children: ReactNode }) {
         )}
         {title}
       </button>
-      {open && <div className="border-t border-eidos-border bg-eidos-elevated/20 p-4">{children}</div>}
+      {open && (
+        <div className="border-t border-eidos-border bg-eidos-elevated/20 p-4">{children}</div>
+      )}
     </div>
-  )
+  );
 }
 
 export function Learn() {
@@ -102,32 +98,32 @@ export function Learn() {
     { href: '#hooks', label: 'Hooks & stores' },
     { href: '#advanced', label: 'Advanced' },
     { href: '#references', label: 'Further reading' },
-  ]
+  ];
 
-  const [activeId, setActiveId] = useState<string>(quickLinks[0].href.slice(1))
+  const [activeId, setActiveId] = useState<string>(quickLinks[0].href.slice(1));
 
   useEffect(() => {
-    const ids = quickLinks.map(link => link.href.slice(1))
+    const ids = quickLinks.map((link) => link.href.slice(1));
     const sections = ids
-      .map(id => document.getElementById(id))
-      .filter((el): el is HTMLElement => el !== null)
+      .map((id) => document.getElementById(id))
+      .filter((el): el is HTMLElement => el !== null);
 
-    if (sections.length === 0) return
+    if (sections.length === 0) return;
 
     const observer = new IntersectionObserver(
-      entries => {
+      (entries) => {
         const visible = entries
-          .filter(e => e.isIntersecting)
-          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)
-        if (visible[0]) setActiveId(visible[0].target.id)
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        if (visible[0]) setActiveId(visible[0].target.id);
       },
-      { rootMargin: '-15% 0px -70% 0px', threshold: 0 }
-    )
+      { rootMargin: '-15% 0px -70% 0px', threshold: 0 },
+    );
 
-    sections.forEach(el => observer.observe(el))
-    return () => observer.disconnect()
+    sections.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, []);
 
   return (
     <div className="mx-auto grid max-w-6xl gap-5 px-4 py-6 lg:grid-cols-[minmax(0,1fr)_280px] lg:px-6 animate-fade-in">
@@ -167,7 +163,9 @@ export function Learn() {
 
             <div className="space-y-3 rounded-xl border border-eidos-border bg-eidos-surface p-4">
               <div>
-                <div className="text-[10px] uppercase tracking-[0.24em] text-eidos-muted">what this page covers</div>
+                <div className="text-[10px] uppercase tracking-[0.24em] text-eidos-muted">
+                  what this page covers
+                </div>
                 <BulletList
                   items={[
                     'How to install, wrap, and declare your first resource or action.',
@@ -268,7 +266,11 @@ export const createOrder = action(
               <CardHeader
                 title="resource(url, config)"
                 description="Register a GET endpoint as offline-capable and let Eidos pick the cache strategy."
-                action={<span className="rounded-full border border-eidos-border px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-eidos-muted">cache</span>}
+                action={
+                  <span className="rounded-full border border-eidos-border px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-eidos-muted">
+                    cache
+                  </span>
+                }
               />
               <BulletList
                 items={[
@@ -292,7 +294,11 @@ const data = await products.json<Product[]>()`}
               <CardHeader
                 title="action(fn, config)"
                 description="Wrap async mutations so offline writes are persisted and replayed later."
-                action={<span className="rounded-full border border-eidos-border px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-eidos-muted">queue</span>}
+                action={
+                  <span className="rounded-full border border-eidos-border px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-eidos-muted">
+                    queue
+                  </span>
+                }
               />
               <BulletList
                 items={[
@@ -327,7 +333,11 @@ const data = await products.json<Product[]>()`}
               <CardHeader
                 title="EidosProvider"
                 description="Register the SW and hydrate the runtime once near the root of the app."
-                action={<span className="rounded-full border border-eidos-border px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-eidos-muted">root</span>}
+                action={
+                  <span className="rounded-full border border-eidos-border px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-eidos-muted">
+                    root
+                  </span>
+                }
               />
               <BulletList
                 items={[
@@ -349,7 +359,11 @@ const data = await products.json<Product[]>()`}
               <CardHeader
                 title="replayQueue()"
                 description="Trigger queue replay yourself when you want a manual recovery action."
-                action={<span className="rounded-full border border-eidos-border px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-eidos-muted">replay</span>}
+                action={
+                  <span className="rounded-full border border-eidos-border px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-eidos-muted">
+                    replay
+                  </span>
+                }
               />
               <BulletList
                 items={[
@@ -510,8 +524,9 @@ unsub()`}
             <Collapse title="URL patterns and cross-origin resources">
               <div className="space-y-3">
                 <p className="text-sm leading-relaxed text-eidos-text-dim">
-                  Use <InlineCode>*</InlineCode> for one path segment, <InlineCode>**</InlineCode> for nested paths, and{' '}
-                  <InlineCode>:param</InlineCode> for named segments. For external APIs, pass the full URL including origin.
+                  Use <InlineCode>*</InlineCode> for one path segment, <InlineCode>**</InlineCode>{' '}
+                  for nested paths, and <InlineCode>:param</InlineCode> for named segments. For
+                  external APIs, pass the full URL including origin.
                 </p>
                 <CodeBlock
                   title="patterns.ts"
@@ -543,7 +558,8 @@ resource('/api/feed', { offline: true, strategy: 'network-first' })`}
             <Collapse title="Testing utilities">
               <div className="space-y-3">
                 <p className="text-sm leading-relaxed text-eidos-text-dim">
-                  The testing helpers let you flip the runtime between online and offline states, drain the queue, and inspect cache entries.
+                  The testing helpers let you flip the runtime between online and offline states,
+                  drain the queue, and inspect cache entries.
                 </p>
                 <CodeBlock
                   title="tests.ts"
@@ -581,10 +597,19 @@ resource('/api/feed', { offline: true, strategy: 'network-first' })`}
           <div className="grid gap-3 md:grid-cols-2">
             {[
               { label: 'Project README', href: 'https://sweidos.vercel.app/overview' },
-              { label: 'MDN - Service Worker API', href: 'https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API' },
-              { label: 'MDN - Cache API', href: 'https://developer.mozilla.org/en-US/docs/Web/API/Cache' },
-              { label: 'MDN - IndexedDB API', href: 'https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API' },
-            ].map(link => (
+              {
+                label: 'MDN - Service Worker API',
+                href: 'https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API',
+              },
+              {
+                label: 'MDN - Cache API',
+                href: 'https://developer.mozilla.org/en-US/docs/Web/API/Cache',
+              },
+              {
+                label: 'MDN - IndexedDB API',
+                href: 'https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API',
+              },
+            ].map((link) => (
               <a
                 key={link.href}
                 href={link.href}
@@ -602,13 +627,10 @@ resource('/api/feed', { offline: true, strategy: 'network-first' })`}
 
       <aside className="space-y-4 lg:sticky lg:top-4 h-fit">
         <Card>
-          <CardHeader
-            title="On this page"
-            description="Jump straight to the section you need."
-          />
+          <CardHeader title="On this page" description="Jump straight to the section you need." />
           <nav className="space-y-2 text-sm">
-            {quickLinks.map(link => {
-              const active = activeId === link.href.slice(1)
+            {quickLinks.map((link) => {
+              const active = activeId === link.href.slice(1);
               return (
                 <a
                   key={link.href}
@@ -623,7 +645,7 @@ resource('/api/feed', { offline: true, strategy: 'network-first' })`}
                   <span>{link.label}</span>
                   <span className={active ? 'text-eidos-accent' : 'text-eidos-border'}>#</span>
                 </a>
-              )
+              );
             })}
           </nav>
         </Card>
@@ -673,5 +695,5 @@ resource('/api/feed', { offline: true, strategy: 'network-first' })`}
         </Card>
       </aside>
     </div>
-  )
+  );
 }

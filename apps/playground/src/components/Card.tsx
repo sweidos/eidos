@@ -1,9 +1,9 @@
-import type { ReactNode } from 'react'
+import type { ReactNode } from 'react';
 
 interface CardProps {
-  children: ReactNode
-  className?: string
-  glow?: boolean
+  children: ReactNode;
+  className?: string;
+  glow?: boolean;
 }
 
 export function Card({ children, className = '', glow = false }: CardProps) {
@@ -18,13 +18,13 @@ export function Card({ children, className = '', glow = false }: CardProps) {
     >
       {children}
     </div>
-  )
+  );
 }
 
 interface CardHeaderProps {
-  title: string
-  description?: string
-  action?: ReactNode
+  title: string;
+  description?: string;
+  action?: ReactNode;
 }
 
 export function CardHeader({ title, description, action }: CardHeaderProps) {
@@ -36,5 +36,5 @@ export function CardHeader({ title, description, action }: CardHeaderProps) {
       </div>
       {action && <div className="shrink-0 ml-4">{action}</div>}
     </div>
-  )
+  );
 }

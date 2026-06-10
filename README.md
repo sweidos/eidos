@@ -12,10 +12,10 @@
 Declare what your app needs offline. Eidos picks the cache strategy, registers the Service Worker, and persists your action queue to IndexedDB — automatically.
 
 ```ts
-import { resource, action } from '@sweidos/eidos'
+import { resource, action } from '@sweidos/eidos';
 
-const products = resource('/api/products', { offline: true })
-const createOrder = action(orderApi.create, { reliability: 'neverLose' })
+const products = resource('/api/products', { offline: true });
+const createOrder = action(orderApi.create, { reliability: 'neverLose' });
 ```
 
 No service worker file to write. No cache strategy to configure. No retry logic to implement.
@@ -60,12 +60,12 @@ npm install @sweidos/eidos
 
 ```ts
 // vite.config.ts
-import { eidos } from '@sweidos/eidos/vite'
-import { defineConfig } from 'vite'
+import { eidos } from '@sweidos/eidos/vite';
+import { defineConfig } from 'vite';
 
 export default defineConfig({
   plugins: [eidos()],
-})
+});
 ```
 
 > **Without Vite** — copy manually: `cp node_modules/@sweidos/eidos/dist/eidos-sw.js public/`
@@ -74,39 +74,39 @@ export default defineConfig({
 
 ```tsx
 // main.tsx
-import { EidosProvider } from '@sweidos/eidos'
-import { createRoot } from 'react-dom/client'
-import { App } from './App'
+import { EidosProvider } from '@sweidos/eidos';
+import { createRoot } from 'react-dom/client';
+import { App } from './App';
 
 createRoot(document.getElementById('root')!).render(
   <EidosProvider swPath="/eidos-sw.js">
     <App />
-  </EidosProvider>
-)
+  </EidosProvider>,
+);
 ```
 
 ```ts
 // src/lib/eidos.ts  ← module scope required for queue replay after reload
-import { resource, action } from '@sweidos/eidos'
+import { resource, action } from '@sweidos/eidos';
 
-export const products = resource('/api/products', { offline: true })
+export const products = resource('/api/products', { offline: true });
 
 export const createOrder = action(
   async (payload: OrderPayload) => {
-    const res = await fetch('/api/orders', { method: 'POST', body: JSON.stringify(payload) })
-    return res.json()
+    const res = await fetch('/api/orders', { method: 'POST', body: JSON.stringify(payload) });
+    return res.json();
   },
   { reliability: 'neverLose', name: 'createOrder' },
-)
+);
 ```
 
 ```tsx
 // In components — works the same online and offline
-const result = await createOrder({ productId: 1, qty: 2 })
+const result = await createOrder({ productId: 1, qty: 2 });
 
 if ('queued' in result) {
   // Saved to IndexedDB — replays automatically on reconnect
-  console.log(result.message)
+  console.log(result.message);
 }
 ```
 
@@ -114,35 +114,35 @@ if ('queued' in result) {
 
 ## What you get
 
-| Feature | Description |
-|---------|-------------|
-| **Auto strategy selection** | `offline: true` → StaleWhileRevalidate. No config needed. Override when you want. |
-| **Persistent action queue** | Failed writes go to IndexedDB and replay with exponential backoff on reconnect. |
-| **Request deduplication** | Concurrent `resource.fetch()` calls share one in-flight request. |
-| **Optimistic updates** | `onOptimistic` / `onRollback` callbacks for instant UI feedback. |
-| **Conflict resolution** | `onConflict` decides per 4xx whether to retry or drop a queued action. |
-| **Queue prioritization** | `priority: 'high' | 'normal' | 'low'` — high items replay before normal. |
-| **Cache warming** | `warmCache(handles[])` bulk-prefetches resources on login/init. |
-| **URL patterns** | `/api/products/*`, `/api/users/:id`, `**` wildcards — SW intercepts all matches. |
-| **Background Sync** | Registers a `sync` tag so queued actions replay even after tab close. |
-| **Devtools panel** | `<EidosDevtools />` — live queue, cache state, offline toggle, no CSS import. |
-| **Testing helpers** | `mockOffline`, `drainQueue`, `resetEidos`, `getCachedEntry` for Vitest/Jest. |
-| **OpenAPI codegen** | `npx eidos-gen openapi.json` generates typed `resource()` + `action()` declarations. |
+| Feature                     | Description                                                                          |
+| --------------------------- | ------------------------------------------------------------------------------------ | -------- | ----------------------------------------- |
+| **Auto strategy selection** | `offline: true` → StaleWhileRevalidate. No config needed. Override when you want.    |
+| **Persistent action queue** | Failed writes go to IndexedDB and replay with exponential backoff on reconnect.      |
+| **Request deduplication**   | Concurrent `resource.fetch()` calls share one in-flight request.                     |
+| **Optimistic updates**      | `onOptimistic` / `onRollback` callbacks for instant UI feedback.                     |
+| **Conflict resolution**     | `onConflict` decides per 4xx whether to retry or drop a queued action.               |
+| **Queue prioritization**    | `priority: 'high'                                                                    | 'normal' | 'low'` — high items replay before normal. |
+| **Cache warming**           | `warmCache(handles[])` bulk-prefetches resources on login/init.                      |
+| **URL patterns**            | `/api/products/*`, `/api/users/:id`, `**` wildcards — SW intercepts all matches.     |
+| **Background Sync**         | Registers a `sync` tag so queued actions replay even after tab close.                |
+| **Devtools panel**          | `<EidosDevtools />` — live queue, cache state, offline toggle, no CSS import.        |
+| **Testing helpers**         | `mockOffline`, `drainQueue`, `resetEidos`, `getCachedEntry` for Vitest/Jest.         |
+| **OpenAPI codegen**         | `npx eidos-gen openapi.json` generates typed `resource()` + `action()` declarations. |
 
 ---
 
 ## Framework support
 
-| Framework | Import path | Notes |
-|-----------|-------------|-------|
-| **React** | `@sweidos/eidos` | Hooks + `EidosProvider` |
-| **Next.js App Router** | `@sweidos/eidos/nextjs` | Pre-marked `'use client'` — no wrapper needed |
-| **SvelteKit** | `@sweidos/eidos/sveltekit` | `initEidosSvelteKit()` in `onMount`, framework-agnostic stores |
-| **Vue** | `@sweidos/eidos` | Framework-agnostic stores via `eidosStatus.subscribe()` |
-| **React Native** | `@sweidos/eidos/react-native` | AsyncStorage-backed queue, same `action()` API |
-| **Vanilla JS** | `@sweidos/eidos` | `eidosStatus`, `eidosQueue`, `eidosQueueStats` stores |
-| **Vite** | `@sweidos/eidos/vite` | Plugin auto-copies `eidos-sw.js` on every build |
-| **TanStack Query** | `@sweidos/eidos/query` | `useEidosQuery`, `useEidosMutation`, `withEidosQueryClient` |
+| Framework              | Import path                   | Notes                                                          |
+| ---------------------- | ----------------------------- | -------------------------------------------------------------- |
+| **React**              | `@sweidos/eidos`              | Hooks + `EidosProvider`                                        |
+| **Next.js App Router** | `@sweidos/eidos/nextjs`       | Pre-marked `'use client'` — no wrapper needed                  |
+| **SvelteKit**          | `@sweidos/eidos/sveltekit`    | `initEidosSvelteKit()` in `onMount`, framework-agnostic stores |
+| **Vue**                | `@sweidos/eidos`              | Framework-agnostic stores via `eidosStatus.subscribe()`        |
+| **React Native**       | `@sweidos/eidos/react-native` | AsyncStorage-backed queue, same `action()` API                 |
+| **Vanilla JS**         | `@sweidos/eidos`              | `eidosStatus`, `eidosQueue`, `eidosQueueStats` stores          |
+| **Vite**               | `@sweidos/eidos/vite`         | Plugin auto-copies `eidos-sw.js` on every build                |
+| **TanStack Query**     | `@sweidos/eidos/query`        | `useEidosQuery`, `useEidosMutation`, `withEidosQueryClient`    |
 
 ---
 
@@ -169,11 +169,11 @@ products.query()                 // { queryKey, queryFn } for useQuery
 
 **Auto-selected strategy:**
 
-| Config | Strategy | Use when |
-|--------|----------|----------|
-| `offline: true` | StaleWhileRevalidate | Default — fast + background refresh |
-| `offline: true, strategy: 'cache-first'` | CacheFirst | Static assets, config data |
-| `offline: true, strategy: 'network-first'` | NetworkFirst | Always-fresh with offline fallback |
+| Config                                     | Strategy             | Use when                            |
+| ------------------------------------------ | -------------------- | ----------------------------------- |
+| `offline: true`                            | StaleWhileRevalidate | Default — fast + background refresh |
+| `offline: true, strategy: 'cache-first'`   | CacheFirst           | Static assets, config data          |
+| `offline: true, strategy: 'network-first'` | NetworkFirst         | Always-fresh with offline fallback  |
 
 URL patterns work on any handle: `/api/products/*`, `/api/users/:id`, `**`
 
@@ -194,11 +194,11 @@ const createOrder = action(async (payload: OrderPayload) => { ... }, {
 ### React hooks
 
 ```ts
-const { isOnline, swStatus }    = useEidosStatus()
-const { pending, failed }       = useEidosQueueStats()
-const entry                     = useEidosResource('/api/products')
-const item                      = useEidosAction(queuedResult.id)
-useEidosOnDrain(() => toast('All offline actions synced!'))
+const { isOnline, swStatus } = useEidosStatus();
+const { pending, failed } = useEidosQueueStats();
+const entry = useEidosResource('/api/products');
+const item = useEidosAction(queuedResult.id);
+useEidosOnDrain(() => toast('All offline actions synced!'));
 ```
 
 ### Framework-agnostic stores
@@ -217,18 +217,18 @@ eidosResource('/api/products').getState() // ResourceEntry | undefined
 
 ```ts
 // main.tsx — register once
-withEidosQueryClient(queryClient)
+withEidosQueryClient(queryClient);
 
 // In components
-const { data, isPending } = useEidosQuery<Product[]>(products)
+const { data, isPending } = useEidosQuery<Product[]>(products);
 
 const mutation = useEidosMutation(createOrder, {
   invalidates: [products], // clears cache + invalidates TQ on success
   onSuccess(data) {
-    if ('queued' in data) toast('Saved offline')
-    else toast(`Order #${data.id} created`)
+    if ('queued' in data) toast('Saved offline');
+    else toast(`Order #${data.id} created`);
   },
-})
+});
 ```
 
 ---
@@ -237,25 +237,30 @@ const mutation = useEidosMutation(createOrder, {
 
 ```ts
 import {
-  mockOffline, mockOnline, drainQueue,
-  waitForQueueDrain, getCachedEntry,
-  clearEidosCache, resetEidos, getEidosState,
-} from '@sweidos/eidos/testing'
+  mockOffline,
+  mockOnline,
+  drainQueue,
+  waitForQueueDrain,
+  getCachedEntry,
+  clearEidosCache,
+  resetEidos,
+  getEidosState,
+} from '@sweidos/eidos/testing';
 
-beforeEach(() => resetEidos())
+beforeEach(() => resetEidos());
 
 it('queues action while offline', async () => {
-  mockOffline()
-  await createOrder({ productId: 1, qty: 2 })
-  expect(getEidosState().queue).toHaveLength(1)
-})
+  mockOffline();
+  await createOrder({ productId: 1, qty: 2 });
+  expect(getEidosState().queue).toHaveLength(1);
+});
 
 it('replays on reconnect', async () => {
-  mockOffline()
-  await createOrder({ productId: 1, qty: 2 })
-  const result = await drainQueue()
-  expect(result.succeeded).toBe(1)
-})
+  mockOffline();
+  await createOrder({ productId: 1, qty: 2 });
+  const result = await drainQueue();
+  expect(result.succeeded).toBe(1);
+});
 ```
 
 ---
@@ -274,10 +279,12 @@ Handles path params, `$ref` resolution, request/response types, DELETE body omis
 ## Devtools
 
 ```tsx
-import { EidosDevtools } from '@sweidos/eidos/devtools'
+import { EidosDevtools } from '@sweidos/eidos/devtools';
 
 // Drop anywhere — bottom-right floating panel, no CSS import
-{process.env.NODE_ENV === 'development' && <EidosDevtools />}
+{
+  process.env.NODE_ENV === 'development' && <EidosDevtools />;
+}
 ```
 
 Panel shows: live queue state · cache entries · SW status · offline simulation toggle.
@@ -296,30 +303,30 @@ Panel shows: live queue state · cache entries · SW status · offline simulatio
 
 ## Known limitations
 
-| Limitation | Detail |
-|------------|--------|
-| GET-only caching | SW intercepts `GET` only. Mutations go through `action()`. |
-| Module-scope actions | `action()` must be at module scope so functions are registered before a reload triggers replay. |
-| Single SW | Assumes one SW at the configured `swPath`. |
-| React Native resources | In-memory only — no Cache API or SW in RN. Action queue fully persists. |
+| Limitation             | Detail                                                                                          |
+| ---------------------- | ----------------------------------------------------------------------------------------------- |
+| GET-only caching       | SW intercepts `GET` only. Mutations go through `action()`.                                      |
+| Module-scope actions   | `action()` must be at module scope so functions are registered before a reload triggers replay. |
+| Single SW              | Assumes one SW at the configured `swPath`.                                                      |
+| React Native resources | In-memory only — no Cache API or SW in RN. Action queue fully persists.                         |
 
 ---
 
 ## How it compares
 
-| | **Eidos** | Workbox | RTK Query / TanStack Query |
-|---|---|---|---|
-| Service worker setup | Generated for you — `resource()`/`action()` declarations drive the SW | Hand-write `routing` + `strategies` config | None — no SW |
-| Caching strategy | Auto-derived from intent (`offline: true` → SWR, etc.), inspectable via devtools | Manually chosen per route | Configurable `staleTime`/`gcTime`, no Cache Storage integration |
-| Offline writes | `action()` + `reliability: 'neverLose'` → IndexedDB queue, auto-replay, exponential backoff | Background Sync plugin, you wire the queue | No built-in offline mutation queue |
-| Framework support | React, Svelte, Vue, Next.js, React Native, vanilla JS | Framework-agnostic (SW only) | Per-library (RTK Query = Redux, TanStack = many) |
-| TanStack Query bridge | `@sweidos/eidos/query` — drop-in `useEidosQuery`/`useEidosMutation` | — | Native |
-| Bundle size (core, gzip) | ~9 kB | ~3-6 kB (modular) | ~13 kB (TanStack Query core) |
+|                          | **Eidos**                                                                                   | Workbox                                    | RTK Query / TanStack Query                                      |
+| ------------------------ | ------------------------------------------------------------------------------------------- | ------------------------------------------ | --------------------------------------------------------------- |
+| Service worker setup     | Generated for you — `resource()`/`action()` declarations drive the SW                       | Hand-write `routing` + `strategies` config | None — no SW                                                    |
+| Caching strategy         | Auto-derived from intent (`offline: true` → SWR, etc.), inspectable via devtools            | Manually chosen per route                  | Configurable `staleTime`/`gcTime`, no Cache Storage integration |
+| Offline writes           | `action()` + `reliability: 'neverLose'` → IndexedDB queue, auto-replay, exponential backoff | Background Sync plugin, you wire the queue | No built-in offline mutation queue                              |
+| Framework support        | React, Svelte, Vue, Next.js, React Native, vanilla JS                                       | Framework-agnostic (SW only)               | Per-library (RTK Query = Redux, TanStack = many)                |
+| TanStack Query bridge    | `@sweidos/eidos/query` — drop-in `useEidosQuery`/`useEidosMutation`                         | —                                          | Native                                                          |
+| Bundle size (core, gzip) | ~9 kB                                                                                       | ~3-6 kB (modular)                          | ~13 kB (TanStack Query core)                                    |
 
 Eidos isn't a replacement for TanStack Query — `@sweidos/eidos/query` is a thin
 adapter so you keep TQ's cache/devtools while Eidos owns the offline layer
 (SW caching + IndexedDB write queue). Workbox is a lower-level toolkit Eidos
-generates strategies *for*; Eidos picks and configures the strategy from your
+generates strategies _for_; Eidos picks and configures the strategy from your
 `resource()`/`action()` declarations instead of you writing `workbox-*` config
 by hand.
 

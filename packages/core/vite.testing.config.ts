@@ -1,6 +1,6 @@
-import { defineConfig } from 'vite'
-import dts from 'vite-plugin-dts'
-import { resolve } from 'path'
+import { defineConfig } from 'vite';
+import dts from 'vite-plugin-dts';
+import { resolve } from 'path';
 
 // Separate build for the @sweidos/eidos/testing subpath export.
 // Runs after the main build; emptyOutDir: false preserves dist/*.js.
@@ -30,4 +30,4 @@ export default defineConfig({
     // Don't minify testing helpers — readable stack traces matter in test output.
     minify: false,
   },
-})
+});

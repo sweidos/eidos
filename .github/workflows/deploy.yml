@@ -29,6 +29,10 @@ jobs:
         run: pnpm --filter @sweidos/eidos test
       - name: Type-check all
         run: pnpm --filter @sweidos/eidos type-check && pnpm --filter @eidos/playground type-check
+      - name: Lint
+        run: pnpm lint
+      - name: Format check
+        run: pnpm format:check
 
   # ── Deploy playground to Vercel ───────────────────────────────────────────────
   deploy:

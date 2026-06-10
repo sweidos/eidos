@@ -1,5 +1,5 @@
-import { initEidos } from '@sweidos/eidos'
-import type { EidosConfig } from '@sweidos/eidos'
+import { initEidos } from '@sweidos/eidos';
+import type { EidosConfig } from '@sweidos/eidos';
 
 /**
  * Returns an `onMount`-compatible callback that initialises the Eidos runtime
@@ -18,5 +18,7 @@ import type { EidosConfig } from '@sweidos/eidos'
  * ```
  */
 export function initEidosSvelteKit(config?: EidosConfig): () => void {
-  return () => { void initEidos(config) }
+  return () => {
+    void initEidos(config);
+  };
 }

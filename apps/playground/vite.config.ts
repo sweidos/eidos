@@ -1,8 +1,8 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import { resolve } from 'path'
-import type { Plugin } from 'vite'
-import type { ServerResponse, IncomingMessage } from 'http'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import { resolve } from 'path';
+import type { Plugin } from 'vite';
+import type { ServerResponse, IncomingMessage } from 'http';
 
 // ── Mock API plugin ────────────────────────────────────────────────────────────
 // Serves fake endpoints so the demo works without a real backend.
@@ -14,43 +14,45 @@ const PRODUCTS = [
   { id: 3, name: 'USB-C Hub (7-in-1)', price: 49.99, category: 'Connectivity', stock: 89 },
   { id: 4, name: 'Webcam 4K', price: 129.99, category: 'Video', stock: 5 },
   { id: 5, name: 'Desk Mat XL', price: 34.99, category: 'Accessories', stock: 200 },
-]
+];
 
 function mockApiPlugin(): Plugin {
   return {
     name: 'eidos-mock-api',
     configureServer(server) {
-      server.middlewares.use(
-        '/api/products',
-        (_req: IncomingMessage, res: ServerResponse) => {
-          // Slight artificial delay to make caching visible
-          setTimeout(() => {
-            res.setHeader('Content-Type', 'application/json')
-            res.setHeader('Cache-Control', 'no-store')
-            res.end(JSON.stringify(PRODUCTS))
-          }, 300)
-        },
-      )
-
-      server.middlewares.use('/api/orders-history', (_req: IncomingMessage, res: ServerResponse) => {
-        // Longer delay (600ms) makes cache-first benefit obvious
+      server.middlewares.use('/api/products', (_req: IncomingMessage, res: ServerResponse) => {
+        // Slight artificial delay to make caching visible
         setTimeout(() => {
-          const history = Array.from({ length: 5 }, (_, i) => ({
-            id: `ORD-HIST-${i + 1}`,
-            status: 'delivered',
-            items: { productId: i + 1, quantity: 1, customerName: 'Demo User' },
-            createdAt: new Date(Date.now() - i * 86_400_000).toISOString(),
-          }))
-          res.setHeader('Content-Type', 'application/json')
-          res.setHeader('Cache-Control', 'no-store')
-          res.end(JSON.stringify(history))
-        }, 600)
-      })
+          res.setHeader('Content-Type', 'application/json');
+          res.setHeader('Cache-Control', 'no-store');
+          res.end(JSON.stringify(PRODUCTS));
+        }, 300);
+      });
+
+      server.middlewares.use(
+        '/api/orders-history',
+        (_req: IncomingMessage, res: ServerResponse) => {
+          // Longer delay (600ms) makes cache-first benefit obvious
+          setTimeout(() => {
+            const history = Array.from({ length: 5 }, (_, i) => ({
+              id: `ORD-HIST-${i + 1}`,
+              status: 'delivered',
+              items: { productId: i + 1, quantity: 1, customerName: 'Demo User' },
+              createdAt: new Date(Date.now() - i * 86_400_000).toISOString(),
+            }));
+            res.setHeader('Content-Type', 'application/json');
+            res.setHeader('Cache-Control', 'no-store');
+            res.end(JSON.stringify(history));
+          }, 600);
+        },
+      );
 
       server.middlewares.use('/api/orders', (req: IncomingMessage, res: ServerResponse) => {
-        if (req.method !== 'POST') return
-        let body = ''
-        req.on('data', (chunk: Buffer) => { body += chunk.toString() })
+        if (req.method !== 'POST') return;
+        let body = '';
+        req.on('data', (chunk: Buffer) => {
+          body += chunk.toString();
+        });
         req.on('end', () => {
           setTimeout(() => {
             const order = {
@@ -58,14 +60,14 @@ function mockApiPlugin(): Plugin {
               status: 'confirmed',
               items: JSON.parse(body || '{}'),
               createdAt: new Date().toISOString(),
-            }
-            res.setHeader('Content-Type', 'application/json')
-            res.end(JSON.stringify(order))
-          }, 400)
-        })
-      })
+            };
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify(order));
+          }, 400);
+        });
+      });
     },
-  }
+  };
 }
 
 export default defineConfig({
@@ -83,4 +85,4 @@ export default defineConfig({
     port: Number(process.env.PORT) || 3000,
     open: false,
   },
-})
+});

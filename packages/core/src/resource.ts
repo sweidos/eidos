@@ -1,5 +1,5 @@
-import { useEidosStore } from './store'
-import { sendToWorker } from './sw-bridge'
+import { useEidosStore } from './store';
+import { sendToWorker } from './sw-bridge';
 import type {
   ResourceConfig,
   ResourceHandle,
@@ -7,32 +7,32 @@ import type {
   GeneratedStrategy,
   CacheStrategy,
   WarmCacheResult,
-} from './types'
+} from './types';
 
-const _registry = new Map<string, ResourceHandle>()
+const _registry = new Map<string, ResourceHandle>();
 
 // ── Request deduplication ─────────────────────────────────────────────────────
 // If multiple callers invoke handle.fetch() simultaneously for the same URL,
 // only one network request is made. Each caller gets its own cloned Response.
 // Keyed by URL; entry is deleted when the request settles.
-const _inflightRequests = /* @__PURE__ */ new Map<string, Promise<Response>>()
+const _inflightRequests = /* @__PURE__ */ new Map<string, Promise<Response>>();
 
 // ── TanStack Query bridge (optional) ─────────────────────────────────────────
 // Set by @sweidos/eidos/query when withEidosQueryClient() is called.
 // Lets handle.invalidate() also invalidate the matching TQ cache entry.
-type QueryInvalidator = (queryKey: [string, string]) => void
-let _queryInvalidator: QueryInvalidator | null = null
+type QueryInvalidator = (queryKey: [string, string]) => void;
+let _queryInvalidator: QueryInvalidator | null = null;
 
 /** @internal Called by @sweidos/eidos/query. */
 export function setQueryInvalidator(fn: QueryInvalidator): void {
-  _queryInvalidator = fn
+  _queryInvalidator = fn;
 }
 
 // ── URL pattern helpers ───────────────────────────────────────────────────────
 
 /** Returns true if `url` contains wildcard or :param segments. */
 function isPattern(url: string): boolean {
-  return url.includes('*') || /:[^/]+/.test(url)
+  return url.includes('*') || /:[^/]+/.test(url);
 }
 
 /**
@@ -51,34 +51,31 @@ function isPattern(url: string): boolean {
  */
 function patternToRegexStr(pattern: string): string {
   // Escape all regex-special chars except `*`, `/`, `:` (handled below)
-  const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&')
+  const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
   return (
     '^' +
     escaped
-      .replace(/\*\*/g, '.+')       // ** → multi-segment wildcard
-      .replace(/\*/g, '[^/]+')      // * → single-segment wildcard
-      .replace(/:[^/]+/g, '[^/]+')  // :param → single-segment wildcard
-    + '$'
-  )
+      .replace(/\*\*/g, '.+') // ** → multi-segment wildcard
+      .replace(/\*/g, '[^/]+') // * → single-segment wildcard
+      .replace(/:[^/]+/g, '[^/]+') + // :param → single-segment wildcard
+    '$'
+  );
 }
 
 function _patternError(url: string, method: string): Error {
   return new Error(
     `[eidos] resource('${url}') is a URL pattern — ${method}() is not supported on pattern handles. ` +
-    `The SW intercepts matching requests automatically; call fetch(specificUrl) directly in your app code.`,
-  )
+      `The SW intercepts matching requests automatically; call fetch(specificUrl) directly in your app code.`,
+  );
 }
 
 // ── resource() ────────────────────────────────────────────────────────────────
 
-export function resource<T = unknown>(
-  url: string,
-  config: ResourceConfig,
-): ResourceHandle<T> {
+export function resource<T = unknown>(url: string, config: ResourceConfig): ResourceHandle<T> {
   if (_registry.has(url)) {
     if (import.meta.env.DEV) {
-      const existing = _registry.get(url)!
-      const existingCfg = existing.config
+      const existing = _registry.get(url)!;
+      const existingCfg = existing.config;
       if (
         existingCfg.offline !== config.offline ||
         existingCfg.strategy !== config.strategy ||
@@ -87,14 +84,14 @@ export function resource<T = unknown>(
         console.warn(
           `[eidos] resource('${url}') already registered with a different config — returning cached handle. Call resource.unregister() first to re-register.`,
           { registered: existingCfg, ignored: config },
-        )
+        );
       }
     }
-    return _registry.get(url) as ResourceHandle<T>
+    return _registry.get(url) as ResourceHandle<T>;
   }
 
-  const strategy = deriveStrategy(url, config)
-  const regexStr = isPattern(url) ? patternToRegexStr(url) : undefined
+  const strategy = deriveStrategy(url, config);
+  const regexStr = isPattern(url) ? patternToRegexStr(url) : undefined;
 
   const entry: ResourceEntry = {
     url,
@@ -103,9 +100,9 @@ export function resource<T = unknown>(
     status: 'idle',
     cacheHits: 0,
     cacheMisses: 0,
-  }
+  };
 
-  useEidosStore.getState().registerResource(url, entry)
+  useEidosStore.getState().registerResource(url, entry);
 
   sendToWorker({
     type: 'EIDOS_REGISTER_RESOURCE',
@@ -113,7 +110,7 @@ export function resource<T = unknown>(
     strategy: strategy.swStrategy,
     cacheName: strategy.cacheName,
     ...(regexStr !== undefined && { pattern: regexStr }),
-  })
+  });
 
   const handle: ResourceHandle<T> = {
     url,
@@ -121,64 +118,64 @@ export function resource<T = unknown>(
     strategy,
 
     fetch: async () => {
-      if (isPattern(url)) throw _patternError(url, 'fetch')
+      if (isPattern(url)) throw _patternError(url, 'fetch');
 
       // ── Deduplication: coalesce concurrent fetches for the same URL ─────
       // If a request is already in-flight, piggyback on it and return a clone
       // so each caller gets an independent readable Response body.
-      const existing = _inflightRequests.get(url)
-      if (existing) return existing.then((r) => r.clone())
+      const existing = _inflightRequests.get(url);
+      if (existing) return existing.then((r) => r.clone());
 
       // Store the raw-response promise. All callers (including the primary)
       // receive a clone — the raw response stays unconsumed in the map so
       // any caller arriving while the promise is still pending can clone it.
-      const task = _fetchResource(url, config, strategy)
-      _inflightRequests.set(url, task)
+      const task = _fetchResource(url, config, strategy);
+      _inflightRequests.set(url, task);
       // .catch() silences the unhandled-rejection on the cleanup promise;
       // the error still propagates to callers via task.then() below.
-      task.finally(() => _inflightRequests.delete(url)).catch(() => {})
-      return task.then((r) => r.clone())
+      task.finally(() => _inflightRequests.delete(url)).catch(() => {});
+      return task.then((r) => r.clone());
     },
 
     json: async () => {
-      if (isPattern(url)) throw _patternError(url, 'json')
-      const res = await handle.fetch()
-      return res.json() as Promise<T>
+      if (isPattern(url)) throw _patternError(url, 'json');
+      const res = await handle.fetch();
+      return res.json() as Promise<T>;
     },
 
     query: () => {
-      if (isPattern(url)) throw _patternError(url, 'query')
+      if (isPattern(url)) throw _patternError(url, 'query');
       return {
         queryKey: ['eidos', url] as [string, string],
         queryFn: () => handle.json(),
-      }
+      };
     },
 
     prefetch: async () => {
-      if (isPattern(url)) throw _patternError(url, 'prefetch')
-      await handle.fetch()
+      if (isPattern(url)) throw _patternError(url, 'prefetch');
+      await handle.fetch();
     },
 
     invalidate: async () => {
-      sendToWorker({ type: 'EIDOS_CLEAR_CACHE', url })
-      const cache = await caches.open(strategy.cacheName).catch(() => null)
+      sendToWorker({ type: 'EIDOS_CLEAR_CACHE', url });
+      const cache = await caches.open(strategy.cacheName).catch(() => null);
       if (cache) {
-        const keys = await cache.keys()
-        const patternRe = regexStr ? new RegExp(regexStr) : null
-        const isCrossOrigin = url.startsWith('http')
+        const keys = await cache.keys();
+        const patternRe = regexStr ? new RegExp(regexStr) : null;
+        const isCrossOrigin = url.startsWith('http');
         await Promise.all(
           keys
             .filter((r) => {
-              const rUrl = r.url
-              const p = new URL(rUrl).pathname
+              const rUrl = r.url;
+              const p = new URL(rUrl).pathname;
               if (patternRe) {
                 // Cross-origin patterns were compiled from absolute URLs; test full URL.
-                return patternRe.test(isCrossOrigin ? rUrl : p)
+                return patternRe.test(isCrossOrigin ? rUrl : p);
               }
-              return isCrossOrigin ? rUrl === url : (rUrl === url || p === url)
+              return isCrossOrigin ? rUrl === url : rUrl === url || p === url;
             })
             .map((r) => cache.delete(r)),
-        )
+        );
       }
       // For exact-URL resources update the store entry; patterns don't have a
       // single entry to update (individual URLs are not tracked per-pattern).
@@ -189,21 +186,21 @@ export function resource<T = unknown>(
           lastEvent: 'cache-cleared',
           cacheHits: 0,
           cacheMisses: 0,
-        })
+        });
       }
       // Notify TanStack Query bridge if registered.
-      _queryInvalidator?.(['eidos', url])
+      _queryInvalidator?.(['eidos', url]);
     },
 
     unregister: () => {
-      _registry.delete(url)
-      sendToWorker({ type: 'EIDOS_UNREGISTER_RESOURCE', url })
-      useEidosStore.getState().unregisterResource(url)
+      _registry.delete(url);
+      sendToWorker({ type: 'EIDOS_UNREGISTER_RESOURCE', url });
+      useEidosStore.getState().unregisterResource(url);
     },
-  }
+  };
 
-  _registry.set(url, handle)
-  return handle
+  _registry.set(url, handle);
+  return handle;
 }
 
 // ── _fetchResource ─────────────────────────────────────────────────────────────
@@ -215,12 +212,12 @@ async function _fetchResource(
   config: ResourceConfig,
   strategy: GeneratedStrategy,
 ): Promise<Response> {
-  const store = useEidosStore.getState()
-  store.updateResource(url, { status: 'fetching', fetchedAt: Date.now() })
+  const store = useEidosStore.getState();
+  store.updateResource(url, { status: 'fetching', fetchedAt: Date.now() });
 
   // Open cache once and reuse across try/catch — avoids a redundant
   // caches.open() call in the error fallback path.
-  const cache = await caches.open(strategy.cacheName).catch(() => null)
+  const cache = await caches.open(strategy.cacheName).catch(() => null);
 
   try {
     // ── network-first: skip cache check, go straight to network ─────────
@@ -232,86 +229,88 @@ async function _fetchResource(
       // We read the cache in the main thread rather than waiting for
       // an async SW postMessage. This gives instant, reliable status
       // updates regardless of SW message timing.
-      const cached = cache ? await cache.match(url).catch(() => null) : null
+      const cached = cache ? await cache.match(url).catch(() => null) : null;
 
       // Treat cache as miss if maxAge exceeded
-      const current = useEidosStore.getState().resources[url]
+      const current = useEidosStore.getState().resources[url];
       const expired =
         config.maxAge !== undefined &&
         current?.cachedAt !== undefined &&
-        Date.now() - current.cachedAt > config.maxAge
+        Date.now() - current.cachedAt > config.maxAge;
 
       if (cached && !expired) {
         store.updateResource(url, {
           status: 'fresh',
           lastEvent: 'cache-hit',
           cacheHits: (current?.cacheHits ?? 0) + 1,
-        })
+        });
 
         // Background revalidation for SWR (stale-while-revalidate)
         if (strategy.swStrategy === 'stale-while-revalidate') {
           fetch(url, { signal: AbortSignal.timeout(5000) })
             .then(async (resp) => {
               if (resp.ok && cache) {
-                await cache.put(url, resp.clone())
+                await cache.put(url, resp.clone());
                 useEidosStore.getState().updateResource(url, {
                   cachedAt: Date.now(),
                   lastEvent: 'cache-updated',
-                })
+                });
               }
             })
             .catch(() => {
               /* offline or timed out — cached version stays valid */
-            })
+            });
         }
 
-        return cached
+        return cached;
       }
 
       // Cache miss (or expired)
-      const storeEntry = useEidosStore.getState().resources[url]
+      const storeEntry = useEidosStore.getState().resources[url];
       store.updateResource(url, {
         cacheMisses: (storeEntry?.cacheMisses ?? 0) + 1,
-      })
+      });
     }
 
-    const response = await fetch(url)
+    const response = await fetch(url);
 
     if (response.ok) {
-      if (cache) await cache.put(url, response.clone())
+      if (cache) await cache.put(url, response.clone());
       store.updateResource(url, {
         status: 'fresh',
         cachedAt: Date.now(),
         lastEvent: 'cache-updated',
-      })
-      return response
+      });
+      return response;
     }
 
     // Non-2xx response (e.g. 503 from offline SW) — update status and throw
     // so callers get a proper error instead of a plain-object body they can't use.
-    store.updateResource(url, { status: response.status === 503 ? 'offline' : 'error' })
+    store.updateResource(url, { status: response.status === 503 ? 'offline' : 'error' });
 
     // Check if the SW tagged this as an offline response
-    const isOffline = response.headers.get('X-Eidos-Offline') === 'true'
+    const isOffline = response.headers.get('X-Eidos-Offline') === 'true';
     throw new Error(
-      isOffline ? `offline: no cached response for ${url}` : `${response.status} ${response.statusText}`,
-    )
+      isOffline
+        ? `offline: no cached response for ${url}`
+        : `${response.status} ${response.statusText}`,
+    );
   } catch (err) {
     // Network failure — try cache one more time as fallback
-    const fallback = cache ? await cache.match(url).catch(() => null) : null
+    const fallback = cache ? await cache.match(url).catch(() => null) : null;
 
     if (fallback) {
-      const current = useEidosStore.getState().resources[url]
+      const current = useEidosStore.getState().resources[url];
       store.updateResource(url, {
         status: 'fresh',
         lastEvent: 'cache-hit',
         cacheHits: (current?.cacheHits ?? 0) + 1,
-      })
-      return fallback
+      });
+      return fallback;
     }
 
-    store.updateResource(url, { status: 'error' })
-    throw err
+    store.updateResource(url, { status: 'error' });
+    throw err;
   }
 }
 
@@ -320,9 +319,10 @@ async function _fetchResource(
 // ─────────────────────────────────────────────────────────────────────────────
 
 function deriveStrategy(url: string, config: ResourceConfig): GeneratedStrategy {
-  const explicit = config.strategy
-  if (config.offline) return buildStrategy(explicit ?? 'stale-while-revalidate', url, config.cacheName)
-  return buildStrategy(explicit ?? 'network-first', url, config.cacheName)
+  const explicit = config.strategy;
+  if (config.offline)
+    return buildStrategy(explicit ?? 'stale-while-revalidate', url, config.cacheName);
+  return buildStrategy(explicit ?? 'network-first', url, config.cacheName);
 }
 
 // Strategy display names — always included (tiny, used by devtools).
@@ -330,11 +330,11 @@ const STRATEGY_NAMES: Record<CacheStrategy, string> = {
   'stale-while-revalidate': 'StaleWhileRevalidate',
   'cache-first': 'CacheFirst',
   'network-first': 'NetworkFirst',
-}
+};
 
 // Heavy descriptive strings — stripped from production bundles by Vite's
 // import.meta.env.DEV dead-code elimination. Only the names above ship in prod.
-type StrategyDevInfo = Pick<GeneratedStrategy, 'reasoning' | 'behavior' | 'equivalentCode'>
+type StrategyDevInfo = Pick<GeneratedStrategy, 'reasoning' | 'behavior' | 'equivalentCode'>;
 const _STRATEGY_DEV_META: Record<CacheStrategy, StrategyDevInfo> = {
   'stale-while-revalidate': {
     reasoning:
@@ -381,10 +381,14 @@ new NetworkFirst({
   networkTimeoutSeconds: 3,
 })`,
   },
-}
+};
 
-function buildStrategy(swStrategy: CacheStrategy, _url: string, cacheName?: string): GeneratedStrategy {
-  const meta = _STRATEGY_DEV_META[swStrategy]
+function buildStrategy(
+  swStrategy: CacheStrategy,
+  _url: string,
+  cacheName?: string,
+): GeneratedStrategy {
+  const meta = _STRATEGY_DEV_META[swStrategy];
   return {
     name: STRATEGY_NAMES[swStrategy],
     swStrategy,
@@ -394,7 +398,7 @@ function buildStrategy(swStrategy: CacheStrategy, _url: string, cacheName?: stri
     reasoning: meta.reasoning,
     behavior: meta.behavior,
     equivalentCode: import.meta.env.DEV ? meta.equivalentCode : '',
-  }
+  };
 }
 
 // ── warmCache ─────────────────────────────────────────────────────────────────
@@ -414,18 +418,18 @@ function buildStrategy(swStrategy: CacheStrategy, _url: string, cacheName?: stri
  * const { warmed, failed } = await warmCache([products, userProfile, settings])
  */
 export async function warmCache(handles: ResourceHandle[]): Promise<WarmCacheResult> {
-  const results = await Promise.allSettled(handles.map((h) => h.prefetch()))
+  const results = await Promise.allSettled(handles.map((h) => h.prefetch()));
   const errors = results
     .filter((r): r is PromiseRejectedResult => r.status === 'rejected')
-    .map((r) => r.reason)
+    .map((r) => r.reason);
 
   if (import.meta.env.DEV && errors.length > 0) {
-    console.warn(`[eidos] warmCache: ${errors.length} handle(s) failed to prefetch`, errors)
+    console.warn(`[eidos] warmCache: ${errors.length} handle(s) failed to prefetch`, errors);
   }
 
   return {
     warmed: results.filter((r) => r.status === 'fulfilled').length,
     failed: errors.length,
     errors,
-  }
+  };
 }

@@ -1,7 +1,7 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import dts from 'vite-plugin-dts'
-import { resolve } from 'path'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import dts from 'vite-plugin-dts';
+import { resolve } from 'path';
 
 // Build for the @sweidos/eidos/react-native subpath.
 // @sweidos/eidos is external — both the main bundle and this subpath share the
@@ -15,11 +15,7 @@ export default defineConfig({
   plugins: [
     react(),
     dts({
-      include: [
-        'src/react-native.ts',
-        'src/react/ProviderRN.tsx',
-        'src/runtime-rn.ts',
-      ],
+      include: ['src/react-native.ts', 'src/react/ProviderRN.tsx', 'src/runtime-rn.ts'],
       entryRoot: 'src',
       outDir: 'dist',
       rollupTypes: false,
@@ -45,4 +41,4 @@ export default defineConfig({
     sourcemap: false,
     minify: false,
   },
-})
+});

@@ -1,27 +1,27 @@
-import { useState } from 'react'
-import { Copy, Check } from 'lucide-react'
+import { useState } from 'react';
+import { Copy, Check } from 'lucide-react';
 
 interface CodeBlockProps {
-  code: string
-  language?: string
-  title?: string
-  className?: string
+  code: string;
+  language?: string;
+  title?: string;
+  className?: string;
 }
 
 export function CodeBlock({ code, title, className = '' }: CodeBlockProps) {
-  const [copied, setCopied] = useState(false)
-  const [copyError, setCopyError] = useState(false)
+  const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState(false);
 
   async function copy() {
     try {
-      await copyText(code)
-      setCopyError(false)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1500)
+      await copyText(code);
+      setCopyError(false);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
     } catch (error) {
-      console.error('Failed to copy code block', error)
-      setCopied(false)
-      setCopyError(true)
+      console.error('Failed to copy code block', error);
+      setCopied(false);
+      setCopyError(true);
     }
   }
 
@@ -46,34 +46,34 @@ export function CodeBlock({ code, title, className = '' }: CodeBlockProps) {
         <code>{code}</code>
       </pre>
     </div>
-  )
+  );
 }
 
 async function copyText(text: string) {
   if (navigator.clipboard?.writeText) {
     try {
-      await navigator.clipboard.writeText(text)
-      return
+      await navigator.clipboard.writeText(text);
+      return;
     } catch (error) {
       // Fall back to the legacy copy path when clipboard permissions fail.
-      console.error('Clipboard API copy failed, trying fallback', error)
+      console.error('Clipboard API copy failed, trying fallback', error);
     }
   }
 
-  const textarea = document.createElement('textarea')
-  textarea.value = text
-  textarea.setAttribute('readonly', 'true')
-  textarea.style.position = 'fixed'
-  textarea.style.opacity = '0'
-  textarea.style.pointerEvents = 'none'
-  textarea.style.left = '-9999px'
-  document.body.appendChild(textarea)
-  textarea.select()
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.setAttribute('readonly', 'true');
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  textarea.style.pointerEvents = 'none';
+  textarea.style.left = '-9999px';
+  document.body.appendChild(textarea);
+  textarea.select();
 
-  const copied = document.execCommand('copy')
-  document.body.removeChild(textarea)
+  const copied = document.execCommand('copy');
+  document.body.removeChild(textarea);
 
   if (!copied) {
-    throw new Error('Legacy copy command failed')
+    throw new Error('Legacy copy command failed');
   }
 }

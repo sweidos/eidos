@@ -1,5 +1,5 @@
-import { defineConfig } from 'vite'
-import { resolve } from 'path'
+import { defineConfig } from 'vite';
+import { resolve } from 'path';
 
 // CJS single-bundle build — for Node.js / CommonJS consumers (SSR, Jest, etc.).
 // Runs after the main ESM build (emptyOutDir: false preserves dist/).
@@ -27,4 +27,4 @@ export default defineConfig({
     sourcemap: true,
     minify: 'esbuild',
   },
-})
+});

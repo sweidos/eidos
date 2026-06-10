@@ -19,26 +19,22 @@
  * })
  * ```
  */
-import {
-  useQuery,
-  useMutation,
-  useQueryClient,
-} from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type {
   UseQueryOptions,
   UseQueryResult,
   UseMutationOptions,
   UseMutationResult,
   QueryClient,
-} from '@tanstack/react-query'
+} from '@tanstack/react-query';
 // Import from the main package (external at build-time) so all code shares
 // the same module instance — required for the setQueryInvalidator bridge to work.
-import { setQueryInvalidator } from '@sweidos/eidos'
-import type { ResourceHandle, ActionHandle, QueuedResult } from '@sweidos/eidos'
+import { setQueryInvalidator } from '@sweidos/eidos';
+import type { ResourceHandle, ActionHandle, QueuedResult } from '@sweidos/eidos';
 
 // ── Global QueryClient reference ──────────────────────────────────────────────
 
-let _globalClient: QueryClient | null = null
+let _globalClient: QueryClient | null = null;
 
 /**
  * Register a QueryClient with Eidos.
@@ -61,10 +57,10 @@ let _globalClient: QueryClient | null = null
  * ```
  */
 export function withEidosQueryClient(client: QueryClient): void {
-  _globalClient = client
+  _globalClient = client;
   setQueryInvalidator((queryKey: [string, string]) => {
-    client.invalidateQueries({ queryKey })
-  })
+    client.invalidateQueries({ queryKey });
+  });
 }
 
 // ── useEidosQuery ─────────────────────────────────────────────────────────────
@@ -72,7 +68,7 @@ export function withEidosQueryClient(client: QueryClient): void {
 type EidosQueryOptions<T> = Omit<
   UseQueryOptions<T, Error, T, [string, string]>,
   'queryKey' | 'queryFn'
->
+>;
 
 /**
  * Wraps `useQuery` with Eidos-smart defaults.
@@ -103,24 +99,23 @@ export function useEidosQuery<T>(
     retry: false,
     ...options,
     ...handle.query(),
-  })
+  });
 }
 
 // ── useEidosMutation ──────────────────────────────────────────────────────────
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyResourceHandle = ResourceHandle<any>
+type AnyResourceHandle = ResourceHandle<any>;
 
-export interface EidosMutationOptions<TArg, TData>
-  extends Omit<
-    UseMutationOptions<TData | QueuedResult, Error, TArg>,
-    'mutationFn' | 'networkMode'
-  > {
+export interface EidosMutationOptions<TArg, TData> extends Omit<
+  UseMutationOptions<TData | QueuedResult, Error, TArg>,
+  'mutationFn' | 'networkMode'
+> {
   /**
    * Resource handles to invalidate (Cache Storage + TanStack Query) after
    * every successful mutation — including offline-queued ones.
    */
-  invalidates?: AnyResourceHandle[]
+  invalidates?: AnyResourceHandle[];
 }
 
 /**
@@ -154,40 +149,39 @@ export function useEidosMutation<TArg, TData>(
 ): UseMutationResult<TData | QueuedResult, Error, TArg> {
   // Attempt to get the QueryClient from context. May throw if there is no
   // QueryClientProvider in the tree. Fall back to _globalClient only.
-  let contextClient: QueryClient | null = null
+  let contextClient: QueryClient | null = null;
   try {
     // eslint-disable-next-line react-hooks/rules-of-hooks
-    contextClient = useQueryClient()
+    contextClient = useQueryClient();
   } catch {
     // No QueryClientProvider — _globalClient only.
   }
 
-  const { invalidates, onSuccess, ...rest } = options ?? {}
+  const { invalidates, onSuccess, ...rest } = options ?? {};
 
   return useMutation<TData | QueuedResult, Error, TArg>({
     networkMode: 'always',
     ...rest,
-    mutationFn: (arg: TArg) =>
-      handle(arg as Parameters<typeof handle>[0]),
+    mutationFn: (arg: TArg) => handle(arg as Parameters<typeof handle>[0]),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onSuccess: async (...args: any[]) => {
-      const [data] = args
+      const [data] = args;
       if (invalidates?.length) {
         // Clears Eidos Cache Storage. Also calls _queryInvalidator if
         // withEidosQueryClient() was registered — so TQ cache is invalidated too.
-        await Promise.all(invalidates.map((h) => h.invalidate()))
+        await Promise.all(invalidates.map((h) => h.invalidate()));
 
         // If _globalClient is NOT set (bridge not registered) but we have a
         // context client, still invalidate TQ queries directly.
         if (!_globalClient && contextClient) {
           invalidates.forEach((h) => {
-            contextClient!.invalidateQueries({ queryKey: h.query().queryKey })
-          })
+            contextClient!.invalidateQueries({ queryKey: h.query().queryKey });
+          });
         }
       }
       // Forward all args to the caller's onSuccess (TQ v5 passes 4 args).
-      if (onSuccess) await (onSuccess as (...a: unknown[]) => unknown)(...args)
-      void data // used above for narrowing
+      if (onSuccess) await (onSuccess as (...a: unknown[]) => unknown)(...args);
+      void data; // used above for narrowing
     },
-  })
+  });
 }

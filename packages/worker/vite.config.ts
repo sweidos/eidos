@@ -1,5 +1,5 @@
-import { defineConfig } from 'vite'
-import { resolve } from 'path'
+import { defineConfig } from 'vite';
+import { resolve } from 'path';
 
 export default defineConfig({
   build: {
@@ -14,4 +14,4 @@ export default defineConfig({
     minify: false,
     sourcemap: false,
   },
-})
+});

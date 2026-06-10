@@ -1,11 +1,11 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import dts from 'vite-plugin-dts'
-import { resolve } from 'path'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import dts from 'vite-plugin-dts';
+import { resolve } from 'path';
 
 // Resolve @sweidos/eidos to local source so Vitest can run tests that import
 // subpath files (query.ts, testing.ts) without a prior build step.
-const localSelf = resolve(__dirname, 'src/index.ts')
+const localSelf = resolve(__dirname, 'src/index.ts');
 
 export default defineConfig({
   resolve: {
@@ -69,4 +69,4 @@ export default defineConfig({
     sourcemap: true,
     minify: 'esbuild',
   },
-})
+});

@@ -1,39 +1,39 @@
-import { registerServiceWorker, registerBgSyncHandler } from './sw-bridge'
-import { replayQueue } from './action'
-import { useEidosStore } from './store'
-import { idbGetQueue } from './idb'
+import { registerServiceWorker, registerBgSyncHandler } from './sw-bridge';
+import { replayQueue } from './action';
+import { useEidosStore } from './store';
+import { idbGetQueue } from './idb';
 
 export interface EidosConfig {
   /** Path to the eidos service worker. Defaults to '/eidos-sw.js'. */
-  swPath?: string
+  swPath?: string;
   /** Automatically replay the action queue on reconnect. Default: true. */
-  autoReplay?: boolean
+  autoReplay?: boolean;
 }
 
-let _initialized = false
-let _unsubscribe: (() => void) | null = null
+let _initialized = false;
+let _unsubscribe: (() => void) | null = null;
 
 export async function initEidos(config: EidosConfig = {}): Promise<void> {
   // Skip silently during SSR — SW, IndexedDB, and window are browser-only.
-  if (typeof window === 'undefined') return
-  if (_initialized) return
-  _initialized = true
+  if (typeof window === 'undefined') return;
+  if (_initialized) return;
+  _initialized = true;
 
-  const swPath = config.swPath ?? '/eidos-sw.js'
-  const autoReplay = config.autoReplay ?? true
+  const swPath = config.swPath ?? '/eidos-sw.js';
+  const autoReplay = config.autoReplay ?? true;
 
   // Restore persisted queue from IndexedDB on startup
   try {
-    const persisted = await idbGetQueue()
+    const persisted = await idbGetQueue();
     if (persisted.length > 0) {
-      useEidosStore.getState().hydrateQueue(persisted)
+      useEidosStore.getState().hydrateQueue(persisted);
     }
   } catch {
     // IndexedDB unavailable (Firefox private browsing) — silent fallback
   }
 
   try {
-    await registerServiceWorker(swPath)
+    await registerServiceWorker(swPath);
   } catch {
     // SW registration failed; app continues without offline support
   }
@@ -43,9 +43,9 @@ export async function initEidos(config: EidosConfig = {}): Promise<void> {
   // triggers the sync event on the SW, which wakes up all open clients.
   registerBgSyncHandler(() => {
     if (useEidosStore.getState().isOnline) {
-      setTimeout(replayQueue, 200)
+      setTimeout(replayQueue, 200);
     }
-  })
+  });
 
   if (autoReplay) {
     // ── Subscribe to the store instead of window.addEventListener('online')
@@ -55,41 +55,41 @@ export async function initEidos(config: EidosConfig = {}): Promise<void> {
     //   • Real network reconnects (sw-bridge updates store on window.online)
     //   • Simulation toggled off (setOfflineSimulation(false) → store.setOnline(true))
     //
-    let prevIsOnline = useEidosStore.getState().isOnline
+    let prevIsOnline = useEidosStore.getState().isOnline;
 
     _unsubscribe = useEidosStore.subscribe(() => {
-      const { isOnline } = useEidosStore.getState()
-      const justCameOnline = isOnline && !prevIsOnline
-      prevIsOnline = isOnline
+      const { isOnline } = useEidosStore.getState();
+      const justCameOnline = isOnline && !prevIsOnline;
+      prevIsOnline = isOnline;
 
       if (justCameOnline) {
         // Small delay so the connection (or simulation reset) settles first
-        setTimeout(replayQueue, 600)
+        setTimeout(replayQueue, 600);
       }
-    })
+    });
 
     // Replay any pending items that survived a page reload.
     // 'failed' items have already exhausted maxRetries and are never
     // re-replayed (see _doReplayQueue), so they don't count here.
-    const store = useEidosStore.getState()
-    const hasPending = store.queue.some((q) => q.status === 'pending')
+    const store = useEidosStore.getState();
+    const hasPending = store.queue.some((q) => q.status === 'pending');
     if (store.isOnline && hasPending) {
-      setTimeout(replayQueue, 1200)
+      setTimeout(replayQueue, 1200);
     }
   }
 
   if (import.meta.env.DEV) {
-    const store = useEidosStore.getState()
-    console.groupCollapsed('%c⚡ Eidos', 'color:#22C55E;font-weight:bold')
-    console.log('SW path    :', swPath)
-    console.log('Auto-replay:', autoReplay)
-    console.log('SW status  :', store.swStatus)
-    console.groupEnd()
+    const store = useEidosStore.getState();
+    console.groupCollapsed('%c⚡ Eidos', 'color:#22C55E;font-weight:bold');
+    console.log('SW path    :', swPath);
+    console.log('Auto-replay:', autoReplay);
+    console.log('SW status  :', store.swStatus);
+    console.groupEnd();
   }
 }
 
 export function _resetEidos() {
-  _unsubscribe?.()
-  _unsubscribe = null
-  _initialized = false
+  _unsubscribe?.();
+  _unsubscribe = null;
+  _initialized = false;
 }

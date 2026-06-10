@@ -4,10 +4,10 @@
 
 Only the latest published version of `@sweidos/eidos` on npm receives security fixes.
 
-| Version | Supported |
-|---------|-----------|
-| latest  | ✅ |
-| < latest | ❌ |
+| Version  | Supported |
+| -------- | --------- |
+| latest   | ✅        |
+| < latest | ❌        |
 
 ## Reporting a Vulnerability
 

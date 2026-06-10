@@ -12,7 +12,10 @@
     "build:worker": "pnpm --filter @eidos/worker build",
     "build:playground": "pnpm --filter @eidos/playground build",
     "type-check": "pnpm -r type-check",
-    "lint": "pnpm -r lint",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "clean": "pnpm -r exec -- rm -rf dist node_modules .turbo",
     "publish:dry": "pnpm --filter @sweidos/eidos publish --dry-run",
     "publish:core": "pnpm --filter @sweidos/eidos publish --access public",
@@ -20,7 +23,15 @@
     "test:e2e:watch": "pnpm --filter @eidos/e2e test:watch"
   },
   "devDependencies": {
-    "typescript": "^5.4.5"
+    "@eslint/js": "^9.9.0",
+    "eslint": "^9.9.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-react": "^7.35.0",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "globals": "^17.6.0",
+    "prettier": "^3.3.3",
+    "typescript": "^5.4.5",
+    "typescript-eslint": "^8.3.0"
   },
   "engines": {
     "node": ">=18.0.0",

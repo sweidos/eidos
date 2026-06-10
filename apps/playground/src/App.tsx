@@ -3,18 +3,18 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Analytics } from '@vercel/analytics/react'
 import { Header } from './components/Header'
 
-const Demo      = lazy(() => import('./pages/Demo').then(m => ({ default: m.Demo })))
-const Resources = lazy(() => import('./pages/Resources').then(m => ({ default: m.Resources })))
-const Actions   = lazy(() => import('./pages/Actions').then(m => ({ default: m.Actions })))
-const Inspector = lazy(() => import('./pages/Inspector').then(m => ({ default: m.Inspector })))
-const Learn     = lazy(() => import('./pages/Learn').then(m => ({ default: m.Learn })))
+const Demo = lazy(() => import('./pages/Demo').then((m) => ({ default: m.Demo })));
+const Resources = lazy(() => import('./pages/Resources').then((m) => ({ default: m.Resources })));
+const Actions = lazy(() => import('./pages/Actions').then((m) => ({ default: m.Actions })));
+const Inspector = lazy(() => import('./pages/Inspector').then((m) => ({ default: m.Inspector })));
+const Learn = lazy(() => import('./pages/Learn').then((m) => ({ default: m.Learn })));
 
 function RouteFallback() {
   return (
     <div className="mx-auto flex max-w-6xl items-center justify-center px-4 py-24">
       <div className="h-5 w-5 animate-spin rounded-full border-2 border-eidos-border border-t-eidos-accent" />
     </div>
-  )
+  );
 }
 
 export function App() {
@@ -23,7 +23,7 @@ export function App() {
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:px-3 focus:py-1.5 focus:text-xs focus:bg-eidos-accent focus:text-eidos-bg focus:font-bold"
-        >
+      >
         Skip to main content
       </a>
       <div className="flex min-h-dvh flex-col overflow-hidden bg-eidos-bg">
@@ -46,5 +46,5 @@ export function App() {
       </div>
       <Analytics />
     </BrowserRouter>
-  )
+  );
 }

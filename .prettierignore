@@ -1,0 +1,9 @@
+dist
+node_modules
+.turbo
+coverage
+pnpm-lock.yaml
+apps/playground/public
+.agents
+.claude
+CHANGELOG.md

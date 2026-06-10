@@ -1,38 +1,38 @@
-import { useState, useEffect, memo } from 'react'
-import { useEidosQueue, useEidosStatus, replayQueue, isBgSyncSupported } from '@sweidos/eidos'
-import type { ActionQueueItem } from '@sweidos/eidos'
+import { useState, useEffect, memo } from 'react';
+import { useEidosQueue, useEidosStatus, replayQueue, isBgSyncSupported } from '@sweidos/eidos';
+import type { ActionQueueItem } from '@sweidos/eidos';
 
 export function Actions() {
-  const queue              = useEidosQueue()
-  const { isOnline }       = useEidosStatus()
-  const [busy, setBusy]    = useState(false)
-  const [bgSyncFlash, setBgSyncFlash] = useState(false)
-  const bgSync             = isBgSyncSupported()
+  const queue = useEidosQueue();
+  const { isOnline } = useEidosStatus();
+  const [busy, setBusy] = useState(false);
+  const [bgSyncFlash, setBgSyncFlash] = useState(false);
+  const bgSync = isBgSyncSupported();
 
-  const pending: ActionQueueItem[] = []
-  const active: ActionQueueItem[]  = []
-  const done: ActionQueueItem[]    = []
+  const pending: ActionQueueItem[] = [];
+  const active: ActionQueueItem[] = [];
+  const done: ActionQueueItem[] = [];
   for (const q of queue) {
-    if (q.status === 'replaying') active.push(q)
-    else if (q.status === 'pending') pending.push(q)
-    else done.push(q)
+    if (q.status === 'replaying') active.push(q);
+    else if (q.status === 'pending') pending.push(q);
+    else done.push(q);
   }
 
   useEffect(() => {
     function onMsg(e: MessageEvent) {
       if (e.data?.type === 'EIDOS_BACKGROUND_SYNC') {
-        setBgSyncFlash(true)
-        setTimeout(() => setBgSyncFlash(false), 2000)
+        setBgSyncFlash(true);
+        setTimeout(() => setBgSyncFlash(false), 2000);
       }
     }
-    navigator.serviceWorker?.addEventListener('message', onMsg)
-    return () => navigator.serviceWorker?.removeEventListener('message', onMsg)
-  }, [])
+    navigator.serviceWorker?.addEventListener('message', onMsg);
+    return () => navigator.serviceWorker?.removeEventListener('message', onMsg);
+  }, []);
 
   async function replay() {
-    setBusy(true)
-    await replayQueue()
-    setBusy(false)
+    setBusy(true);
+    await replayQueue();
+    setBusy(false);
   }
 
   return (
@@ -41,8 +41,8 @@ export function Actions() {
         <div>
           <h2 className="text-base font-bold text-eidos-text mb-1">action queue</h2>
           <p className="text-xs text-eidos-muted">
-            Actions with <code className="text-eidos-amber">reliability: 'neverLose'</code> persist
-            to IndexedDB when offline and replay automatically on reconnect.
+            Actions with <code className="text-eidos-amber">{"reliability: 'neverLose'"}</code>{' '}
+            persist to IndexedDB when offline and replay automatically on reconnect.
           </p>
           {/* Background Sync badge */}
           <div className="flex items-center gap-2 mt-2">
@@ -51,12 +51,18 @@ export function Actions() {
                 bgSyncFlash
                   ? 'border-eidos-accent text-eidos-accent bg-eidos-accent/10'
                   : bgSync
-                  ? 'border-eidos-accent/40 text-eidos-accent'
-                  : 'border-eidos-border text-eidos-muted'
+                    ? 'border-eidos-accent/40 text-eidos-accent'
+                    : 'border-eidos-border text-eidos-muted'
               }`}
             >
-              <span className={`w-1.5 h-1.5 rounded-full ${bgSync ? 'bg-eidos-accent' : 'bg-eidos-muted'}`} />
-              {bgSyncFlash ? 'background sync fired' : bgSync ? 'background sync supported' : 'background sync unsupported'}
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${bgSync ? 'bg-eidos-accent' : 'bg-eidos-muted'}`}
+              />
+              {bgSyncFlash
+                ? 'background sync fired'
+                : bgSync
+                  ? 'background sync supported'
+                  : 'background sync unsupported'}
             </span>
           </div>
         </div>
@@ -74,9 +80,9 @@ export function Actions() {
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3 mb-5">
         {[
-          { label: 'pending',   count: pending.length, color: 'text-eidos-amber' },
-          { label: 'replaying', count: active.length,  color: 'text-eidos-blue'  },
-          { label: 'done',      count: done.length,    color: 'text-eidos-accent' },
+          { label: 'pending', count: pending.length, color: 'text-eidos-amber' },
+          { label: 'replaying', count: active.length, color: 'text-eidos-blue' },
+          { label: 'done', count: done.length, color: 'text-eidos-accent' },
         ].map(({ label, count, color }) => (
           <div key={label} className="border border-eidos-border px-4 py-3">
             <div className="text-2xs text-eidos-muted uppercase tracking-widest mb-1">{label}</div>
@@ -95,7 +101,7 @@ export function Actions() {
         </div>
       ) : (
         <div className="border border-eidos-border divide-y divide-eidos-border">
-          {[...active, ...pending, ...done].map(item => (
+          {[...active, ...pending, ...done].map((item) => (
             <QueueItem key={item.id} item={item} />
           ))}
         </div>
@@ -130,58 +136,70 @@ if ('queued' in result) {
 //    Items with nextRetryAt in the future are skipped on each replay pass.`}</pre>
       </div>
     </div>
-  )
+  );
 }
 
 function RetryCountdown({ nextRetryAt }: { nextRetryAt: number }) {
-  const [secs, setSecs] = useState(Math.max(0, Math.ceil((nextRetryAt - Date.now()) / 1000)))
+  const [secs, setSecs] = useState(Math.max(0, Math.ceil((nextRetryAt - Date.now()) / 1000)));
 
   useEffect(() => {
-    if (secs <= 0) return
+    if (secs <= 0) return;
     const id = setInterval(() => {
-      const remaining = Math.max(0, Math.ceil((nextRetryAt - Date.now()) / 1000))
-      setSecs(remaining)
-      if (remaining === 0) clearInterval(id)
-    }, 500)
-    return () => clearInterval(id)
-  }, [nextRetryAt, secs])
+      const remaining = Math.max(0, Math.ceil((nextRetryAt - Date.now()) / 1000));
+      setSecs(remaining);
+      if (remaining === 0) clearInterval(id);
+    }, 500);
+    return () => clearInterval(id);
+  }, [nextRetryAt, secs]);
 
-  if (secs <= 0) return null
-  return <span className="text-eidos-blue">retry in {secs}s</span>
+  if (secs <= 0) return null;
+  return <span className="text-eidos-blue">retry in {secs}s</span>;
 }
 
 const QueueItem = memo(function QueueItem({ item }: { item: ActionQueueItem }) {
-  const statusColor = {
-    replaying: 'text-eidos-blue',
-    succeeded: 'text-eidos-accent',
-    failed:    'text-eidos-red',
-    pending:   'text-eidos-amber',
-  }[item.status] ?? 'text-eidos-muted'
+  const statusColor =
+    {
+      replaying: 'text-eidos-blue',
+      succeeded: 'text-eidos-accent',
+      failed: 'text-eidos-red',
+      pending: 'text-eidos-amber',
+    }[item.status] ?? 'text-eidos-muted';
 
-  const borderColor = {
-    replaying: 'border-l-eidos-blue',
-    succeeded: 'border-l-eidos-accent',
-    failed:    'border-l-eidos-red',
-    pending:   'border-l-eidos-amber',
-  }[item.status] ?? ''
+  const borderColor =
+    {
+      replaying: 'border-l-eidos-blue',
+      succeeded: 'border-l-eidos-accent',
+      failed: 'border-l-eidos-red',
+      pending: 'border-l-eidos-amber',
+    }[item.status] ?? '';
 
   return (
     <div className={`px-4 py-3 text-xs border-l-2 ${borderColor}`}>
       <div className="flex items-center gap-3 mb-1.5">
         <span className="text-eidos-text font-bold">{item.actionName}</span>
-        <span className={`text-2xs border px-1.5 py-0.5 ${statusColor} border-current/30`}>{item.status}</span>
+        <span className={`text-2xs border px-1.5 py-0.5 ${statusColor} border-current/30`}>
+          {item.status}
+        </span>
       </div>
       <div className="flex flex-wrap gap-4 text-2xs text-eidos-muted font-tabular">
         <span>id: {item.id}</span>
         <span>queued: {new Date(item.queuedAt).toLocaleTimeString('en', { hour12: false })}</span>
-        {item.completedAt && <span>done: {new Date(item.completedAt).toLocaleTimeString('en', { hour12: false })}</span>}
-        <span>retries: {item.retryCount}/{item.maxRetries}</span>
-        {item.status === 'pending' && item.nextRetryAt && <RetryCountdown nextRetryAt={item.nextRetryAt} />}
+        {item.completedAt && (
+          <span>
+            done: {new Date(item.completedAt).toLocaleTimeString('en', { hour12: false })}
+          </span>
+        )}
+        <span>
+          retries: {item.retryCount}/{item.maxRetries}
+        </span>
+        {item.status === 'pending' && item.nextRetryAt && (
+          <RetryCountdown nextRetryAt={item.nextRetryAt} />
+        )}
       </div>
       {item.error && <p className="text-2xs text-eidos-red mt-1">{item.error}</p>}
       <p className="text-2xs text-eidos-muted mt-1 truncate">
         args: <code className="text-eidos-text-dim">{JSON.stringify(item.args).slice(0, 100)}</code>
       </p>
     </div>
-  )
-})
+  );
+});
