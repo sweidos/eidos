@@ -1,7 +1,7 @@
-import { lazy, Suspense } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { Analytics } from '@vercel/analytics/react'
-import { Header } from './components/Header'
+import { lazy, Suspense } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Analytics } from '@vercel/analytics/react';
+import { Header } from './components/Header';
 
 const Demo = lazy(() => import('./pages/Demo').then((m) => ({ default: m.Demo })));
 const Resources = lazy(() => import('./pages/Resources').then((m) => ({ default: m.Resources })));
