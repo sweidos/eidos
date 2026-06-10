@@ -1,14 +1,22 @@
 import { useState } from 'react';
 import { Copy, Check } from 'lucide-react';
+import { Highlight, type Language } from 'prism-react-renderer';
+import { eidosCodeTheme } from './eidosCodeTheme';
 
 interface CodeBlockProps {
   code: string;
-  language?: string;
+  language?: Language;
   title?: string;
   className?: string;
 }
 
-export function CodeBlock({ code, title, className = '' }: CodeBlockProps) {
+function detectLanguage(code: string): Language {
+  if (/^\s*(npm|pnpm|npx|yarn|cp|cd)\b/.test(code)) return 'bash';
+  if (/^\s*[{[]/.test(code.trimStart())) return 'json';
+  return 'tsx';
+}
+
+export function CodeBlock({ code, language, title, className = '' }: CodeBlockProps) {
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState(false);
 
@@ -42,9 +50,28 @@ export function CodeBlock({ code, title, className = '' }: CodeBlockProps) {
           </button>
         </div>
       )}
-      <pre className="p-4 overflow-x-auto text-sm font-mono text-eidos-text bg-eidos-surface leading-relaxed">
-        <code>{code}</code>
-      </pre>
+      <Highlight
+        code={code.trim()}
+        language={language ?? detectLanguage(code)}
+        theme={eidosCodeTheme}
+      >
+        {({ className: highlightClassName, style, tokens, getLineProps, getTokenProps }) => (
+          <pre
+            className={`p-4 overflow-x-auto text-sm font-mono leading-relaxed bg-eidos-surface ${highlightClassName}`}
+            style={style}
+          >
+            <code>
+              {tokens.map((line, i) => (
+                <div key={i} {...getLineProps({ line })}>
+                  {line.map((token, key) => (
+                    <span key={key} {...getTokenProps({ token })} />
+                  ))}
+                </div>
+              ))}
+            </code>
+          </pre>
+        )}
+      </Highlight>
     </div>
   );
 }
