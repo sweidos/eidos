@@ -13,7 +13,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "dotenv": "^16.4.5",
+    "dotenv": "^17.4.2",
     "typescript": "^6.0.3",
     "vitest": "^2.1.9"
   }
