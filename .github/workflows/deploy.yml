@@ -7,6 +7,12 @@ name: Deploy & Release
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '**.md'
+      - '.changeset/**'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/FUNDING.yml'
+      - 'LICENSE'
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
