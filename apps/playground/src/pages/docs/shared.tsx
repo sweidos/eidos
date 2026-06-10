@@ -98,7 +98,7 @@ export function OnThisPage({ items }: { items: string[] }) {
   return (
     <nav
       aria-label="On this page"
-      className="flex flex-wrap gap-2 rounded-xl border border-eidos-border bg-eidos-surface/60 p-3 text-xs"
+      className="sticky top-0 z-10 flex flex-wrap gap-2 rounded-xl border border-eidos-border bg-eidos-surface/90 p-3 text-xs backdrop-blur-sm"
     >
       <span className="shrink-0 text-2xs uppercase tracking-[0.24em] text-eidos-muted self-center">
         On this page
