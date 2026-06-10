@@ -17,7 +17,7 @@ export default defineConfig({
     lib: {
       entry: resolve(__dirname, 'src/vite.ts'),
       formats: ['es', 'cjs'],
-      fileName: (format) => (format === 'es' ? 'vite.js' : 'vite.cjs.js'),
+      fileName: (format) => (format === 'es' ? 'vite.js' : 'vite.cjs'),
     },
     outDir: 'dist',
     emptyOutDir: false, // preserve main build output

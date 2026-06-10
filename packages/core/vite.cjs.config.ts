@@ -10,7 +10,7 @@ export default defineConfig({
       entry: resolve(__dirname, 'src/index.ts'),
       name: 'Eidos',
       formats: ['cjs'],
-      fileName: () => 'eidos.cjs.js',
+      fileName: () => 'eidos.cjs',
     },
     rollupOptions: {
       external: ['react', 'react-dom', 'react/jsx-runtime'],

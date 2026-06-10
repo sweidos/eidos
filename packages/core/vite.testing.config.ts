@@ -17,7 +17,7 @@ export default defineConfig({
     lib: {
       entry: resolve(__dirname, 'src/testing.ts'),
       formats: ['es', 'cjs'],
-      fileName: (format) => (format === 'es' ? 'testing.js' : 'testing.cjs.js'),
+      fileName: (format) => (format === 'es' ? 'testing.js' : 'testing.cjs'),
     },
     outDir: 'dist',
     emptyOutDir: false,

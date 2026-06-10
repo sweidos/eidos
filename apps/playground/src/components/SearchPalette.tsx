@@ -37,80 +37,80 @@ const INDEX: SearchEntry[] = [
   {
     label: 'Quick start',
     description: 'Install, wrap, declare',
-    path: '/docs#quick-start',
+    path: '/docs/quickstart',
     keywords: 'install setup vite plugin getting started',
   },
   {
     label: 'resource(url, config)',
     description: 'Register a cacheable GET endpoint',
-    path: '/docs#core',
+    path: '/docs/api',
     keywords: 'resource cache strategy maxAge offline',
   },
   {
     label: 'action(fn, config)',
     description: 'Queue offline-safe mutations',
-    path: '/docs#core',
+    path: '/docs/api',
     keywords: 'action mutation reliability neverLose retries',
   },
   {
     label: 'EidosProvider',
     description: 'Register the SW + hydrate runtime',
-    path: '/docs#core',
+    path: '/docs/api',
     keywords: 'provider swPath autoReplay',
   },
   {
     label: 'replayQueue()',
     description: 'Manually trigger queue replay',
-    path: '/docs#core',
+    path: '/docs/api',
     keywords: 'replay queue retry',
   },
   {
     label: 'Examples',
     description: 'TanStack Query, TTLs, offline tests',
-    path: '/docs#examples',
+    path: '/docs/examples',
     keywords: 'examples tanstack query ttl test',
   },
   {
     label: 'React hooks',
     description: 'useEidosStatus, useEidosResource, useEidosQueueStats',
-    path: '/docs#hooks',
+    path: '/docs/hooks',
     keywords:
       'hooks useEidosStatus useEidosResource useEidosQueueStats useEidosAction useEidosOnDrain',
   },
   {
     label: 'Framework-agnostic stores',
     description: 'eidosStatus, eidosQueue, eidosResource',
-    path: '/docs#hooks',
+    path: '/docs/hooks',
     keywords: 'stores svelte vue vanilla subscribe',
   },
   {
     label: 'URL patterns',
     description: 'Wildcards, params, cross-origin',
-    path: '/docs#advanced',
+    path: '/docs/advanced',
     keywords: 'url pattern wildcard cross-origin :param * **',
   },
   {
     label: 'Caching strategies',
     description: 'stale-while-revalidate, cache-first, network-first',
-    path: '/docs#advanced',
+    path: '/docs/advanced',
     keywords: 'strategy cache-first network-first stale-while-revalidate',
   },
   {
     label: 'Testing utilities',
     description: 'mockOffline, drainQueue, resetEidos',
-    path: '/docs#advanced',
+    path: '/docs/advanced',
     keywords: 'testing mockOffline mockOnline drainQueue resetEidos getCachedEntry',
   },
   {
     label: 'Types and limits',
     description: 'GET-only caching, module-scope actions, full reference',
-    path: '/docs#advanced',
+    path: '/docs/advanced',
     keywords: 'limits types reference readme',
   },
   {
     label: 'Further reading',
     description: 'README, MDN service worker / cache / IndexedDB docs',
-    path: '/docs#references',
+    path: '/docs/references',
     keywords: 'references readme mdn service worker cache indexeddb',
   },
 ];
@@ -158,21 +158,8 @@ export function SearchPalette() {
   useEffect(() => setActiveIndex(0), [query]);
 
   function go(entry: SearchEntry) {
-    const [path, hash] = entry.path.split('#');
-    navigate(path);
+    navigate(entry.path);
     setOpen(false);
-    if (hash) {
-      let attempts = 0;
-      const tryScroll = () => {
-        const el = document.getElementById(hash);
-        if (el) {
-          el.scrollIntoView({ block: 'start' });
-        } else if (attempts++ < 20) {
-          requestAnimationFrame(tryScroll);
-        }
-      };
-      requestAnimationFrame(tryScroll);
-    }
   }
 
   function onInputKeyDown(e: React.KeyboardEvent) {

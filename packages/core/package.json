@@ -39,13 +39,13 @@
     "url": "https://github.com/iamadi11/eidos.git",
     "directory": "packages/core"
   },
-  "main": "./dist/eidos.cjs.js",
+  "main": "./dist/eidos.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "import": "./dist/index.js",
-      "require": "./dist/eidos.cjs.js",
+      "require": "./dist/eidos.cjs",
       "types": "./dist/index.d.ts"
     },
     "./sw": {
@@ -53,17 +53,17 @@
     },
     "./vite": {
       "import": "./dist/vite.js",
-      "require": "./dist/vite.cjs.js",
+      "require": "./dist/vite.cjs",
       "types": "./dist/vite.d.ts"
     },
     "./query": {
       "import": "./dist/query.js",
-      "require": "./dist/query.cjs.js",
+      "require": "./dist/query.cjs",
       "types": "./dist/query.d.ts"
     },
     "./testing": {
       "import": "./dist/testing.js",
-      "require": "./dist/testing.cjs.js",
+      "require": "./dist/testing.cjs",
       "types": "./dist/testing.d.ts"
     },
     "./nextjs": {
@@ -111,7 +111,7 @@
     },
     {
       "name": "cjs bundle",
-      "path": "dist/eidos.cjs.js",
+      "path": "dist/eidos.cjs",
       "limit": "18 KB"
     }
   ],

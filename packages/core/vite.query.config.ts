@@ -17,7 +17,7 @@ export default defineConfig({
     lib: {
       entry: resolve(__dirname, 'src/query.ts'),
       formats: ['es', 'cjs'],
-      fileName: (format) => (format === 'es' ? 'query.js' : 'query.cjs.js'),
+      fileName: (format) => (format === 'es' ? 'query.js' : 'query.cjs'),
     },
     outDir: 'dist',
     emptyOutDir: false,
