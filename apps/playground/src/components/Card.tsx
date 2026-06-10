@@ -4,11 +4,13 @@ interface CardProps {
   children: ReactNode;
   className?: string;
   glow?: boolean;
+  id?: string;
 }
 
-export function Card({ children, className = '', glow = false }: CardProps) {
+export function Card({ children, className = '', glow = false, id }: CardProps) {
   return (
     <div
+      id={id}
       className={`
         rounded-xl border border-eidos-border/80 bg-eidos-surface/95 p-5
         shadow-[0_1px_0_rgba(255,255,255,0.02),0_18px_50px_rgba(15,23,42,0.18)]

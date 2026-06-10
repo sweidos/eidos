@@ -87,6 +87,35 @@ export function Collapse({ title, children }: { title: string; children: ReactNo
   );
 }
 
+export function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+}
+
+export function OnThisPage({ items }: { items: string[] }) {
+  return (
+    <nav
+      aria-label="On this page"
+      className="flex flex-wrap gap-2 rounded-xl border border-eidos-border bg-eidos-surface/60 p-3 text-xs"
+    >
+      <span className="shrink-0 text-2xs uppercase tracking-[0.24em] text-eidos-muted self-center">
+        On this page
+      </span>
+      {items.map((item) => (
+        <a
+          key={item}
+          href={`#${slugify(item)}`}
+          className="rounded-full border border-eidos-border px-2.5 py-1 text-eidos-text-dim transition-colors hover:border-eidos-accent hover:text-eidos-text"
+        >
+          {item}
+        </a>
+      ))}
+    </nav>
+  );
+}
+
 export interface DocPage {
   slug: string;
   label: string;

@@ -90,7 +90,7 @@ export function resource<T = unknown>(url: string, config: ResourceConfig): Reso
     return _registry.get(url) as ResourceHandle<T>;
   }
 
-  const strategy = deriveStrategy(url, config);
+  const strategy = deriveStrategy(config);
   const regexStr = isPattern(url) ? patternToRegexStr(url) : undefined;
 
   const entry: ResourceEntry = {
@@ -318,11 +318,10 @@ async function _fetchResource(
 // Strategy derivation — intent → deterministic caching strategy
 // ─────────────────────────────────────────────────────────────────────────────
 
-function deriveStrategy(url: string, config: ResourceConfig): GeneratedStrategy {
+function deriveStrategy(config: ResourceConfig): GeneratedStrategy {
   const explicit = config.strategy;
-  if (config.offline)
-    return buildStrategy(explicit ?? 'stale-while-revalidate', url, config.cacheName);
-  return buildStrategy(explicit ?? 'network-first', url, config.cacheName);
+  if (config.offline) return buildStrategy(explicit ?? 'stale-while-revalidate', config.cacheName);
+  return buildStrategy(explicit ?? 'network-first', config.cacheName);
 }
 
 // Strategy display names — always included (tiny, used by devtools).
@@ -383,11 +382,7 @@ new NetworkFirst({
   },
 };
 
-function buildStrategy(
-  swStrategy: CacheStrategy,
-  _url: string,
-  cacheName?: string,
-): GeneratedStrategy {
+function buildStrategy(swStrategy: CacheStrategy, cacheName?: string): GeneratedStrategy {
   const meta = _STRATEGY_DEV_META[swStrategy];
   return {
     name: STRATEGY_NAMES[swStrategy],
