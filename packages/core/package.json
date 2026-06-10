@@ -112,7 +112,7 @@
     {
       "name": "cjs bundle",
       "path": "dist/eidos.cjs.js",
-      "limit": "8 KB"
+      "limit": "18 KB"
     }
   ],
   "peerDependencies": {

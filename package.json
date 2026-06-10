@@ -20,9 +20,13 @@
     "publish:dry": "pnpm --filter @sweidos/eidos publish --dry-run",
     "publish:core": "pnpm --filter @sweidos/eidos publish --access public",
     "test:e2e": "pnpm --filter @eidos/e2e test",
-    "test:e2e:watch": "pnpm --filter @eidos/e2e test:watch"
+    "test:e2e:watch": "pnpm --filter @eidos/e2e test:watch",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "pnpm build:core && changeset publish"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.31.0",
     "@eslint/js": "^9.9.0",
     "eslint": "^9.9.0",
     "eslint-config-prettier": "^9.1.0",

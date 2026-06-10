@@ -35,8 +35,9 @@ pnpm type-check                       # type-check every package
   pass. CI runs the same checks.
 - **Keep `action()`/`resource()` declarations module-scope** in any new
   playground examples — see the existing pages for the pattern.
-- **Update `CHANGELOG.md`** under an `[Unreleased]` heading if the change is
-  user-facing.
+- **Add a changeset** for any user-facing change to `@sweidos/eidos`:
+  `pnpm changeset`, pick the bump type, describe the change. This generates
+  the changelog entry on release — no manual `CHANGELOG.md` edits needed.
 
 ## Code style
 
