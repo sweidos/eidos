@@ -43,10 +43,10 @@ importers:
     dependencies:
       '@browserbasehq/stagehand':
         specifier: ^1.13.0
-        version: 1.14.0(@playwright/test@1.60.0)(deepmerge@4.3.1)(dotenv@16.6.1)(openai@4.104.0(ws@8.21.0)(zod@3.25.76))(zod@3.25.76)
+        version: 1.14.0(@playwright/test@1.60.0)(deepmerge@4.3.1)(dotenv@16.6.1)(openai@4.104.0(ws@8.21.0)(zod@4.4.3))(zod@4.4.3)
       zod:
-        specifier: ^3.23.8
-        version: 3.25.76
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       dotenv:
         specifier: ^16.4.5
@@ -3418,8 +3418,8 @@ packages:
     peerDependencies:
       zod: ^3.25.0 || ^4.0.0
 
-  zod@3.25.76:
-    resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
+  zod@4.4.3:
+    resolution: {integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==}
 
 snapshots:
 
@@ -3594,17 +3594,17 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
-  '@browserbasehq/stagehand@1.14.0(@playwright/test@1.60.0)(deepmerge@4.3.1)(dotenv@16.6.1)(openai@4.104.0(ws@8.21.0)(zod@3.25.76))(zod@3.25.76)':
+  '@browserbasehq/stagehand@1.14.0(@playwright/test@1.60.0)(deepmerge@4.3.1)(dotenv@16.6.1)(openai@4.104.0(ws@8.21.0)(zod@4.4.3))(zod@4.4.3)':
     dependencies:
       '@anthropic-ai/sdk': 0.27.3
       '@browserbasehq/sdk': 2.13.0
       '@playwright/test': 1.60.0
       deepmerge: 4.3.1
       dotenv: 16.6.1
-      openai: 4.104.0(ws@8.21.0)(zod@3.25.76)
+      openai: 4.104.0(ws@8.21.0)(zod@4.4.3)
       ws: 8.21.0
-      zod: 3.25.76
-      zod-to-json-schema: 3.25.2(zod@3.25.76)
+      zod: 4.4.3
+      zod-to-json-schema: 3.25.2(zod@4.4.3)
     transitivePeerDependencies:
       - bufferutil
       - encoding
@@ -5109,8 +5109,8 @@ snapshots:
       '@babel/parser': 7.29.7
       eslint: 9.39.4(jiti@1.21.7)
       hermes-parser: 0.25.1
-      zod: 3.25.76
-      zod-validation-error: 4.0.2(zod@3.25.76)
+      zod: 4.4.3
+      zod-validation-error: 4.0.2(zod@4.4.3)
     transitivePeerDependencies:
       - supports-color
 
@@ -5914,7 +5914,7 @@ snapshots:
       define-properties: 1.2.1
       es-object-atoms: 1.1.2
 
-  openai@4.104.0(ws@8.21.0)(zod@3.25.76):
+  openai@4.104.0(ws@8.21.0)(zod@4.4.3):
     dependencies:
       '@types/node': 18.19.130
       '@types/node-fetch': 2.6.13
@@ -5925,7 +5925,7 @@ snapshots:
       node-fetch: 2.7.0
     optionalDependencies:
       ws: 8.21.0
-      zod: 3.25.76
+      zod: 4.4.3
     transitivePeerDependencies:
       - encoding
 
@@ -6834,12 +6834,12 @@ snapshots:
     optionalDependencies:
       commander: 9.5.0
 
-  zod-to-json-schema@3.25.2(zod@3.25.76):
+  zod-to-json-schema@3.25.2(zod@4.4.3):
     dependencies:
-      zod: 3.25.76
+      zod: 4.4.3
 
-  zod-validation-error@4.0.2(zod@3.25.76):
+  zod-validation-error@4.0.2(zod@4.4.3):
     dependencies:
-      zod: 3.25.76
+      zod: 4.4.3
 
-  zod@3.25.76: {}
+  zod@4.4.3: {}
