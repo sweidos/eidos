@@ -28,7 +28,7 @@ work resumes.
       collision in DEV (`packages/core/src/action.ts`).
 - [x] Cancellation: `AbortSignal` plumbing for in-flight `neverLose`
       actions + ability to cancel a not-yet-replayed queue item.
-- [ ] Conflict resolution presets (`serverWins`/`clientWins`/
+- [x] Conflict resolution presets (`serverWins`/`clientWins`/
       `lastWriteWins`/`merge`/`custom`) replacing the raw `onConflict`
       callback (keep old callback as deprecated alias).
 - [ ] BroadcastChannel sync of queue-item status across tabs (cosmetic

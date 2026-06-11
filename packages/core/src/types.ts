@@ -121,8 +121,19 @@ export interface ActionConfig {
    * The `error` argument is whatever `fn` threw — typically a `Response` object
    * or a custom error with a `.status` property.
    */
+  /**
+   * @deprecated Use `conflict` instead. If both are set, `conflict` wins.
+   * Return `'retry'` to keep the item in the queue and retry per normal
+   * backoff, or `'skip'` to silently remove the item.
+   */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onConflict?: (error: unknown, args: any[]) => 'retry' | 'skip';
+  /**
+   * Declarative conflict-resolution strategy used during queue replay when
+   * the server responds with a 4xx status (conflict, gone, unprocessable,
+   * etc.). Replaces `onConflict` for new code — see `ConflictConfig`.
+   */
+  conflict?: ConflictConfig;
   /**
    * When `true`, each invocation gets an `AbortController` whose `signal` is
    * passed via `ActionContext.signal`. Forward it to `fetch`/etc. so
@@ -130,6 +141,46 @@ export interface ActionConfig {
    * not-yet-replayed queued item.
    */
   cancellable?: boolean;
+}
+
+/**
+ * Passed to `ConflictConfig.resolve` (for `'merge'`/`'custom'` strategies)
+ * when a queued action's replay receives a 4xx response.
+ */
+export interface ConflictContext {
+  /** Whatever `fn` threw — typically a `Response` or an error with `.status`. */
+  error: unknown;
+  /** The original arguments the action was queued with. */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  args: any[];
+  /** Number of replay attempts so far (0 on first replay). */
+  attempt: number;
+  idempotencyKey: string;
+}
+
+/**
+ * Outcome of `ConflictConfig.resolve`:
+ * - `'retry'`: keep the item queued, retry per normal backoff.
+ * - `'skip'`: silently remove the item (no `onRollback`).
+ * - `{ resolved: args }`: replace the queued args and retry immediately
+ *   on the next replay pass.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type ConflictResolution = 'retry' | 'skip' | { resolved: any[] };
+
+export interface ConflictConfig {
+  /**
+   * - `'serverWins'`: drop the queued item, keeping the server's state.
+   * - `'clientWins'`: keep retrying — the client's write should eventually
+   *   be accepted (e.g. once the server-side conflict is cleared).
+   * - `'lastWriteWins'`: same as `'clientWins'` for now — requires a
+   *   server-supplied timestamp contract to compare against `queuedAt`
+   *   (see Phase 3 of the roadmap). Treated as `'clientWins'` until then.
+   * - `'merge'` / `'custom'`: call `resolve` to decide.
+   */
+  strategy: 'serverWins' | 'clientWins' | 'lastWriteWins' | 'merge' | 'custom';
+  /** Required for `'merge'` and `'custom'`. */
+  resolve?: (ctx: ConflictContext) => ConflictResolution;
 }
 
 /** Bump when ActionQueueItem's shape changes. Used to migrate items persisted by older versions. */

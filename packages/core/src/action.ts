@@ -10,6 +10,9 @@ import type {
   ActionHandle,
   ActionFn,
   ActionQueueItem,
+  ConflictConfig,
+  ConflictContext,
+  ConflictResolution,
   QueuedResult,
   ReplayResult,
 } from './types';
@@ -20,6 +23,7 @@ const _actionRegistry = new Map<string, ActionFn<any[], any>>();
 const _rollbackRegistry = new Map<string, (...args: any[]) => void>();
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const _conflictRegistry = new Map<string, (error: unknown, args: any[]) => 'retry' | 'skip'>();
+const _conflictConfigRegistry = new Map<string, ConflictConfig>();
 const _configRegistry = new Map<string, ActionConfig>();
 
 // In-flight AbortControllers for `cancellable` actions, keyed by idempotencyKey.
@@ -77,6 +81,19 @@ export function action<TArgs extends any[], TReturn>(
 
   if (config.onConflict) {
     _conflictRegistry.set(actionId, config.onConflict);
+  }
+
+  if (config.conflict) {
+    if (
+      import.meta.env.DEV &&
+      (config.conflict.strategy === 'merge' || config.conflict.strategy === 'custom') &&
+      !config.conflict.resolve
+    ) {
+      console.error(
+        `[eidos] action "${actionId}" has conflict.strategy "${config.conflict.strategy}" but no resolve() — items will retry indefinitely on 4xx.`,
+      );
+    }
+    _conflictConfigRegistry.set(actionId, config.conflict);
   }
 
   const wrapped = async (...args: TArgs): Promise<TReturn | QueuedResult> => {
@@ -313,18 +330,48 @@ async function _replayItem(
       return 'cancelled';
     }
 
-    // 4xx: give onConflict a chance to decide before normal retry/fail logic
+    // 4xx: give the conflict strategy a chance to decide before normal retry/fail logic
     if (isClientError(err)) {
-      const onConflict = _conflictRegistry.get(item.actionId);
-      if (onConflict) {
-        const resolution = onConflict(err, item.args as unknown[]);
-        if (resolution === 'skip') {
-          store.removeQueueItem(item.id);
-          await qs().remove(item.id);
-          return 'conflicted';
+      const conflictConfig = _conflictConfigRegistry.get(item.actionId);
+      let resolution: ConflictResolution | undefined;
+
+      if (conflictConfig) {
+        switch (conflictConfig.strategy) {
+          case 'serverWins':
+            resolution = 'skip';
+            break;
+          case 'clientWins':
+          case 'lastWriteWins':
+            resolution = 'retry';
+            break;
+          case 'merge':
+          case 'custom': {
+            const ctx: ConflictContext = {
+              error: err,
+              args: item.args as unknown[],
+              attempt: item.retryCount,
+              idempotencyKey: item.idempotencyKey,
+            };
+            resolution = conflictConfig.resolve?.(ctx) ?? 'retry';
+            break;
+          }
         }
-        // 'retry' falls through to normal retry/fail logic below
+      } else {
+        const onConflict = _conflictRegistry.get(item.actionId);
+        if (onConflict) resolution = onConflict(err, item.args as unknown[]);
       }
+
+      if (resolution === 'skip') {
+        store.removeQueueItem(item.id);
+        await qs().remove(item.id);
+        return 'conflicted';
+      }
+      if (resolution && typeof resolution === 'object') {
+        item.args = resolution.resolved;
+        store.updateQueueItem(item.id, { args: resolution.resolved });
+        await qs().update(item.id, { args: resolution.resolved });
+      }
+      // 'retry' (or merged args) falls through to normal retry/fail logic below
     }
 
     const retryCount = item.retryCount + 1;

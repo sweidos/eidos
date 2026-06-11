@@ -494,3 +494,132 @@ describe('cancellable', () => {
     expect(fn).not.toHaveBeenCalled();
   });
 });
+
+// ── conflict resolution ────────────────────────────────────────────────────────
+
+function conflictError() {
+  return Object.assign(new Error('conflict'), { status: 409 });
+}
+
+describe('conflict resolution', () => {
+  it('serverWins: drops the queued item without retrying', async () => {
+    const fn = vi.fn().mockRejectedValue(conflictError());
+    const onRollback = vi.fn();
+    const wrapped = action(fn, {
+      reliability: 'neverLose',
+      name: 'conflict-server-wins',
+      conflict: { strategy: 'serverWins' },
+      onRollback,
+    });
+
+    useEidosStore.setState({ isOnline: false, swStatus: 'active', resources: {}, queue: [] });
+    await wrapped('x');
+
+    useEidosStore.setState({ isOnline: true });
+    const result = await replayQueue();
+
+    expect(result.conflicted).toBe(1);
+    expect(onRollback).not.toHaveBeenCalled();
+    expect(useEidosStore.getState().queue).toHaveLength(0);
+  });
+
+  it('clientWins: keeps retrying on 4xx instead of failing immediately', async () => {
+    const fn = vi.fn().mockRejectedValue(conflictError());
+    const wrapped = action(fn, {
+      reliability: 'neverLose',
+      name: 'conflict-client-wins',
+      maxRetries: 5,
+      conflict: { strategy: 'clientWins' },
+    });
+
+    useEidosStore.setState({ isOnline: false, swStatus: 'active', resources: {}, queue: [] });
+    await wrapped('x');
+
+    useEidosStore.setState({ isOnline: true });
+    const result = await replayQueue();
+
+    expect(result.retrying).toBe(1);
+    const queue = await idbGetQueue();
+    expect(queue[0].status).toBe('pending');
+  });
+
+  it('merge: rewrites queued args via resolve() and retries', async () => {
+    const fn = vi.fn().mockImplementation(async (payload: { v: number }) => {
+      if (payload.v === 1) throw conflictError();
+      return { ok: true };
+    });
+    const wrapped = action(fn, {
+      reliability: 'neverLose',
+      name: 'conflict-merge',
+      conflict: {
+        strategy: 'merge',
+        resolve: (ctx) => ({ resolved: [{ v: ctx.args[0].v + 1 }] }),
+      },
+    });
+
+    useEidosStore.setState({ isOnline: false, swStatus: 'active', resources: {}, queue: [] });
+    await wrapped({ v: 1 });
+
+    useEidosStore.setState({ isOnline: true });
+    await replayQueue();
+
+    const queue = await idbGetQueue();
+    expect(queue[0].args).toEqual([{ v: 2 }]);
+    expect(queue[0].status).toBe('pending');
+
+    // Clear backoff so the merged retry runs immediately.
+    const { idbUpdateQueueItem } = await import('../idb');
+    await idbUpdateQueueItem(queue[0].id, { nextRetryAt: undefined });
+    useEidosStore.getState().updateQueueItem(queue[0].id, { nextRetryAt: undefined });
+
+    await replayQueue();
+    expect(fn).toHaveBeenLastCalledWith(
+      { v: 2 },
+      expect.objectContaining({ idempotencyKey: expect.any(String) }),
+    );
+    expect(
+      useEidosStore.getState().queue.find((q) => q.actionName === 'conflict-merge')?.status,
+    ).toBe('succeeded');
+  });
+
+  it('custom: resolve() can return "skip"', async () => {
+    const fn = vi.fn().mockRejectedValue(conflictError());
+    const resolve = vi.fn().mockReturnValue('skip');
+    const wrapped = action(fn, {
+      reliability: 'neverLose',
+      name: 'conflict-custom-skip',
+      conflict: { strategy: 'custom', resolve },
+    });
+
+    useEidosStore.setState({ isOnline: false, swStatus: 'active', resources: {}, queue: [] });
+    await wrapped('x');
+
+    useEidosStore.setState({ isOnline: true });
+    const result = await replayQueue();
+
+    expect(resolve).toHaveBeenCalledWith(
+      expect.objectContaining({ args: ['x'], attempt: 0, idempotencyKey: expect.any(String) }),
+    );
+    expect(result.conflicted).toBe(1);
+  });
+
+  it('conflict config takes precedence over deprecated onConflict', async () => {
+    const fn = vi.fn().mockRejectedValue(conflictError());
+    const onConflict = vi.fn().mockReturnValue('retry');
+    const wrapped = action(fn, {
+      reliability: 'neverLose',
+      name: 'conflict-precedence',
+      conflict: { strategy: 'serverWins' },
+      onConflict,
+    });
+
+    useEidosStore.setState({ isOnline: false, swStatus: 'active', resources: {}, queue: [] });
+    await wrapped('x');
+
+    useEidosStore.setState({ isOnline: true });
+    const result = await replayQueue();
+
+    expect(onConflict).not.toHaveBeenCalled();
+    expect(result.conflicted).toBe(1);
+  });
+});
