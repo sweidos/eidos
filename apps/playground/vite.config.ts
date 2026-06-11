@@ -76,6 +76,7 @@ export default defineConfig({
     alias: {
       // During dev: resolve 'eidos' directly to TypeScript source for hot-reload
       '@sweidos/eidos/devtools': resolve(__dirname, '../../packages/core/src/react/Devtools.tsx'),
+      '@sweidos/eidos/query': resolve(__dirname, '../../packages/core/src/query.ts'),
       '@sweidos/eidos': resolve(__dirname, '../../packages/core/src/index.ts'),
     },
     // Force one React copy — prevents "invalid hook call" when core/src imports

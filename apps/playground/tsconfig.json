@@ -6,6 +6,7 @@
     "noUnusedParameters": false,
     "paths": {
       "@sweidos/eidos/devtools": ["../../packages/core/src/react/Devtools.tsx"],
+      "@sweidos/eidos/query": ["../../packages/core/src/query.ts"],
       "@sweidos/eidos": ["../../packages/core/src/index.ts"]
     },
     "types": ["vite/client"]

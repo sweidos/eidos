@@ -1,13 +1,61 @@
+import type { ReactNode } from 'react';
 import { Card, CardHeader } from '../../components/Card';
 import { CodeBlock } from '../../components/CodeBlock';
 import { OnThisPage, SectionHeading, slugify } from './shared';
+import {
+  LiveCachedFetch,
+  LiveOfflineMutation,
+  LiveTanStackBridge,
+  LiveTTLResource,
+  LiveConnectionStatus,
+  LiveQueueDrain,
+} from './ExamplesLive';
 
 const SECTIONS = [
+  'Cached fetch, no boilerplate',
+  'Offline-safe mutations',
   'TanStack Query bridge',
   'TTL-backed resource',
-  'Offline test mode',
-  'Status hook',
+  'Connection-aware UI',
+  'Queue-drain notifications',
 ];
+
+interface ExampleProps {
+  title: string;
+  description: string;
+  withoutTitle: string;
+  withoutCode: string;
+  withTitle: string;
+  withCode: string;
+  live: ReactNode;
+}
+
+function Example({
+  title,
+  description,
+  withoutTitle,
+  withoutCode,
+  withTitle,
+  withCode,
+  live,
+}: ExampleProps) {
+  return (
+    <Card className="scroll-mt-20 space-y-3" id={slugify(title)}>
+      <CardHeader title={title} description={description} />
+      <div className="grid gap-3 lg:grid-cols-2">
+        <div className="space-y-2">
+          <p className="text-2xs uppercase tracking-[0.24em] text-eidos-muted">Without Eidos</p>
+          <CodeBlock title={withoutTitle} code={withoutCode} />
+        </div>
+        <div className="space-y-2">
+          <p className="text-2xs uppercase tracking-[0.24em] text-eidos-accent">With Eidos</p>
+          <CodeBlock title={withTitle} code={withCode} />
+        </div>
+      </div>
+      {live}
+    </Card>
+  );
+}
 
 export function Examples() {
   return (
@@ -15,73 +63,220 @@ export function Examples() {
       <SectionHeading
         id="examples"
         eyebrow="examples"
-        title="A few concrete patterns"
-        description="These are the patterns people usually want on the first pass: query integration, TTLs, and offline recovery."
+        title="Side-by-side: the code you'd write vs. the code you write with Eidos"
+        description="Each pattern below shows the manual approach next to the Eidos equivalent — same behaviour, far less code to own and debug."
       />
 
       <OnThisPage items={SECTIONS} />
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="h-full scroll-mt-20" id={slugify(SECTIONS[0])}>
-          <CardHeader
-            title="TanStack Query bridge"
-            description="Keep the existing query layer and let Eidos handle the offline-aware source."
-          />
-          <CodeBlock
-            title="queries.ts"
-            code={`const { data } = useQuery(products.query<Product[]>())
+      <div className="space-y-4">
+        <Example
+          title={SECTIONS[0]}
+          description="A cache-first GET that falls back to the network and keeps a copy for offline use."
+          withoutTitle="products.ts (manual)"
+          withoutCode={`async function getProducts() {
+  try {
+    const cached = await caches.match('/api/products')
+    if (cached) {
+      // Refresh in the background, but still return cache now
+      fetch('/api/products').then((res) =>
+        caches.open('app-cache').then((c) => c.put('/api/products', res)),
+      )
+      return cached.json()
+    }
+
+    const res = await fetch('/api/products')
+    const cache = await caches.open('app-cache')
+    cache.put('/api/products', res.clone())
+    return res.json()
+  } catch {
+    const cached = await caches.match('/api/products')
+    if (cached) return cached.json()
+    throw new Error('Offline and no cache available')
+  }
+}`}
+          withTitle="products.ts (eidos)"
+          withCode={`import { resource } from '@sweidos/eidos'
+
+export const products = resource('/api/products', {
+  offline: true,
+  strategy: 'cache-first',
+})
+
+// Anywhere in the app
+const data = await products.json()`}
+          live={<LiveCachedFetch />}
+        />
+
+        <Example
+          title={SECTIONS[1]}
+          description="A POST that must survive a dropped connection, retry automatically, and replay on reload."
+          withoutTitle="orders.ts (manual)"
+          withoutCode={`async function createOrder(payload: OrderPayload) {
+  const item = { id: crypto.randomUUID(), payload, attempts: 0 }
+
+  try {
+    const res = await fetch('/api/orders', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+    if (!res.ok) throw new Error('Request failed')
+    return res.json()
+  } catch {
+    // Persist to IndexedDB so it survives a refresh
+    await saveToQueue(item)
+    // Hope something calls this on 'online' later
+    window.addEventListener('online', () => replayQueue(), { once: true })
+    return { queued: true, id: item.id }
+  }
+}
+
+// ...plus the IndexedDB schema, replay logic,
+// dedupe on reload, and retry/backoff you still need to write`}
+          withTitle="orders.ts (eidos)"
+          withCode={`import { action } from '@sweidos/eidos'
+
+export const createOrder = action(
+  async (payload: OrderPayload) => {
+    const res = await fetch('/api/orders', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+    return res.json()
+  },
+  { reliability: 'neverLose', name: 'createOrder' },
+)
+
+// Call it like a normal async function — offline,
+// retry, persistence, and replay are handled for you
+await createOrder({ productId: 1, quantity: 2 })`}
+          live={<LiveOfflineMutation />}
+        />
+
+        <Example
+          title={SECTIONS[2]}
+          description="Keep your existing TanStack Query setup and let Eidos own the offline-aware fetch."
+          withoutTitle="queries.ts (manual)"
+          withoutCode={`const { data } = useQuery({
+  queryKey: ['products'],
+  queryFn: async () => {
+    const res = await fetch('/api/products')
+    if (!res.ok) throw new Error('Failed to fetch')
+    return res.json()
+  },
+  // Still no offline cache, no replay,
+  // no shared cache with the service worker
+})
+
+const mutation = useMutation({
+  mutationFn: createOrder,
+  onSuccess: () => queryClient.invalidateQueries(['products']),
+})`}
+          withTitle="queries.ts (eidos)"
+          withCode={`import { useEidosMutation } from '@sweidos/eidos/query'
+
+const { data } = useQuery(products.query<Product[]>())
 
 const mutation = useEidosMutation(createOrder, {
   invalidates: [products],
-})`}
-          />
-        </Card>
+})
 
-        <Card className="h-full scroll-mt-20" id={slugify(SECTIONS[1])}>
-          <CardHeader
-            title="TTL-backed resource"
-            description="Use a small max age when the data should stay fresh without constant refetching."
-          />
-          <CodeBlock
-            title="orders.ts"
-            code={`export const ordersHistory = resource('/api/orders-history', {
+// products is offline-aware; the mutation queues itself
+// when offline and invalidates the query on success`}
+          live={<LiveTanStackBridge />}
+        />
+
+        <Example
+          title={SECTIONS[3]}
+          description="Keep data fresh for a fixed window without writing a cache-expiry check yourself."
+          withoutTitle="orders-history.ts (manual)"
+          withoutCode={`let cache: { data: unknown; ts: number } | null = null
+const MAX_AGE = 30_000
+
+async function getOrdersHistory() {
+  const now = Date.now()
+  if (cache && now - cache.ts < MAX_AGE) {
+    return cache.data
+  }
+
+  const res = await fetch('/api/orders-history')
+  const data = await res.json()
+  cache = { data, ts: now }
+  return data
+}`}
+          withTitle="orders-history.ts (eidos)"
+          withCode={`export const ordersHistory = resource('/api/orders-history', {
   offline: true,
   strategy: 'cache-first',
   maxAge: 30_000,
-})`}
-          />
-        </Card>
-
-        <Card className="h-full scroll-mt-20" id={slugify(SECTIONS[2])}>
-          <CardHeader
-            title="Offline test mode"
-            description="Use simulation to exercise the queue flow without physically disconnecting."
-          />
-          <CodeBlock
-            title="test.ts"
-            code={`setOfflineSimulation(true)
-
-await createOrder({
-  productId: 1,
-  quantity: 2,
-  customerName: 'Demo User',
 })
 
-await replayQueue()`}
-          />
-        </Card>
+// Fresh within 30s, cache-first after that, offline-safe always
+const data = await ordersHistory.json()`}
+          live={<LiveTTLResource />}
+        />
 
-        <Card className="h-full scroll-mt-20" id={slugify(SECTIONS[3])}>
-          <CardHeader
-            title="Status hook"
-            description="Drive header chips, connection badges, or any other lightweight status UI."
-          />
-          <CodeBlock
-            title="header.tsx"
-            code={`const { isOnline, swStatus } = useEidosStatus()
-const { pending, failed } = useEidosQueueStats()`}
-          />
-        </Card>
+        <Example
+          title={SECTIONS[4]}
+          description="Drive a connection badge or status banner without wiring your own online/offline listeners."
+          withoutTitle="StatusBadge.tsx (manual)"
+          withoutCode={`function StatusBadge() {
+  const [isOnline, setIsOnline] = useState(navigator.onLine)
+
+  useEffect(() => {
+    const goOnline = () => setIsOnline(true)
+    const goOffline = () => setIsOnline(false)
+    window.addEventListener('online', goOnline)
+    window.addEventListener('offline', goOffline)
+    return () => {
+      window.removeEventListener('online', goOnline)
+      window.removeEventListener('offline', goOffline)
+    }
+  }, [])
+
+  // Still need to track pending/failed queue items separately
+  return <span>{isOnline ? 'Online' : 'Offline'}</span>
+}`}
+          withTitle="StatusBadge.tsx (eidos)"
+          withCode={`function StatusBadge() {
+  const { isOnline, swStatus } = useEidosStatus()
+  const { pending, failed } = useEidosQueueStats()
+
+  return (
+    <span>
+      {isOnline ? 'Online' : 'Offline'} · {pending} pending · {failed} failed
+    </span>
+  )
+}`}
+          live={<LiveConnectionStatus />}
+        />
+
+        <Example
+          title={SECTIONS[5]}
+          description="Run a callback the moment the action queue finishes replaying — handy for toasts and refetches."
+          withoutTitle="sync.ts (manual)"
+          withoutCode={`let lastQueueLength = await getQueueLength()
+
+setInterval(async () => {
+  const length = await getQueueLength()
+  if (lastQueueLength > 0 && length === 0) {
+    showToast('All changes synced')
+    refetchEverything()
+  }
+  lastQueueLength = length
+}, 2000)
+
+// Polling, drift, and cleanup all on you`}
+          withTitle="sync.ts (eidos)"
+          withCode={`useEidosOnDrain(() => {
+  showToast('All changes synced')
+  refetchEverything()
+})
+
+// Fires once, exactly when the queue goes from
+// non-empty to empty — no polling`}
+          live={<LiveQueueDrain />}
+        />
       </div>
     </section>
   );
