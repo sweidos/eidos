@@ -2,6 +2,7 @@ import { useEidosStore } from './store';
 import { getSwRegistration } from './sw-bridge';
 import { idbQueueStorage } from './idb';
 import { _getQueueStorage } from './queue-storage';
+import { broadcastQueueSync } from './queue-sync';
 import type { QueueStorage } from './queue-storage';
 import { CURRENT_QUEUE_SCHEMA_VERSION } from './types';
 import type {
@@ -295,11 +296,13 @@ async function _markSucceeded(
 ): Promise<void> {
   const completedAt = Date.now();
   store.updateQueueItem(item.id, { status: 'succeeded', completedAt });
+  broadcastQueueSync({ type: 'update', id: item.id, update: { status: 'succeeded', completedAt } });
   await qs().update(item.id, { status: 'succeeded', completedAt });
 
   // Remove from queue after a short delay so UI can show the success state briefly
   setTimeout(() => {
     store.removeQueueItem(item.id);
+    broadcastQueueSync({ type: 'remove', id: item.id });
     qs().remove(item.id);
   }, 3000);
 }
@@ -345,12 +348,14 @@ async function _resolveConflict(
 
   if (resolution === 'skip') {
     store.removeQueueItem(item.id);
+    broadcastQueueSync({ type: 'remove', id: item.id });
     await qs().remove(item.id);
     return 'conflicted';
   }
   if (resolution && typeof resolution === 'object') {
     item.args = resolution.resolved;
     store.updateQueueItem(item.id, { args: resolution.resolved });
+    broadcastQueueSync({ type: 'update', id: item.id, update: { args: resolution.resolved } });
     await qs().update(item.id, { args: resolution.resolved });
   }
   // 'retry' (or merged args) falls through to normal retry/fail logic
@@ -364,15 +369,19 @@ async function _scheduleRetryOrFail(
 ): Promise<ItemOutcome> {
   const retryCount = item.retryCount + 1;
   if (retryCount >= item.maxRetries) {
-    store.updateQueueItem(item.id, { status: 'failed', error: String(err), retryCount });
-    await qs().update(item.id, { status: 'failed', error: String(err), retryCount });
+    const update = { status: 'failed' as const, error: String(err), retryCount };
+    store.updateQueueItem(item.id, update);
+    broadcastQueueSync({ type: 'update', id: item.id, update });
+    await qs().update(item.id, update);
     _rollbackRegistry.get(item.actionId)?.(...(item.args as unknown[]));
     return 'failed';
   }
 
   const nextRetryAt = Date.now() + backoffMs(retryCount);
-  store.updateQueueItem(item.id, { status: 'pending', retryCount, nextRetryAt });
-  await qs().update(item.id, { status: 'pending', retryCount, nextRetryAt });
+  const update = { status: 'pending' as const, retryCount, nextRetryAt };
+  store.updateQueueItem(item.id, update);
+  broadcastQueueSync({ type: 'update', id: item.id, update });
+  await qs().update(item.id, update);
   return 'retrying';
 }
 
@@ -405,6 +414,7 @@ async function _replayItem(
     // Cancelled via handle.cancel(idempotencyKey) — drop the item, no rollback/retry.
     if (isAbortError(err)) {
       store.removeQueueItem(item.id);
+      broadcastQueueSync({ type: 'remove', id: item.id });
       await qs().remove(item.id);
       return 'cancelled';
     }
@@ -434,9 +444,12 @@ async function _replayTier(
   result.skipped += items.length - replayable.length;
 
   if (replayable.length > 0) {
-    store.batchUpdateQueueItems(
-      replayable.map((item) => ({ id: item.id, update: { status: 'replaying' } })),
-    );
+    const updates = replayable.map((item) => ({
+      id: item.id,
+      update: { status: 'replaying' as const },
+    }));
+    store.batchUpdateQueueItems(updates);
+    broadcastQueueSync({ type: 'batchUpdate', updates });
     for (const item of replayable) {
       qs().update(item.id, { status: 'replaying' });
     }

@@ -31,7 +31,7 @@ work resumes.
 - [x] Conflict resolution presets (`serverWins`/`clientWins`/
       `lastWriteWins`/`merge`/`custom`) replacing the raw `onConflict`
       callback (keep old callback as deprecated alias).
-- [ ] BroadcastChannel sync of queue-item status across tabs (cosmetic
+- [x] BroadcastChannel sync of queue-item status across tabs (cosmetic
       follow-up to the Web Locks fix).
 
 **Exit criteria**: `action()` API surface stable enough to document as

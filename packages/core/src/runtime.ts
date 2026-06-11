@@ -4,6 +4,7 @@ import { useEidosStore } from './store';
 import { idbGetQueue, idbQueueStorage } from './idb';
 import { _getQueueStorage } from './queue-storage';
 import { subscribeReplayOnReconnect } from './replay';
+import { subscribeQueueSync } from './queue-sync';
 import { CURRENT_QUEUE_SCHEMA_VERSION } from './types';
 import type { ActionQueueItem } from './types';
 
@@ -40,6 +41,7 @@ export interface EidosConfig {
 
 let _initialized = false;
 let _unsubscribe: (() => void) | null = null;
+let _unsubscribeQueueSync: (() => void) | null = null;
 
 export async function initEidos(config: EidosConfig = {}): Promise<void> {
   // Skip silently during SSR — SW, IndexedDB, and window are browser-only.
@@ -80,6 +82,10 @@ export async function initEidos(config: EidosConfig = {}): Promise<void> {
     _unsubscribe = subscribeReplayOnReconnect();
   }
 
+  // Apply queue-item status changes broadcast by the replay-lock holder so
+  // non-leader tabs reflect live status without waiting for re-hydration.
+  _unsubscribeQueueSync = subscribeQueueSync();
+
   if (import.meta.env.DEV) {
     const store = useEidosStore.getState();
     console.groupCollapsed('%c⚡ Eidos', 'color:#22C55E;font-weight:bold');
@@ -93,5 +99,7 @@ export async function initEidos(config: EidosConfig = {}): Promise<void> {
 export function _resetEidos() {
   _unsubscribe?.();
   _unsubscribe = null;
+  _unsubscribeQueueSync?.();
+  _unsubscribeQueueSync = null;
   _initialized = false;
 }
