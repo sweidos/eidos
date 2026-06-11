@@ -116,11 +116,22 @@ export interface ActionConfig {
   onConflict?: (error: unknown, args: any[]) => 'retry' | 'skip';
 }
 
+/** Bump when ActionQueueItem's shape changes. Used to migrate items persisted by older versions. */
+export const CURRENT_QUEUE_SCHEMA_VERSION = 2;
+
 export interface ActionQueueItem {
+  /** Shape version this item was persisted with. Items from before v2 are migrated on load. */
+  schemaVersion: number;
   id: string;
   /** ID of the registered action (maps to the function in the registry). */
   actionId: string;
   actionName: string;
+  /**
+   * Stable per-invocation key, generated once and reused across every retry/replay
+   * of this item. Pass to your server as an idempotency key so retries that reach
+   * the server after a dropped response don't double-execute.
+   */
+  idempotencyKey: string;
   args: unknown[];
   queuedAt: number;
   retryCount: number;
@@ -154,6 +165,19 @@ export interface ReplayResult {
   skipped: number;
   /** Items that received a 4xx response and were dropped via `onConflict: () => 'skip'`. */
   conflicted: number;
+}
+
+/**
+ * Passed as an extra argument after the declared params to `neverLose` actions,
+ * on every invocation (initial call, offline queue, and replay). The same
+ * `idempotencyKey` is reused across all retries of one logical invocation —
+ * forward it to your server (e.g. as an `Idempotency-Key` header) so a retry
+ * that reaches the server after a dropped response doesn't double-execute.
+ */
+export interface ActionContext {
+  idempotencyKey: string;
+  /** 0 on the first attempt, incremented on each replay retry. */
+  attempt: number;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

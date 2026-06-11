@@ -3,8 +3,10 @@ import { getSwRegistration } from './sw-bridge';
 import { idbQueueStorage } from './idb';
 import { _getQueueStorage } from './queue-storage';
 import type { QueueStorage } from './queue-storage';
+import { CURRENT_QUEUE_SCHEMA_VERSION } from './types';
 import type {
   ActionConfig,
+  ActionContext,
   ActionHandle,
   ActionFn,
   ActionQueueItem,
@@ -26,6 +28,15 @@ function qs(): QueueStorage {
 
 function uid() {
   return crypto.randomUUID();
+}
+
+function callWithContext<TReturn>(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  fn: ActionFn<any[], TReturn>,
+  args: unknown[],
+  ctx: ActionContext,
+): Promise<TReturn> {
+  return fn(...args, ctx);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -61,14 +72,20 @@ export function action<TArgs extends any[], TReturn>(
     config.onOptimistic?.(...args);
 
     if (config.reliability === 'neverLose') {
+      // Generated once per logical invocation and reused across every retry/replay —
+      // forward this to your server as an idempotency key so a retry that reaches
+      // the server after a dropped response doesn't double-execute.
+      const idempotencyKey = uid();
+      const ctx: ActionContext = { idempotencyKey, attempt: 0 };
+
       if (!isOnline) {
-        return persistAndQueue(actionId, actionId, args, config);
+        return persistAndQueue(actionId, actionId, args, config, idempotencyKey);
       }
       // Online + neverLose: execute, queue on failure
       try {
-        return await fn(...args);
+        return await callWithContext(fn, args, ctx);
       } catch {
-        return persistAndQueue(actionId, actionId, args, config);
+        return persistAndQueue(actionId, actionId, args, config, idempotencyKey);
       }
     }
 
@@ -101,6 +118,7 @@ async function persistAndQueue(
   actionName: string,
   args: unknown[],
   config: ActionConfig,
+  idempotencyKey: string,
 ): Promise<QueuedResult> {
   if (import.meta.env.DEV && !isJsonSerializable(args)) {
     console.warn(
@@ -111,9 +129,11 @@ async function persistAndQueue(
 
   const id = uid();
   const item: ActionQueueItem = {
+    schemaVersion: CURRENT_QUEUE_SCHEMA_VERSION,
     id,
     actionId,
     actionName,
+    idempotencyKey,
     args,
     queuedAt: Date.now(),
     retryCount: 0,
@@ -161,13 +181,30 @@ function backoffMs(retryCount: number): number {
   return base * (0.8 + Math.random() * 0.4);
 }
 
+function emptyReplayResult(): ReplayResult {
+  return { attempted: 0, succeeded: 0, failed: 0, retrying: 0, skipped: 0, conflicted: 0 };
+}
+
 let _replaying = false;
+const REPLAY_LOCK_NAME = 'eidos-queue-replay';
 
 export async function replayQueue(): Promise<ReplayResult> {
   const store = useEidosStore.getState();
-  if (!store.isOnline || _replaying) {
-    return { attempted: 0, succeeded: 0, failed: 0, retrying: 0, skipped: 0, conflicted: 0 };
+  if (!store.isOnline) return emptyReplayResult();
+
+  // Web Locks coordinate replay across tabs sharing the same IndexedDB queue —
+  // only the lock holder replays; other tabs no-op rather than re-executing
+  // the same queued actions in parallel.
+  if (typeof navigator !== 'undefined' && navigator.locks) {
+    return navigator.locks.request(REPLAY_LOCK_NAME, { ifAvailable: true }, async (lock) => {
+      if (!lock) return emptyReplayResult();
+      return _doReplayQueue(store);
+    });
   }
+
+  // Fallback for environments without the Web Locks API (older Safari, React
+  // Native, test runners) — guards against concurrent replay within this tab only.
+  if (_replaying) return emptyReplayResult();
   _replaying = true;
   try {
     return await _doReplayQueue(store);
@@ -185,8 +222,10 @@ async function _replayItem(
   const fn = _actionRegistry.get(item.actionId);
   if (!fn) return 'skipped';
 
+  const ctx: ActionContext = { idempotencyKey: item.idempotencyKey, attempt: item.retryCount };
+
   try {
-    await fn(...(item.args as unknown[]));
+    await callWithContext(fn, item.args as unknown[], ctx);
     const completedAt = Date.now();
     store.updateQueueItem(item.id, { status: 'succeeded', completedAt });
     await qs().update(item.id, { status: 'succeeded', completedAt });

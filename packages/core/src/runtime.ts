@@ -1,8 +1,35 @@
 import { registerServiceWorker, registerBgSyncHandler } from './sw-bridge';
 import { replayQueue } from './action';
 import { useEidosStore } from './store';
-import { idbGetQueue } from './idb';
+import { idbGetQueue, idbQueueStorage } from './idb';
+import { _getQueueStorage } from './queue-storage';
 import { subscribeReplayOnReconnect } from './replay';
+import { CURRENT_QUEUE_SCHEMA_VERSION } from './types';
+import type { ActionQueueItem } from './types';
+
+// Items persisted before idempotencyKey/schemaVersion existed (v1) are migrated
+// in place: assign a fresh idempotencyKey and bump schemaVersion. A fresh key on
+// first replay after upgrade is correct — these items were never sent with one.
+async function migrateQueueItem(item: ActionQueueItem): Promise<ActionQueueItem> {
+  if (item.schemaVersion === CURRENT_QUEUE_SCHEMA_VERSION && item.idempotencyKey) {
+    return item;
+  }
+  const migrated: ActionQueueItem = {
+    ...item,
+    schemaVersion: CURRENT_QUEUE_SCHEMA_VERSION,
+    idempotencyKey: item.idempotencyKey ?? crypto.randomUUID(),
+  };
+  const storage = _getQueueStorage() ?? idbQueueStorage;
+  await storage
+    .update(migrated.id, {
+      schemaVersion: migrated.schemaVersion,
+      idempotencyKey: migrated.idempotencyKey,
+    })
+    .catch(() => {
+      // Best-effort persist — item still gets the migrated shape in memory this session
+    });
+  return migrated;
+}
 
 export interface EidosConfig {
   /** Path to the eidos service worker. Defaults to '/eidos-sw.js'. */
@@ -27,7 +54,8 @@ export async function initEidos(config: EidosConfig = {}): Promise<void> {
   try {
     const persisted = await idbGetQueue();
     if (persisted.length > 0) {
-      useEidosStore.getState().hydrateQueue(persisted);
+      const migrated = await Promise.all(persisted.map(migrateQueueItem));
+      useEidosStore.getState().hydrateQueue(migrated);
     }
   } catch {
     // IndexedDB unavailable (Firefox private browsing) — silent fallback

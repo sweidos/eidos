@@ -72,7 +72,10 @@ describe('neverLose online', () => {
     const fn = vi.fn().mockResolvedValue({ id: 'order-1' });
     const wrapped = action(fn, { reliability: 'neverLose', name: 'nl-online' });
     const result = await wrapped({ qty: 1 });
-    expect(fn).toHaveBeenCalledWith({ qty: 1 });
+    expect(fn).toHaveBeenCalledWith(
+      { qty: 1 },
+      expect.objectContaining({ idempotencyKey: expect.any(String), attempt: 0 }),
+    );
     expect(result).toEqual({ id: 'order-1' });
   });
 
@@ -230,7 +233,10 @@ describe('replayQueue', () => {
     useEidosStore.setState({ isOnline: true });
     await replayQueue();
 
-    expect(fn).toHaveBeenCalledWith('payload');
+    expect(fn).toHaveBeenCalledWith(
+      'payload',
+      expect.objectContaining({ idempotencyKey: expect.any(String), attempt: 0 }),
+    );
   });
 
   it('skips items with nextRetryAt in the future', async () => {
