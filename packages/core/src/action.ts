@@ -156,6 +156,7 @@ export function action<TArgs extends any[], TReturn>(
     if (!item) return false;
 
     useEidosStore.getState().removeQueueItem(item.id);
+    broadcastQueueSync({ type: 'remove', id: item.id });
     await qs().remove(item.id);
     return true;
   };
