@@ -5,6 +5,7 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "paths": {
+      "@sweidos/eidos/devtools": ["../../packages/core/src/react/Devtools.tsx"],
       "@sweidos/eidos": ["../../packages/core/src/index.ts"]
     },
     "types": ["vite/client"]
