@@ -13,8 +13,7 @@ export interface ResourceActions {
 
 export function createResourceActions(set: Setter): ResourceActions {
   return {
-    registerResource: (url, entry) =>
-      set((s) => ({ resources: { ...s.resources, [url]: entry } })),
+    registerResource: (url, entry) => set((s) => ({ resources: { ...s.resources, [url]: entry } })),
 
     updateResource: (url, update) =>
       set((s) => ({

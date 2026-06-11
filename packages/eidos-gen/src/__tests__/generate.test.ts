@@ -76,9 +76,7 @@ describe('generate', () => {
   });
 
   it('generates a resource() for GET operations using the operationId', () => {
-    expect(out).toContain(
-      `export const listProducts = resource('/products', { offline: true })`,
-    );
+    expect(out).toContain(`export const listProducts = resource('/products', { offline: true })`);
   });
 
   it('generates an action() for POST with a typed request/response body', () => {

@@ -6,6 +6,7 @@
   "packageManager": "pnpm@10.0.0",
   "scripts": {
     "preinstall": "node -e \"if(process.env.npm_execpath&&!process.env.npm_execpath.includes('pnpm'))throw new Error('Use pnpm, not npm or yarn. Run: corepack enable && pnpm install')\"",
+    "prepare": "husky",
     "dev": "pnpm --filter @eidos/playground dev",
     "build": "pnpm --filter @sweidos/eidos build && pnpm --filter @eidos/playground build",
     "build:core": "pnpm --filter @sweidos/eidos build",
@@ -33,6 +34,8 @@
     "eslint-plugin-react": "^7.35.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.6.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.7",
     "prettier": "^3.3.3",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.3.0"
@@ -40,5 +43,9 @@
   "engines": {
     "node": ">=18.0.0",
     "pnpm": ">=8.0.0"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": "eslint --fix",
+    "*.{ts,tsx,js,jsx,json,md,css}": "prettier --write"
   }
 }
