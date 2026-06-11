@@ -4,6 +4,7 @@ import { Analytics } from '@vercel/analytics/react';
 import { EidosDevtools } from '@sweidos/eidos/devtools';
 import { Header } from './components/Header';
 
+const Landing = lazy(() => import('./pages/Landing').then((m) => ({ default: m.Landing })));
 const Demo = lazy(() => import('./pages/Demo').then((m) => ({ default: m.Demo })));
 const Resources = lazy(() => import('./pages/Resources').then((m) => ({ default: m.Resources })));
 const Actions = lazy(() => import('./pages/Actions').then((m) => ({ default: m.Actions })));
@@ -46,7 +47,7 @@ export function App() {
         <main id="main-content" className="flex-1 overflow-y-auto">
           <Suspense fallback={<RouteFallback />}>
             <Routes>
-              <Route path="/" element={<Navigate to="/overview" replace />} />
+              <Route path="/" element={<Landing />} />
               <Route path="/overview" element={<Demo />} />
               <Route path="/demo" element={<Navigate to="/overview" replace />} />
               <Route path="/resources" element={<Resources />} />

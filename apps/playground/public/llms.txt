@@ -1,0 +1,30 @@
+# Eidos
+
+> Eidos is a declarative offline-first toolkit for the web. `resource()` and `action()` replace
+> hand-written Service Worker registration, Workbox cache configs, IndexedDB schemas, and retry
+> queue logic. Works with React, Next.js, Svelte, Vue, and React Native.
+
+Eidos generates a Service Worker, sets up cache strategies (cache-first, network-first,
+stale-while-revalidate), and queues failed mutations for replay when the network returns —
+all from a small declarative config.
+
+## Docs
+
+- [Quickstart](https://sweidos.vercel.app/docs/quickstart): install, setup, and first resource
+- [API Reference](https://sweidos.vercel.app/docs/api): full `resource()` / `action()` API
+- [Hooks](https://sweidos.vercel.app/docs/hooks): React hooks (`useResource`, `useAction`, `useEidosStatus`, etc.)
+- [Examples](https://sweidos.vercel.app/docs/examples): common patterns and recipes
+- [Advanced](https://sweidos.vercel.app/docs/advanced): conflict resolution, cancellation, replay locks
+- [References](https://sweidos.vercel.app/docs/references): related concepts and further reading
+
+## Playground
+
+- [Overview](https://sweidos.vercel.app/overview): live offline-first demo
+- [Resources](https://sweidos.vercel.app/resources): inspect cached resources
+- [Actions](https://sweidos.vercel.app/actions): inspect the offline action queue
+- [Inspector](https://sweidos.vercel.app/inspector): Service Worker / cache inspector
+
+## Source
+
+- [GitHub](https://github.com/iamadi11/eidos)
+- [npm package](https://www.npmjs.com/package/@sweidos/eidos)

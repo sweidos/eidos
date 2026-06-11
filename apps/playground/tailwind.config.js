@@ -40,7 +40,7 @@ export default {
       },
       fontFamily: {
         // Readable body copy with code-friendly monospace for examples/snippets
-        mono: ['"JetBrains Mono"', '"Space Mono"', 'ui-monospace', 'monospace'],
+        mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
         sans: ['"IBM Plex Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
       fontSize: {

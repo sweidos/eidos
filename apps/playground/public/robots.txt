@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://sweidos.vercel.app/sitemap.xml
