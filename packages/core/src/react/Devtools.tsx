@@ -137,10 +137,12 @@ function Icon({
 
 const ICONS = {
   bolt: 'M13 2 3 14h7l-1 8 10-12h-7l1-8z',
-  satellite: 'M5 13a8.5 8.5 0 0 0 8 8M11 3a12 12 0 0 1 10 10M5 13l-3 3 6 6 3-3M14 6l4 4M9.5 8.5l6 6',
+  satellite:
+    'M5 13a8.5 8.5 0 0 0 8 8M11 3a12 12 0 0 1 10 10M5 13l-3 3 6 6 3-3M14 6l4 4M9.5 8.5l6 6',
   satelliteOff: 'M2 2l20 20M5 13a8.5 8.5 0 0 0 8 8M14 6l4 4M9.5 8.5l6 6M5 13l-3 3 6 6 3-3',
   play: 'M6 4l13 8-13 8V4z',
-  trash: 'M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m3 0-1 14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1L4 6h16z',
+  trash:
+    'M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m3 0-1 14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1L4 6h16z',
   arrowUp: 'M12 19V5M5 12l7-7 7 7',
   arrowDown: 'M12 5v14M19 12l-7 7-7-7',
   clock: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 6v6l4 2',
@@ -431,7 +433,11 @@ function QueueTab({
           flexShrink: 0,
         }}
       >
-        <button onClick={onReplay} {...withFocusRing()} style={{ ...btn('primary'), minHeight: 24 }}>
+        <button
+          onClick={onReplay}
+          {...withFocusRing()}
+          style={{ ...btn('primary'), minHeight: 24 }}
+        >
           <Icon path={ICONS.play} size={11} />
           Replay queue
         </button>
@@ -527,7 +533,10 @@ function CacheTab({ resources }: { resources: ReturnType<typeof useEidosResource
               {res.url}
             </div>
             <div style={{ display: 'flex', gap: 10, color: C.muted, fontSize: 10 }}>
-              <span title="Cache hits" style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+              <span
+                title="Cache hits"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}
+              >
                 <Icon path={ICONS.arrowUp} size={10} />
                 {res.cacheHits} hit{res.cacheHits !== 1 ? 's' : ''}
               </span>

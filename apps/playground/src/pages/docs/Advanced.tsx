@@ -51,8 +51,8 @@ resource('/api/feed', { offline: true, strategy: 'network-first' })`}
           <div className="space-y-3">
             <p className="text-sm leading-relaxed text-eidos-text-dim">
               <InlineCode>eidos-gen</InlineCode> reads an OpenAPI spec and writes typed{' '}
-              <InlineCode>resource()</InlineCode> + <InlineCode>action()</InlineCode> declarations
-              — including path params, <InlineCode>$ref</InlineCode> resolution, request/response
+              <InlineCode>resource()</InlineCode> + <InlineCode>action()</InlineCode> declarations —
+              including path params, <InlineCode>$ref</InlineCode> resolution, request/response
               types, and DELETE body omission.
             </p>
             <CodeBlock

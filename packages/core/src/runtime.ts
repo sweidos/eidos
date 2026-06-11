@@ -2,6 +2,7 @@ import { registerServiceWorker, registerBgSyncHandler } from './sw-bridge';
 import { replayQueue } from './action';
 import { useEidosStore } from './store';
 import { idbGetQueue } from './idb';
+import { subscribeReplayOnReconnect } from './replay';
 
 export interface EidosConfig {
   /** Path to the eidos service worker. Defaults to '/eidos-sw.js'. */
@@ -48,34 +49,7 @@ export async function initEidos(config: EidosConfig = {}): Promise<void> {
   });
 
   if (autoReplay) {
-    // ── Subscribe to the store instead of window.addEventListener('online')
-    //
-    // WHY: setOfflineSimulation() updates the store directly but never fires a
-    // real browser `online` event. Watching the store catches both:
-    //   • Real network reconnects (sw-bridge updates store on window.online)
-    //   • Simulation toggled off (setOfflineSimulation(false) → store.setOnline(true))
-    //
-    let prevIsOnline = useEidosStore.getState().isOnline;
-
-    _unsubscribe = useEidosStore.subscribe(() => {
-      const { isOnline } = useEidosStore.getState();
-      const justCameOnline = isOnline && !prevIsOnline;
-      prevIsOnline = isOnline;
-
-      if (justCameOnline) {
-        // Small delay so the connection (or simulation reset) settles first
-        setTimeout(replayQueue, 600);
-      }
-    });
-
-    // Replay any pending items that survived a page reload.
-    // 'failed' items have already exhausted maxRetries and are never
-    // re-replayed (see _doReplayQueue), so they don't count here.
-    const store = useEidosStore.getState();
-    const hasPending = store.queue.some((q) => q.status === 'pending');
-    if (store.isOnline && hasPending) {
-      setTimeout(replayQueue, 1200);
-    }
+    _unsubscribe = subscribeReplayOnReconnect();
   }
 
   if (import.meta.env.DEV) {

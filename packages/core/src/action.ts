@@ -1,13 +1,6 @@
 import { useEidosStore } from './store';
 import { getSwRegistration } from './sw-bridge';
-import {
-  idbAddToQueue,
-  idbGetQueue,
-  idbGetPendingItems,
-  idbUpdateQueueItem,
-  idbRemoveFromQueue,
-  idbClearQueue,
-} from './idb';
+import { idbQueueStorage } from './idb';
 import { _getQueueStorage } from './queue-storage';
 import type { QueueStorage } from './queue-storage';
 import type {
@@ -26,18 +19,9 @@ const _rollbackRegistry = new Map<string, (...args: any[]) => void>();
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const _conflictRegistry = new Map<string, (error: unknown, args: any[]) => 'retry' | 'skip'>();
 
-// IDB fallback — used when no custom storage is set (default browser behavior).
-const _idbFallback: QueueStorage = {
-  add: (item) => idbAddToQueue(item),
-  getAll: () => idbGetQueue(),
-  getPending: () => idbGetPendingItems(),
-  update: (id, patch) => idbUpdateQueueItem(id, patch),
-  remove: (id) => idbRemoveFromQueue(id),
-  clear: () => idbClearQueue(),
-};
-
 function qs(): QueueStorage {
-  return _getQueueStorage() ?? _idbFallback;
+  // idbQueueStorage is the default browser fallback when no custom storage is set.
+  return _getQueueStorage() ?? idbQueueStorage;
 }
 
 function uid() {

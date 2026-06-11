@@ -7,6 +7,7 @@ export { resource, warmCache, setQueryInvalidator } from './resource';
 export { action, replayQueue, clearQueue } from './action';
 export { initEidos, _resetEidos } from './runtime';
 export type { EidosConfig } from './runtime';
+export { subscribeReplayOnReconnect } from './replay';
 
 // Pluggable queue storage (used by React Native adapter and custom backends)
 export { setQueueStorage, _getQueueStorage } from './queue-storage';

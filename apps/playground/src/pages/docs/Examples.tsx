@@ -2,7 +2,12 @@ import { Card, CardHeader } from '../../components/Card';
 import { CodeBlock } from '../../components/CodeBlock';
 import { OnThisPage, SectionHeading, slugify } from './shared';
 
-const SECTIONS = ['TanStack Query bridge', 'TTL-backed resource', 'Offline test mode', 'Status hook'];
+const SECTIONS = [
+  'TanStack Query bridge',
+  'TTL-backed resource',
+  'Offline test mode',
+  'Status hook',
+];
 
 export function Examples() {
   return (

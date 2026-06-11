@@ -2,7 +2,7 @@ import {
   setQueueStorage,
   AsyncStorageQueueStorage,
   useEidosStore,
-  replayQueue,
+  subscribeReplayOnReconnect,
 } from '@sweidos/eidos';
 import type { AsyncStorageLike } from '@sweidos/eidos';
 
@@ -45,25 +45,7 @@ export async function initEidosRN(config: EidosRNConfig): Promise<void> {
   }
 
   if (autoReplay) {
-    let prevIsOnline = useEidosStore.getState().isOnline;
-
-    _unsubscribe = useEidosStore.subscribe(() => {
-      const { isOnline } = useEidosStore.getState();
-      const justCameOnline = isOnline && !prevIsOnline;
-      prevIsOnline = isOnline;
-      if (justCameOnline) {
-        setTimeout(replayQueue, 600);
-      }
-    });
-
-    // Replay items that survived an app restart.
-    // 'failed' items have already exhausted maxRetries and are never
-    // re-replayed (see _doReplayQueue), so they don't count here.
-    const store = useEidosStore.getState();
-    const hasPending = store.queue.some((q) => q.status === 'pending');
-    if (store.isOnline && hasPending) {
-      setTimeout(replayQueue, 1200);
-    }
+    _unsubscribe = subscribeReplayOnReconnect();
   }
 }
 
