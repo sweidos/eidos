@@ -289,6 +289,93 @@ export async function replayQueue(): Promise<ReplayResult> {
 
 type ItemOutcome = 'succeeded' | 'failed' | 'retrying' | 'skipped' | 'conflicted' | 'cancelled';
 
+async function _markSucceeded(
+  item: ActionQueueItem,
+  store: ReturnType<typeof useEidosStore.getState>,
+): Promise<void> {
+  const completedAt = Date.now();
+  store.updateQueueItem(item.id, { status: 'succeeded', completedAt });
+  await qs().update(item.id, { status: 'succeeded', completedAt });
+
+  // Remove from queue after a short delay so UI can show the success state briefly
+  setTimeout(() => {
+    store.removeQueueItem(item.id);
+    qs().remove(item.id);
+  }, 3000);
+}
+
+/**
+ * Resolves a 4xx error against the action's conflict strategy.
+ * Returns 'conflicted' if the item was dropped, undefined if normal
+ * retry/fail logic should run (possibly with `item.args` rewritten by `merge`).
+ */
+async function _resolveConflict(
+  item: ActionQueueItem,
+  store: ReturnType<typeof useEidosStore.getState>,
+  err: unknown,
+): Promise<ItemOutcome | undefined> {
+  const conflictConfig = _conflictConfigRegistry.get(item.actionId);
+  let resolution: ConflictResolution | undefined;
+
+  if (conflictConfig) {
+    switch (conflictConfig.strategy) {
+      case 'serverWins':
+        resolution = 'skip';
+        break;
+      case 'clientWins':
+      case 'lastWriteWins':
+        resolution = 'retry';
+        break;
+      case 'merge':
+      case 'custom': {
+        const ctx: ConflictContext = {
+          error: err,
+          args: item.args as unknown[],
+          attempt: item.retryCount,
+          idempotencyKey: item.idempotencyKey,
+        };
+        resolution = conflictConfig.resolve?.(ctx) ?? 'retry';
+        break;
+      }
+    }
+  } else {
+    const onConflict = _conflictRegistry.get(item.actionId);
+    if (onConflict) resolution = onConflict(err, item.args as unknown[]);
+  }
+
+  if (resolution === 'skip') {
+    store.removeQueueItem(item.id);
+    await qs().remove(item.id);
+    return 'conflicted';
+  }
+  if (resolution && typeof resolution === 'object') {
+    item.args = resolution.resolved;
+    store.updateQueueItem(item.id, { args: resolution.resolved });
+    await qs().update(item.id, { args: resolution.resolved });
+  }
+  // 'retry' (or merged args) falls through to normal retry/fail logic
+  return undefined;
+}
+
+async function _scheduleRetryOrFail(
+  item: ActionQueueItem,
+  store: ReturnType<typeof useEidosStore.getState>,
+  err: unknown,
+): Promise<ItemOutcome> {
+  const retryCount = item.retryCount + 1;
+  if (retryCount >= item.maxRetries) {
+    store.updateQueueItem(item.id, { status: 'failed', error: String(err), retryCount });
+    await qs().update(item.id, { status: 'failed', error: String(err), retryCount });
+    _rollbackRegistry.get(item.actionId)?.(...(item.args as unknown[]));
+    return 'failed';
+  }
+
+  const nextRetryAt = Date.now() + backoffMs(retryCount);
+  store.updateQueueItem(item.id, { status: 'pending', retryCount, nextRetryAt });
+  await qs().update(item.id, { status: 'pending', retryCount, nextRetryAt });
+  return 'retrying';
+}
+
 async function _replayItem(
   item: ActionQueueItem,
   store: ReturnType<typeof useEidosStore.getState>,
@@ -312,15 +399,7 @@ async function _replayItem(
 
   try {
     await callWithContext(fn, item.args as unknown[], ctx);
-    const completedAt = Date.now();
-    store.updateQueueItem(item.id, { status: 'succeeded', completedAt });
-    await qs().update(item.id, { status: 'succeeded', completedAt });
-
-    // Remove from queue after a short delay so UI can show the success state briefly
-    setTimeout(() => {
-      store.removeQueueItem(item.id);
-      qs().remove(item.id);
-    }, 3000);
+    await _markSucceeded(item, store);
     return 'succeeded';
   } catch (err) {
     // Cancelled via handle.cancel(idempotencyKey) — drop the item, no rollback/retry.
@@ -332,60 +411,11 @@ async function _replayItem(
 
     // 4xx: give the conflict strategy a chance to decide before normal retry/fail logic
     if (isClientError(err)) {
-      const conflictConfig = _conflictConfigRegistry.get(item.actionId);
-      let resolution: ConflictResolution | undefined;
-
-      if (conflictConfig) {
-        switch (conflictConfig.strategy) {
-          case 'serverWins':
-            resolution = 'skip';
-            break;
-          case 'clientWins':
-          case 'lastWriteWins':
-            resolution = 'retry';
-            break;
-          case 'merge':
-          case 'custom': {
-            const ctx: ConflictContext = {
-              error: err,
-              args: item.args as unknown[],
-              attempt: item.retryCount,
-              idempotencyKey: item.idempotencyKey,
-            };
-            resolution = conflictConfig.resolve?.(ctx) ?? 'retry';
-            break;
-          }
-        }
-      } else {
-        const onConflict = _conflictRegistry.get(item.actionId);
-        if (onConflict) resolution = onConflict(err, item.args as unknown[]);
-      }
-
-      if (resolution === 'skip') {
-        store.removeQueueItem(item.id);
-        await qs().remove(item.id);
-        return 'conflicted';
-      }
-      if (resolution && typeof resolution === 'object') {
-        item.args = resolution.resolved;
-        store.updateQueueItem(item.id, { args: resolution.resolved });
-        await qs().update(item.id, { args: resolution.resolved });
-      }
-      // 'retry' (or merged args) falls through to normal retry/fail logic below
+      const outcome = await _resolveConflict(item, store, err);
+      if (outcome) return outcome;
     }
 
-    const retryCount = item.retryCount + 1;
-    if (retryCount >= item.maxRetries) {
-      store.updateQueueItem(item.id, { status: 'failed', error: String(err), retryCount });
-      await qs().update(item.id, { status: 'failed', error: String(err), retryCount });
-      _rollbackRegistry.get(item.actionId)?.(...(item.args as unknown[]));
-      return 'failed';
-    } else {
-      const nextRetryAt = Date.now() + backoffMs(retryCount);
-      store.updateQueueItem(item.id, { status: 'pending', retryCount, nextRetryAt });
-      await qs().update(item.id, { status: 'pending', retryCount, nextRetryAt });
-      return 'retrying';
-    }
+    return _scheduleRetryOrFail(item, store, err);
   } finally {
     if (cancellable) _inflightControllers.delete(item.idempotencyKey);
   }

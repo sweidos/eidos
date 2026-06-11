@@ -9,6 +9,26 @@ beforeEach(async () => {
   vi.clearAllMocks();
 });
 
+/** Goes offline (queue empty), invokes the action, then comes back online and replays. */
+async function queueOfflineThenReplay<T>(wrapped: (arg: T) => Promise<unknown>, arg: T) {
+  useEidosStore.setState({ isOnline: false, swStatus: 'active', resources: {}, queue: [] });
+  await wrapped(arg);
+
+  useEidosStore.setState({ isOnline: true });
+  return replayQueue();
+}
+
+/** A `fn`/`onOptimistic` pair that record their call order into a shared array. */
+function trackCallOrder() {
+  const order: string[] = [];
+  const fn = vi.fn().mockImplementation(async () => {
+    order.push('fn');
+    return {};
+  });
+  const onOptimistic = vi.fn().mockImplementation(() => order.push('optimistic'));
+  return { order, fn, onOptimistic };
+}
+
 // ── best-effort ───────────────────────────────────────────────────────────────
 
 describe('best-effort', () => {
@@ -29,12 +49,7 @@ describe('best-effort', () => {
   });
 
   it('calls onOptimistic before fn', async () => {
-    const order: string[] = [];
-    const fn = vi.fn().mockImplementation(async () => {
-      order.push('fn');
-      return {};
-    });
-    const onOptimistic = vi.fn().mockImplementation(() => order.push('optimistic'));
+    const { order, fn, onOptimistic } = trackCallOrder();
     const wrapped = action(fn, { reliability: 'best-effort', name: 'bf-optimistic', onOptimistic });
     await wrapped('arg1');
     expect(onOptimistic).toHaveBeenCalledWith('arg1', expect.any(Object));
@@ -148,12 +163,7 @@ describe('neverLose optimistic / rollback', () => {
   });
 
   it('calls onOptimistic before fn when online', async () => {
-    const order: string[] = [];
-    const fn = vi.fn().mockImplementation(async () => {
-      order.push('fn');
-      return {};
-    });
-    const onOptimistic = vi.fn().mockImplementation(() => order.push('optimistic'));
+    const { order, fn, onOptimistic } = trackCallOrder();
     const wrapped = action(fn, { reliability: 'neverLose', name: 'nl-opt-online', onOptimistic });
     await wrapped('x');
     expect(order).toEqual(['optimistic', 'fn']);
@@ -183,11 +193,7 @@ describe('neverLose optimistic / rollback', () => {
     const onRollback = vi.fn();
     const wrapped = action(fn, { reliability: 'neverLose', name: 'nl-no-rollback', onRollback });
 
-    useEidosStore.setState({ isOnline: false, swStatus: 'active', resources: {}, queue: [] });
-    await wrapped('data');
-
-    useEidosStore.setState({ isOnline: true });
-    await replayQueue();
+    await queueOfflineThenReplay(wrapped, 'data');
 
     expect(onRollback).not.toHaveBeenCalled();
   });
@@ -225,13 +231,7 @@ describe('replayQueue', () => {
     const fn = vi.fn().mockResolvedValue({ ok: true });
     const wrapped = action(fn, { reliability: 'neverLose', name: 'rq-replay' });
 
-    // Queue while offline
-    useEidosStore.setState({ isOnline: false, swStatus: 'active', resources: {}, queue: [] });
-    await wrapped('payload');
-
-    // Come back online and replay
-    useEidosStore.setState({ isOnline: true });
-    await replayQueue();
+    await queueOfflineThenReplay(wrapped, 'payload');
 
     expect(fn).toHaveBeenCalledWith(
       'payload',
@@ -512,11 +512,7 @@ describe('conflict resolution', () => {
       onRollback,
     });
 
-    useEidosStore.setState({ isOnline: false, swStatus: 'active', resources: {}, queue: [] });
-    await wrapped('x');
-
-    useEidosStore.setState({ isOnline: true });
-    const result = await replayQueue();
+    const result = await queueOfflineThenReplay(wrapped, 'x');
 
     expect(result.conflicted).toBe(1);
     expect(onRollback).not.toHaveBeenCalled();
@@ -532,11 +528,7 @@ describe('conflict resolution', () => {
       conflict: { strategy: 'clientWins' },
     });
 
-    useEidosStore.setState({ isOnline: false, swStatus: 'active', resources: {}, queue: [] });
-    await wrapped('x');
-
-    useEidosStore.setState({ isOnline: true });
-    const result = await replayQueue();
+    const result = await queueOfflineThenReplay(wrapped, 'x');
 
     expect(result.retrying).toBe(1);
     const queue = await idbGetQueue();
@@ -557,11 +549,7 @@ describe('conflict resolution', () => {
       },
     });
 
-    useEidosStore.setState({ isOnline: false, swStatus: 'active', resources: {}, queue: [] });
-    await wrapped({ v: 1 });
-
-    useEidosStore.setState({ isOnline: true });
-    await replayQueue();
+    await queueOfflineThenReplay(wrapped, { v: 1 });
 
     const queue = await idbGetQueue();
     expect(queue[0].args).toEqual([{ v: 2 }]);
@@ -591,11 +579,7 @@ describe('conflict resolution', () => {
       conflict: { strategy: 'custom', resolve },
     });
 
-    useEidosStore.setState({ isOnline: false, swStatus: 'active', resources: {}, queue: [] });
-    await wrapped('x');
-
-    useEidosStore.setState({ isOnline: true });
-    const result = await replayQueue();
+    const result = await queueOfflineThenReplay(wrapped, 'x');
 
     expect(resolve).toHaveBeenCalledWith(
       expect.objectContaining({ args: ['x'], attempt: 0, idempotencyKey: expect.any(String) }),
@@ -613,11 +597,7 @@ describe('conflict resolution', () => {
       onConflict,
     });
 
-    useEidosStore.setState({ isOnline: false, swStatus: 'active', resources: {}, queue: [] });
-    await wrapped('x');
-
-    useEidosStore.setState({ isOnline: true });
-    const result = await replayQueue();
+    const result = await queueOfflineThenReplay(wrapped, 'x');
 
     expect(onConflict).not.toHaveBeenCalled();
     expect(result.conflicted).toBe(1);

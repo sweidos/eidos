@@ -1,15 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { resource } from '../resource';
 import { useEidosStore } from '../store';
+import { resetEidosState } from './test-utils';
 
 beforeEach(() => {
-  useEidosStore.setState({
-    isOnline: true,
-    swStatus: 'idle',
-    swError: undefined,
-    resources: {},
-    queue: [],
-  });
+  resetEidosState({ swStatus: 'idle' });
 });
 
 // ── Cross-origin exact URL ────────────────────────────────────────────────────

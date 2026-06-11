@@ -99,3 +99,64 @@ describe('generate', () => {
     expect(out).toContain('if (res.status !== 204) return res.json() as Promise<void>');
   });
 });
+
+describe('generate — schema edge cases', () => {
+  const SCHEMA_SPEC: OpenAPISpec = {
+    openapi: '3.0.0',
+    info: { title: 'Edge API', version: '1.0.0' },
+    paths: {
+      '/widgets/{id}': {
+        put: {
+          requestBody: {
+            content: { 'text/plain': { schema: { $ref: '#/components/schemas/Widget' } } },
+          },
+          responses: {
+            '200': {
+              content: { 'text/plain': { schema: { $ref: '#/components/schemas/Widget' } } },
+            },
+          },
+        },
+      },
+    },
+    components: {
+      schemas: {
+        Widget: {
+          type: 'object',
+          properties: {
+            meta: { type: 'object', additionalProperties: { type: 'string' } },
+            extra: { type: 'object' },
+            kind: { allOf: [{ $ref: '#/components/schemas/Status' }, { type: 'string' }] },
+            owner: { oneOf: [{ type: 'string' }, { type: 'integer' }] },
+          },
+        },
+        Status: { enum: ['on', 'off'] },
+      },
+    },
+  };
+
+  const out = generate(SCHEMA_SPEC, { offline: false, eidos: '@sweidos/eidos' });
+
+  it('renders additionalProperties as Record<string, T>', () => {
+    expect(out).toContain('meta?: Record<string, string>');
+  });
+
+  it('renders a bare object schema as Record<string, unknown>', () => {
+    expect(out).toContain('extra?: Record<string, unknown>');
+  });
+
+  it('renders allOf as an intersection type', () => {
+    expect(out).toContain('kind?: Status & string');
+  });
+
+  it('renders oneOf as a union type', () => {
+    expect(out).toContain('owner?: string | number');
+  });
+
+  it('derives an identifier for PUT without an operationId', () => {
+    expect(out).toContain('export const updateWidgets = action(');
+  });
+
+  it('falls back to the first content type when application/json is absent', () => {
+    expect(out).toContain('async (payload: { id: string } & Widget): Promise<Widget> => {');
+  });
+});

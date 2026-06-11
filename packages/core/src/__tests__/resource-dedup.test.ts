@@ -1,31 +1,12 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { resource } from '../resource';
-import { useEidosStore } from '../store';
-
-// ── helpers ───────────────────────────────────────────────────────────────────
-
-function makeResponse(body = '{"ok":true}'): Response {
-  return new Response(body, {
-    status: 200,
-    headers: { 'Content-Type': 'application/json' },
-  });
-}
-
-function resetState() {
-  useEidosStore.setState({
-    isOnline: true,
-    swStatus: 'active',
-    swError: undefined,
-    resources: {},
-    queue: [],
-  });
-}
+import { resetEidosState, makeJsonResponse as makeResponse } from './test-utils';
 
 // ── tests ─────────────────────────────────────────────────────────────────────
 
 describe('request deduplication', () => {
   beforeEach(() => {
-    resetState();
+    resetEidosState();
     vi.clearAllMocks();
   });
 

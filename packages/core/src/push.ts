@@ -24,6 +24,7 @@
 // Imported from the main package (external at build-time) so push.js shares
 // the same sw-bridge module instance as the host app's main bundle.
 import { getSwRegistration, sendToWorker, registerPushCallbacks } from '@sweidos/eidos';
+import { urlBase64ToUint8Array } from './internal/url-base64';
 
 export interface PushHandlers {
   /** Fired when the user clicks a notification while a tab is open. */
@@ -143,13 +144,6 @@ export async function getCurrentPushSubscription(): Promise<PushSubscriptionJSON
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────────
-
-function urlBase64ToUint8Array(base64Url: string): Uint8Array {
-  const padding = '='.repeat((4 - (base64Url.length % 4)) % 4);
-  const base64 = (base64Url + padding).replace(/-/g, '+').replace(/_/g, '/');
-  const raw = atob(base64);
-  return Uint8Array.from(raw, (c) => c.charCodeAt(0));
-}
 
 function uint8ArrayToUrlBase64(bytes: Uint8Array): string {
   let binary = '';

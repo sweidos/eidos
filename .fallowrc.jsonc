@@ -1,0 +1,13 @@
+{
+  // Vercel serverless functions: discovered via the `api/` directory convention,
+  // not via static imports.
+  "entry": ["api/**/*.ts"],
+
+  // Built service worker, copied into the playground's public dir and loaded
+  // at runtime via a string path (`swPath="/eidos-sw.js"`), not a static import.
+  "ignorePatterns": ["apps/playground/public/eidos-sw.js"],
+
+  // Loaded implicitly by the `size-limit` CLI based on the `size-limit` config
+  // entries in package.json, not via a static import.
+  "ignoreDependencies": ["@size-limit/preset-small-lib"],
+}

@@ -13,6 +13,7 @@
 
 import { useEidosStore } from './store';
 import type { EidosStore } from './store';
+import { countQueueByStatus } from './types';
 import type { ActionQueueItem, ResourceEntry } from './types';
 
 // ── Readable<T> — compatible with Svelte's Readable interface ─────────────────
@@ -89,18 +90,7 @@ export const eidosQueueStats: EidosReadable<{
   failed: number;
   replaying: number;
   total: number;
-}> = readable((s) => {
-  // Single pass over the queue — avoids three separate .filter() calls.
-  let pending = 0,
-    failed = 0,
-    replaying = 0;
-  for (const q of s.queue) {
-    if (q.status === 'pending') pending++;
-    else if (q.status === 'failed') failed++;
-    else if (q.status === 'replaying') replaying++;
-  }
-  return { pending, failed, replaying, total: s.queue.length };
-}, shallowEq);
+}> = readable((s) => countQueueByStatus(s.queue), shallowEq);
 
 // ── Dynamic stores (created per URL / ID) ─────────────────────────────────────
 

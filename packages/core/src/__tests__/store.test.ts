@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useEidosStore } from '../store';
 import type { ResourceEntry, ActionQueueItem } from '../types';
+import { seedMixedStatusQueue } from './test-utils';
 
 // Reset store before each test
 beforeEach(() => {
@@ -164,10 +165,7 @@ describe('useEidosQueueStats selector (via store)', () => {
   });
 
   it('counts pending and failed independently', () => {
-    useEidosStore.getState().addQueueItem({ ...makeItem('p1'), status: 'pending' });
-    useEidosStore.getState().addQueueItem({ ...makeItem('p2'), status: 'pending' });
-    useEidosStore.getState().addQueueItem({ ...makeItem('f1'), status: 'failed' });
-    useEidosStore.getState().addQueueItem({ ...makeItem('r1'), status: 'replaying' });
+    seedMixedStatusQueue(makeItem);
 
     const q = useEidosStore.getState().queue;
     expect(q.filter((i) => i.status === 'pending').length).toBe(2);

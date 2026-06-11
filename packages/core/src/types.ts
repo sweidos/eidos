@@ -277,3 +277,24 @@ export interface EidosState {
   resources: Record<string, ResourceEntry>;
   queue: ActionQueueItem[];
 }
+
+export interface QueueStatusCounts {
+  [key: string]: number;
+  pending: number;
+  failed: number;
+  replaying: number;
+  total: number;
+}
+
+/** Single pass over the queue — avoids separate .filter() calls per status. */
+export function countQueueByStatus(queue: ActionQueueItem[]): QueueStatusCounts {
+  let pending = 0,
+    failed = 0,
+    replaying = 0;
+  for (const q of queue) {
+    if (q.status === 'pending') pending++;
+    else if (q.status === 'failed') failed++;
+    else if (q.status === 'replaying') replaying++;
+  }
+  return { pending, failed, replaying, total: queue.length };
+}

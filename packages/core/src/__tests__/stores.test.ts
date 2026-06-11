@@ -9,6 +9,7 @@ import {
 } from '../stores';
 import { useEidosStore } from '../store';
 import type { ActionQueueItem, ResourceEntry } from '../types';
+import { seedMixedStatusQueue } from './test-utils';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -148,10 +149,7 @@ describe('eidosQueueStats', () => {
   });
 
   it('counts reflect queue contents', () => {
-    useEidosStore.getState().addQueueItem({ ...makeItem('p1'), status: 'pending' });
-    useEidosStore.getState().addQueueItem({ ...makeItem('p2'), status: 'pending' });
-    useEidosStore.getState().addQueueItem({ ...makeItem('f1'), status: 'failed' });
-    useEidosStore.getState().addQueueItem({ ...makeItem('r1'), status: 'replaying' });
+    seedMixedStatusQueue(makeItem);
     const s = eidosQueueStats.getState();
     expect(s.pending).toBe(2);
     expect(s.failed).toBe(1);

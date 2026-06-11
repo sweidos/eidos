@@ -1,6 +1,7 @@
 import { useEffect, useRef, useSyncExternalStore } from 'react';
 import { useEidosStore } from '../store';
 import type { EidosStore } from '../store';
+import { countQueueByStatus } from '../types';
 
 function useStore(): EidosStore;
 function useStore<T>(selector: (state: EidosStore) => T): T;
@@ -60,15 +61,8 @@ export function useEidosQueueStats() {
   // comparison bails out correctly when counts haven't changed. One loop,
   // one subscription — cheaper than four separate filter() passes.
   const encoded = useStore((s) => {
-    let pending = 0,
-      failed = 0,
-      replaying = 0;
-    for (const q of s.queue) {
-      if (q.status === 'pending') pending++;
-      else if (q.status === 'failed') failed++;
-      else if (q.status === 'replaying') replaying++;
-    }
-    return `${pending},${failed},${replaying},${s.queue.length}`;
+    const { pending, failed, replaying, total } = countQueueByStatus(s.queue);
+    return `${pending},${failed},${replaying},${total}`;
   });
   const [p, f, r, t] = encoded.split(',');
   return { pending: +p, failed: +f, replaying: +r, total: +t };
