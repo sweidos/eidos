@@ -64,6 +64,20 @@
   .text-balance {
     text-wrap: balance;
   }
+  .animate-fade-in {
+    animation: eidos-fade-in 200ms ease-out;
+  }
+}
+
+@keyframes eidos-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Respect prefers-reduced-motion — disable all custom animations */

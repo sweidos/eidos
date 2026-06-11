@@ -1,13 +1,20 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Check, Bell, BellRing, MousePointerClick } from 'lucide-react';
 import {
   useEidosResource,
   useEidosStatus,
   useEidosQueueStats,
   useEidosOnDrain,
   replayQueue,
+  getSwRegistration,
 } from '@sweidos/eidos';
 import { useEidosMutation } from '@sweidos/eidos/query';
+import {
+  registerPushHandlers,
+  getPushUnsupportedReason,
+  getPushPermissionState,
+} from '@sweidos/eidos/push';
 import {
   productsResource,
   ordersHistoryResource,
@@ -236,6 +243,160 @@ export function LiveQueueDrain() {
       <RunButton onClick={() => replayQueue()}>Replay queue</RunButton>
       <Stat>pending: {pending}</Stat>
       {message && <Stat>{message}</Stat>}
+    </LiveBox>
+  );
+}
+
+type PushStepStatus = 'pending' | 'active' | 'done';
+
+function PushStep({
+  icon: Icon,
+  label,
+  status,
+}: {
+  icon: typeof Bell;
+  label: string;
+  status: PushStepStatus;
+}) {
+  return (
+    <div className="flex flex-1 items-center gap-2">
+      <div
+        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border transition-colors duration-300 ${
+          status === 'done'
+            ? 'border-eidos-accent bg-eidos-accent-dim text-eidos-accent'
+            : status === 'active'
+              ? 'border-eidos-accent text-eidos-accent animate-pulse'
+              : 'border-eidos-border text-eidos-muted'
+        }`}
+      >
+        {status === 'done' ? <Check size={13} /> : <Icon size={13} />}
+      </div>
+      <span
+        className={`text-2xs leading-tight transition-colors duration-300 ${
+          status === 'pending' ? 'text-eidos-muted' : 'text-eidos-text-dim'
+        }`}
+      >
+        {label}
+      </span>
+    </div>
+  );
+}
+
+export function LivePushDemo() {
+  const [permission, setPermission] = useState<NotificationPermission | 'unsupported'>(() =>
+    getPushPermissionState(),
+  );
+  const [routedTo, setRoutedTo] = useState<string | null>(null);
+  const [notified, setNotified] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const unsupportedReason = getPushUnsupportedReason();
+
+  // Real eidos/push wiring — fires for the lifetime of this demo, any tab.
+  useEffect(() => {
+    registerPushHandlers({
+      onNotificationClick: (data) => {
+        const url = (data as { url?: string })?.url ?? '/';
+        setRoutedTo(url);
+      },
+    });
+  }, []);
+
+  async function requestPermission() {
+    setError(null);
+    try {
+      const result = await Notification.requestPermission();
+      setPermission(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Permission request failed');
+    }
+  }
+
+  async function sendNotification() {
+    setError(null);
+    setRoutedTo(null);
+    try {
+      const reg = await getSwRegistration();
+      if (!reg) {
+        setError('Service worker not ready yet — reload and try again.');
+        return;
+      }
+      await reg.showNotification('Eidos demo', {
+        body: 'Click me — eidos routes this to /inspector via onNotificationClick',
+        data: { url: '/inspector' },
+        tag: 'eidos-demo',
+        icon: '/favicon.svg',
+      });
+      setNotified(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'showNotification failed');
+    }
+  }
+
+  if (unsupportedReason) {
+    return (
+      <LiveBox>
+        <Stat className="text-eidos-muted">
+          {unsupportedReason === 'ios-not-installed'
+            ? 'Push needs the app installed to the home screen on iOS Safari.'
+            : 'Push notifications are not supported in this browser.'}
+        </Stat>
+      </LiveBox>
+    );
+  }
+
+  const permissionDone = permission === 'granted';
+  const permissionActive = permission !== 'granted' && permission !== 'denied';
+  const handlerDone = true; // registered on mount via useEffect above
+  const notifyDone = notified;
+  const notifyActive = permissionDone && !notifyDone;
+  const routeDone = routedTo !== null;
+  const routeActive = notifyDone && !routeDone;
+
+  return (
+    <LiveBox>
+      <div className="flex w-full flex-col gap-3">
+        <div className="flex items-center gap-1">
+          <PushStep
+            icon={Bell}
+            label="Request permission"
+            status={permissionDone ? 'done' : permissionActive ? 'active' : 'pending'}
+          />
+          <PushStep
+            icon={Check}
+            label="Register click handler"
+            status={handlerDone ? 'done' : 'pending'}
+          />
+          <PushStep
+            icon={BellRing}
+            label="Show notification"
+            status={notifyDone ? 'done' : notifyActive ? 'active' : 'pending'}
+          />
+          <PushStep
+            icon={MousePointerClick}
+            label="Click → routed"
+            status={routeDone ? 'done' : routeActive ? 'active' : 'pending'}
+          />
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {!permissionDone && permission !== 'denied' && (
+            <RunButton onClick={requestPermission}>Enable notifications</RunButton>
+          )}
+          {permission === 'denied' && (
+            <Stat className="text-eidos-amber">
+              Permission denied — re-enable in browser site settings.
+            </Stat>
+          )}
+          {permissionDone && (
+            <RunButton onClick={sendNotification}>Show test notification</RunButton>
+          )}
+          {notifyDone && !routeDone && (
+            <Stat>Click the notification to see eidos route the click →</Stat>
+          )}
+          {routeDone && <Stat>onNotificationClick fired → routed to {routedTo}</Stat>}
+          {error && <Stat className="text-eidos-red">{error}</Stat>}
+        </div>
+      </div>
     </LiveBox>
   );
 }

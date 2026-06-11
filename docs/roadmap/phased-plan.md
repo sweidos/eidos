@@ -41,6 +41,28 @@ and migration.
 
 ---
 
+## Phase 1.5 — Accuracy & Upkeep Pass (current system only, no new features)
+
+**Goal**: keep docs/metrics honest as the core grows — no feature work.
+
+- [ ] Bundle-size numbers drift from reality after every feature lands
+      (core was documented as ~5.4 kB, actually 5.97 kB brotli; size-limit
+      threshold raised 6 KB → 7 KB this pass to give headroom). Add a CI
+      check or release checklist step that re-runs `size-limit` and
+      flags when README tables (`README.md`, `packages/core/README.md`)
+      drift from actual output.
+- [ ] Sweep `docs/` and both READMEs for other stale claims left over from
+      earlier phases (e.g. caveats about missing idempotency/namespacing
+      that are now fixed but may still read as open issues).
+- [ ] Re-verify `phased-plan.md` / `2026-06-architecture-review.md`
+      checkboxes against current `src/` on each release — they should
+      reflect shipped code, not aspirational state.
+
+**Exit criteria**: README/docs bundle-size and feature-status claims match
+`size-limit` output and `src/` reality at time of release.
+
+---
+
 ## Phase 2 — Resource Layer Polish
 
 **Goal**: close the gaps identified in `resource()` before SW-codegen

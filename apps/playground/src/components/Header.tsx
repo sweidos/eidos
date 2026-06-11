@@ -36,14 +36,14 @@ export function Header() {
             eidos
           </Link>
           <span className="hidden text-eidos-border sm:inline">·</span>
-          <span className="text-2xs text-eidos-muted">v{VERSION}</span>
+          <span className="text-xs text-eidos-muted">v{VERSION}</span>
           <div className="hidden items-center gap-1.5 sm:flex">
             <a
               href="https://github.com/iamadi11/eidos"
               target="_blank"
               rel="noopener noreferrer"
               aria-label="GitHub repository"
-              className="inline-flex items-center gap-1 text-2xs text-eidos-muted transition-colors hover:text-eidos-text"
+              className="inline-flex items-center gap-1 text-xs text-eidos-muted transition-colors hover:text-eidos-text"
             >
               <Github size={11} />
               <span className="hidden md:inline">GitHub</span>
@@ -54,7 +54,7 @@ export function Header() {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="npm package"
-              className="inline-flex items-center gap-1 text-2xs text-eidos-muted transition-colors hover:text-eidos-text"
+              className="inline-flex items-center gap-1 text-xs text-eidos-muted transition-colors hover:text-eidos-text"
             >
               <ExternalLink size={10} />
               <span className="hidden md:inline">npm</span>
@@ -67,7 +67,7 @@ export function Header() {
           <SearchPalette />
 
           <span
-            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 ${
+            className={`hidden items-center gap-1.5 rounded-full border px-2.5 py-1 sm:inline-flex ${
               swStatus === 'active'
                 ? 'border-eidos-accent/30 text-eidos-accent'
                 : swStatus === 'registering'
@@ -125,7 +125,7 @@ export function Header() {
               {tab.label}
               {tab.path === '/actions' && failedCount > 0 && (
                 <span
-                  className="text-2xs bg-eidos-red text-white px-1 font-bold"
+                  className="inline-flex min-w-[1.1rem] h-[1.1rem] items-center justify-center rounded-full bg-eidos-red px-1 text-2xs font-bold text-white"
                   aria-label={`${failedCount} failed`}
                 >
                   {failedCount}
@@ -133,7 +133,7 @@ export function Header() {
               )}
               {tab.path === '/actions' && pendingCount > 0 && (
                 <span
-                  className="text-2xs bg-eidos-amber text-eidos-bg px-1 font-bold"
+                  className="inline-flex min-w-[1.1rem] h-[1.1rem] items-center justify-center rounded-full bg-eidos-amber px-1 text-2xs font-bold text-eidos-bg"
                   aria-label={`${pendingCount} pending`}
                 >
                   {pendingCount}

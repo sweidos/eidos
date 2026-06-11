@@ -110,7 +110,7 @@
     {
       "name": "core (resource + action + store)",
       "path": "dist/index.js",
-      "limit": "6 KB"
+      "limit": "7 KB"
     },
     {
       "name": "react hooks",

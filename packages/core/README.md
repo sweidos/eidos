@@ -114,20 +114,22 @@ if ('queued' in result) {
 
 ## What you get
 
-| Feature                     | Description                                                                          |
-| --------------------------- | ------------------------------------------------------------------------------------ |
-| **Auto strategy selection** | `offline: true` → StaleWhileRevalidate. No config needed. Override when you want.    |
-| **Persistent action queue** | Failed writes go to IndexedDB and replay with exponential backoff on reconnect.      |
-| **Request deduplication**   | Concurrent `resource.fetch()` calls share one in-flight request.                     |
-| **Optimistic updates**      | `onOptimistic` / `onRollback` callbacks for instant UI feedback.                     |
-| **Conflict resolution**     | `onConflict` decides per 4xx whether to retry or drop a queued action.               |
-| **Queue prioritization**    | `priority: 'high' \| 'normal' \| 'low'` — high items replay before normal.           |
-| **Cache warming**           | `warmCache(handles[])` bulk-prefetches resources on login/init.                      |
-| **URL patterns**            | `/api/products/*`, `/api/users/:id`, `**` wildcards — SW intercepts all matches.     |
-| **Background Sync**         | Registers a `sync` tag so queued actions replay even after tab close.                |
-| **Devtools panel**          | `<EidosDevtools />` — live queue, cache state, offline toggle, no CSS import.        |
-| **Testing helpers**         | `mockOffline`, `drainQueue`, `resetEidos`, `getCachedEntry` for Vitest/Jest.         |
-| **OpenAPI codegen**         | `npx eidos-gen openapi.json` generates typed `resource()` + `action()` declarations. |
+| Feature                     | Description                                                                                                                 |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| **Auto strategy selection** | `offline: true` → StaleWhileRevalidate. No config needed. Override when you want.                                           |
+| **Persistent action queue** | Failed writes go to IndexedDB and replay with exponential backoff on reconnect.                                             |
+| **Request deduplication**   | Concurrent `resource.fetch()` calls share one in-flight request.                                                            |
+| **Optimistic updates**      | `onOptimistic` / `onRollback` callbacks for instant UI feedback.                                                            |
+| **Conflict resolution**     | `conflict: { strategy: 'serverWins' \| 'clientWins' \| 'lastWriteWins' \| 'merge' \| 'custom' }` on 4xx replay responses.   |
+| **Idempotent replay**       | Stable `idempotencyKey` per invocation, forwarded to `fn` via `ActionContext` — safe retries even after a dropped response. |
+| **Cancellable actions**     | `cancellable: true` → `AbortSignal` per call, plus `handle.cancel(idempotencyKey)`.                                         |
+| **Queue prioritization**    | `priority: 'high' \| 'normal' \| 'low'` — high items replay before normal.                                                  |
+| **Cache warming**           | `warmCache(handles[])` bulk-prefetches resources on login/init.                                                             |
+| **URL patterns**            | `/api/products/*`, `/api/users/:id`, `**` wildcards — SW intercepts all matches.                                            |
+| **Background Sync**         | Registers a `sync` tag so queued actions replay even after tab close.                                                       |
+| **Devtools panel**          | `<EidosDevtools />` — live queue, cache state, offline toggle, no CSS import.                                               |
+| **Testing helpers**         | `mockOffline`, `drainQueue`, `resetEidos`, `getCachedEntry` for Vitest/Jest.                                                |
+| **OpenAPI codegen**         | `npx eidos-gen openapi.json` generates typed `resource()` + `action()` declarations.                                        |
 
 ---
 
@@ -180,15 +182,23 @@ URL patterns work on any handle: `/api/products/*`, `/api/users/:id`, `**`
 ### `action(fn, config)`
 
 ```ts
-const createOrder = action(async (payload: OrderPayload) => { ... }, {
+const createOrder = action(async (payload: OrderPayload, ctx: ActionContext) => { ... }, {
   reliability: 'neverLose', // persist to IDB + replay on reconnect
   name: 'createOrder',      // stable name for post-reload replay
+  namespace?: string,       // prefix actionId — avoids collisions across modules
   maxRetries?: number,      // default: 3
   priority?: 'high' | 'normal' | 'low',
+  cancellable?: boolean,    // adds AbortSignal to ctx, enables handle.cancel(key)
   onOptimistic?: (...args) => void, // instant UI update
   onRollback?: (...args) => void,   // revert on permanent failure
-  onConflict?: (error, args) => 'retry' | 'skip', // 4xx handler
+  conflict?: {               // 4xx replay handling
+    strategy: 'serverWins' | 'clientWins' | 'lastWriteWins' | 'merge' | 'custom',
+    resolve?: (ctx) => 'retry' | 'skip' | { resolved: args },
+  },
 })
+
+// ctx.idempotencyKey is stable across retries — forward as e.g. an
+// `Idempotency-Key` header so the server can dedupe replayed writes.
 ```
 
 ### React hooks
@@ -389,21 +399,19 @@ Panel shows: live queue state · cache entries · SW status · offline simulatio
 
 ## How it compares
 
-|                            | **Eidos**                                                                                   | Workbox                                    | RTK Query / TanStack Query                                      |
-| -------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------ | --------------------------------------------------------------- |
-| Service worker setup       | Generated for you — `resource()`/`action()` declarations drive the SW                       | Hand-write `routing` + `strategies` config | None — no SW                                                    |
-| Caching strategy           | Auto-derived from intent (`offline: true` → SWR, etc.), inspectable via devtools            | Manually chosen per route                  | Configurable `staleTime`/`gcTime`, no Cache Storage integration |
-| Offline writes             | `action()` + `reliability: 'neverLose'` → IndexedDB queue, auto-replay, exponential backoff | Background Sync plugin, you wire the queue | No built-in offline mutation queue                              |
-| Framework support          | React, Svelte, Vue, Next.js, React Native, vanilla JS                                       | Framework-agnostic (SW only)               | Per-library (RTK Query = Redux, TanStack = many)                |
-| TanStack Query bridge      | `@sweidos/eidos/query` — drop-in `useEidosQuery`/`useEidosMutation`                         | —                                          | Native                                                          |
-| Bundle size (core, brotli) | ~5.4 kB                                                                                     | ~3-6 kB (modular)                          | ~13 kB (TanStack Query core)                                    |
+|                       | **Eidos**                                             | Workbox                      | RTK Query / TanStack Query |
+| --------------------- | ----------------------------------------------------- | ---------------------------- | -------------------------- |
+| Service worker setup  | Generated from `resource()`/`action()` declarations   | Hand-written routing config  | None — no SW               |
+| Caching strategy      | Auto-derived from intent, inspectable via devtools    | Manually chosen per route    | `staleTime`/`gcTime` only  |
+| Offline writes        | IndexedDB queue, auto-replay + backoff via `action()` | Background Sync, you wire it | No built-in mutation queue |
+| Framework support     | React, Svelte, Vue, Next.js, React Native, vanilla JS | Framework-agnostic (SW only) | Per-library                |
+| TanStack Query bridge | `@sweidos/eidos/query` adapter                        | —                            | Native                     |
+| Bundle size (core)    | ~6 kB brotli                                          | ~3-6 kB (modular)            | ~13 kB                     |
 
-Eidos isn't a replacement for TanStack Query — `@sweidos/eidos/query` is a thin
-adapter so you keep TQ's cache/devtools while Eidos owns the offline layer
-(SW caching + IndexedDB write queue). Workbox is a lower-level toolkit Eidos
-generates strategies _for_; Eidos picks and configures the strategy from your
-`resource()`/`action()` declarations instead of you writing `workbox-*` config
-by hand.
+Not a TanStack Query replacement — `@sweidos/eidos/query` is a thin adapter so
+you keep TQ's cache/devtools while Eidos owns the offline layer. Workbox is a
+lower-level toolkit; Eidos picks and configures strategies for you instead of
+hand-written `workbox-*` config.
 
 ---
 
