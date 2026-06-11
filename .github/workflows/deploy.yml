@@ -33,14 +33,14 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Run tests
         run: pnpm --filter @sweidos/eidos test
+      - name: Build core
+        run: pnpm build:core
       - name: Type-check all
         run: pnpm --filter @sweidos/eidos type-check && pnpm --filter @eidos/playground type-check
       - name: Lint
         run: pnpm lint
       - name: Format check
         run: pnpm format:check
-      - name: Build core
-        run: pnpm build:core
       - name: Bundle size check
         run: pnpm --filter @sweidos/eidos size
 

@@ -294,7 +294,7 @@ export function LivePushDemo() {
   // Real eidos/push wiring — fires for the lifetime of this demo, any tab.
   useEffect(() => {
     registerPushHandlers({
-      onNotificationClick: (data) => {
+      onNotificationClick: (data: unknown) => {
         const url = (data as { url?: string })?.url ?? '/';
         setRoutedTo(url);
       },
