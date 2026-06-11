@@ -20,6 +20,11 @@ const _actionRegistry = new Map<string, ActionFn<any[], any>>();
 const _rollbackRegistry = new Map<string, (...args: any[]) => void>();
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const _conflictRegistry = new Map<string, (error: unknown, args: any[]) => 'retry' | 'skip'>();
+const _configRegistry = new Map<string, ActionConfig>();
+
+// In-flight AbortControllers for `cancellable` actions, keyed by idempotencyKey.
+// Populated for direct calls and replays alike; removed once the call settles.
+const _inflightControllers = new Map<string, AbortController>();
 
 function qs(): QueueStorage {
   // idbQueueStorage is the default browser fallback when no custom storage is set.
@@ -64,6 +69,7 @@ export function action<TArgs extends any[], TReturn>(
   // Registering here means the function is available for replay after
   // the user refreshes the page (actions are defined at module scope).
   _actionRegistry.set(actionId, fn as ActionFn<unknown[], unknown>);
+  _configRegistry.set(actionId, config);
 
   if (config.onRollback) {
     _rollbackRegistry.set(actionId, config.onRollback);
@@ -76,37 +82,69 @@ export function action<TArgs extends any[], TReturn>(
   const wrapped = async (...args: TArgs): Promise<TReturn | QueuedResult> => {
     const { isOnline } = useEidosStore.getState();
 
-    config.onOptimistic?.(...args);
+    // Generated for neverLose (always) and best-effort cancellable actions —
+    // reused across every retry/replay of a neverLose item, and used to key
+    // handle.cancel() for in-flight cancellable calls.
+    const needsKey = config.reliability === 'neverLose' || config.cancellable;
+    const idempotencyKey = needsKey ? uid() : '';
 
-    if (config.reliability === 'neverLose') {
-      // Generated once per logical invocation and reused across every retry/replay —
-      // forward this to your server as an idempotency key so a retry that reaches
-      // the server after a dropped response doesn't double-execute.
-      const idempotencyKey = uid();
-      const ctx: ActionContext = { idempotencyKey, attempt: 0 };
-
-      if (!isOnline) {
-        return persistAndQueue(actionId, actionId, args, config, idempotencyKey);
-      }
-      // Online + neverLose: execute, queue on failure
-      try {
-        return await callWithContext(fn, args, ctx);
-      } catch {
-        return persistAndQueue(actionId, actionId, args, config, idempotencyKey);
-      }
+    let signal: AbortSignal | undefined;
+    if (config.cancellable) {
+      const controller = new AbortController();
+      _inflightControllers.set(idempotencyKey, controller);
+      signal = controller.signal;
     }
 
-    // best-effort: execute directly, rollback on failure
+    const ctx: ActionContext = { idempotencyKey, attempt: 0, signal };
+
+    config.onOptimistic?.(...args, ctx);
+
     try {
-      return await fn(...args);
-    } catch (err) {
-      config.onRollback?.(...args);
-      throw err;
+      if (config.reliability === 'neverLose') {
+        if (!isOnline) {
+          return persistAndQueue(actionId, actionId, args, config, idempotencyKey);
+        }
+        // Online + neverLose: execute, queue on failure
+        try {
+          return await callWithContext(fn, args, ctx);
+        } catch (err) {
+          if (isAbortError(err)) throw err;
+          return persistAndQueue(actionId, actionId, args, config, idempotencyKey);
+        }
+      }
+
+      // best-effort: execute directly, rollback on failure
+      try {
+        return needsKey ? await callWithContext(fn, args, ctx) : await fn(...args);
+      } catch (err) {
+        config.onRollback?.(...args);
+        throw err;
+      }
+    } finally {
+      if (config.cancellable) _inflightControllers.delete(idempotencyKey);
     }
+  };
+
+  const cancel = async (idempotencyKey: string): Promise<boolean> => {
+    const controller = _inflightControllers.get(idempotencyKey);
+    if (controller) {
+      controller.abort();
+      return true;
+    }
+
+    // Not in flight — check for a not-yet-replayed queued item with this key.
+    const items = await qs().getAll();
+    const item = items.find((i) => i.idempotencyKey === idempotencyKey && i.status === 'pending');
+    if (!item) return false;
+
+    useEidosStore.getState().removeQueueItem(item.id);
+    await qs().remove(item.id);
+    return true;
   };
 
   Object.defineProperty(wrapped, 'id', { value: actionId, writable: false });
   Object.defineProperty(wrapped, 'config', { value: config, writable: false });
+  Object.defineProperty(wrapped, 'cancel', { value: cancel, writable: false });
 
   return wrapped as unknown as ActionHandle<TArgs, TReturn>;
 }
@@ -173,6 +211,10 @@ async function persistAndQueue(
   };
 }
 
+function isAbortError(err: unknown): boolean {
+  return err instanceof DOMException && err.name === 'AbortError';
+}
+
 function isClientError(err: unknown): boolean {
   if (err instanceof Response) return err.status >= 400 && err.status < 500;
   if (typeof err === 'object' && err !== null) {
@@ -189,7 +231,15 @@ function backoffMs(retryCount: number): number {
 }
 
 function emptyReplayResult(): ReplayResult {
-  return { attempted: 0, succeeded: 0, failed: 0, retrying: 0, skipped: 0, conflicted: 0 };
+  return {
+    attempted: 0,
+    succeeded: 0,
+    failed: 0,
+    retrying: 0,
+    skipped: 0,
+    conflicted: 0,
+    cancelled: 0,
+  };
 }
 
 let _replaying = false;
@@ -220,7 +270,7 @@ export async function replayQueue(): Promise<ReplayResult> {
   }
 }
 
-type ItemOutcome = 'succeeded' | 'failed' | 'retrying' | 'skipped' | 'conflicted';
+type ItemOutcome = 'succeeded' | 'failed' | 'retrying' | 'skipped' | 'conflicted' | 'cancelled';
 
 async function _replayItem(
   item: ActionQueueItem,
@@ -229,7 +279,19 @@ async function _replayItem(
   const fn = _actionRegistry.get(item.actionId);
   if (!fn) return 'skipped';
 
-  const ctx: ActionContext = { idempotencyKey: item.idempotencyKey, attempt: item.retryCount };
+  const cancellable = _configRegistry.get(item.actionId)?.cancellable;
+  let signal: AbortSignal | undefined;
+  if (cancellable) {
+    const controller = new AbortController();
+    _inflightControllers.set(item.idempotencyKey, controller);
+    signal = controller.signal;
+  }
+
+  const ctx: ActionContext = {
+    idempotencyKey: item.idempotencyKey,
+    attempt: item.retryCount,
+    signal,
+  };
 
   try {
     await callWithContext(fn, item.args as unknown[], ctx);
@@ -244,6 +306,13 @@ async function _replayItem(
     }, 3000);
     return 'succeeded';
   } catch (err) {
+    // Cancelled via handle.cancel(idempotencyKey) — drop the item, no rollback/retry.
+    if (isAbortError(err)) {
+      store.removeQueueItem(item.id);
+      await qs().remove(item.id);
+      return 'cancelled';
+    }
+
     // 4xx: give onConflict a chance to decide before normal retry/fail logic
     if (isClientError(err)) {
       const onConflict = _conflictRegistry.get(item.actionId);
@@ -270,6 +339,8 @@ async function _replayItem(
       await qs().update(item.id, { status: 'pending', retryCount, nextRetryAt });
       return 'retrying';
     }
+  } finally {
+    if (cancellable) _inflightControllers.delete(item.idempotencyKey);
   }
 }
 
@@ -302,6 +373,8 @@ async function _replayTier(
       result.skipped++;
     } else if (outcome === 'conflicted') {
       result.conflicted++;
+    } else if (outcome === 'cancelled') {
+      result.cancelled++;
     } else {
       result.attempted++;
       result[outcome]++;
@@ -322,14 +395,7 @@ async function _doReplayQueue(
     (item) => item.retryCount < item.maxRetries && (!item.nextRetryAt || item.nextRetryAt <= now),
   );
 
-  const result: ReplayResult = {
-    attempted: 0,
-    succeeded: 0,
-    failed: 0,
-    retrying: 0,
-    skipped: 0,
-    conflicted: 0,
-  };
+  const result: ReplayResult = emptyReplayResult();
 
   // Process tiers sequentially: high items complete before normal, normal before low.
   // Within each tier items run in parallel via Promise.allSettled.

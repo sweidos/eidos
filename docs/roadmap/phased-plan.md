@@ -26,7 +26,7 @@ work resumes.
 
 - [x] Namespace `actionId` generation (`namespace::name`), warn on
       collision in DEV (`packages/core/src/action.ts`).
-- [ ] Cancellation: `AbortSignal` plumbing for in-flight `neverLose`
+- [x] Cancellation: `AbortSignal` plumbing for in-flight `neverLose`
       actions + ability to cancel a not-yet-replayed queue item.
 - [ ] Conflict resolution presets (`serverWins`/`clientWins`/
       `lastWriteWins`/`merge`/`custom`) replacing the raw `onConflict`

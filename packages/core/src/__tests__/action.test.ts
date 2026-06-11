@@ -37,7 +37,7 @@ describe('best-effort', () => {
     const onOptimistic = vi.fn().mockImplementation(() => order.push('optimistic'));
     const wrapped = action(fn, { reliability: 'best-effort', name: 'bf-optimistic', onOptimistic });
     await wrapped('arg1');
-    expect(onOptimistic).toHaveBeenCalledWith('arg1');
+    expect(onOptimistic).toHaveBeenCalledWith('arg1', expect.any(Object));
     expect(order).toEqual(['optimistic', 'fn']);
   });
 
@@ -52,7 +52,7 @@ describe('best-effort', () => {
       onRollback,
     });
     await expect(wrapped('payload')).rejects.toThrow('fail');
-    expect(onOptimistic).toHaveBeenCalledWith('payload');
+    expect(onOptimistic).toHaveBeenCalledWith('payload', expect.any(Object));
     expect(onRollback).toHaveBeenCalledWith('payload');
   });
 
@@ -143,7 +143,7 @@ describe('neverLose optimistic / rollback', () => {
     const onOptimistic = vi.fn();
     const wrapped = action(fn, { reliability: 'neverLose', name: 'nl-opt-offline', onOptimistic });
     await wrapped({ id: 1 });
-    expect(onOptimistic).toHaveBeenCalledWith({ id: 1 });
+    expect(onOptimistic).toHaveBeenCalledWith({ id: 1 }, expect.any(Object));
     expect(fn).not.toHaveBeenCalled();
   });
 
@@ -430,5 +430,67 @@ describe('priority', () => {
     expect(result.attempted).toBe(2);
     expect(result.succeeded).toBe(1);
     expect(result.failed).toBe(1);
+  });
+});
+
+// ── cancellation ───────────────────────────────────────────────────────────────
+
+describe('cancellable', () => {
+  it('aborts an in-flight call via handle.cancel(idempotencyKey)', async () => {
+    useEidosStore.setState({ isOnline: true, swStatus: 'active', resources: {}, queue: [] });
+
+    let capturedKey = '';
+    const fn = vi.fn().mockImplementation(
+      (_arg: string, ctx: { idempotencyKey: string; signal?: AbortSignal }) =>
+        new Promise((_resolve, reject) => {
+          capturedKey = ctx.idempotencyKey;
+          ctx.signal?.addEventListener('abort', () =>
+            reject(new DOMException('aborted', 'AbortError')),
+          );
+        }),
+    );
+    const wrapped = action(fn, {
+      reliability: 'neverLose',
+      name: 'cancel-inflight',
+      cancellable: true,
+    });
+
+    const call = wrapped('x');
+    await Promise.resolve(); // let fn run synchronously up to capturedKey
+
+    const cancelled = await wrapped.cancel(capturedKey);
+    expect(cancelled).toBe(true);
+    await expect(call).rejects.toThrow('aborted');
+  });
+
+  it('removes a not-yet-replayed queued item via handle.cancel(idempotencyKey)', async () => {
+    let capturedKey = '';
+    const fn = vi.fn().mockResolvedValue({});
+    const onOptimistic = vi
+      .fn()
+      .mockImplementation((_arg: string, ctx: { idempotencyKey: string }) => {
+        capturedKey = ctx.idempotencyKey;
+      });
+    const wrapped = action(fn, {
+      reliability: 'neverLose',
+      name: 'cancel-queued',
+      cancellable: true,
+      onOptimistic,
+    });
+
+    useEidosStore.setState({ isOnline: false, swStatus: 'active', resources: {}, queue: [] });
+    await wrapped('payload');
+
+    expect(useEidosStore.getState().queue.some((q) => q.idempotencyKey === capturedKey)).toBe(true);
+
+    const cancelled = await wrapped.cancel(capturedKey);
+    expect(cancelled).toBe(true);
+    expect(useEidosStore.getState().queue.some((q) => q.idempotencyKey === capturedKey)).toBe(
+      false,
+    );
+
+    useEidosStore.setState({ isOnline: true });
+    await replayQueue();
+    expect(fn).not.toHaveBeenCalled();
   });
 });

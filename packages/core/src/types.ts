@@ -92,9 +92,11 @@ export interface ActionConfig {
    */
   priority?: 'high' | 'normal' | 'low';
   /**
-   * Called immediately before the async function executes, with the same args.
-   * Use to apply an optimistic UI update (add item, mark as pending, etc.).
-   * Called on every invocation — online, offline, and during queue replay.
+   * Called immediately before the async function executes, with the same args
+   * plus a trailing `ActionContext`. Use to apply an optimistic UI update (add
+   * item, mark as pending, etc.) and to capture `idempotencyKey` for later
+   * `handle.cancel(idempotencyKey)` calls. Called on every invocation —
+   * online, offline, and during queue replay.
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onOptimistic?: (...args: any[]) => void;
@@ -121,6 +123,13 @@ export interface ActionConfig {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onConflict?: (error: unknown, args: any[]) => 'retry' | 'skip';
+  /**
+   * When `true`, each invocation gets an `AbortController` whose `signal` is
+   * passed via `ActionContext.signal`. Forward it to `fetch`/etc. so
+   * `handle.cancel(idempotencyKey)` can abort an in-flight call, or remove a
+   * not-yet-replayed queued item.
+   */
+  cancellable?: boolean;
 }
 
 /** Bump when ActionQueueItem's shape changes. Used to migrate items persisted by older versions. */
@@ -172,6 +181,8 @@ export interface ReplayResult {
   skipped: number;
   /** Items that received a 4xx response and were dropped via `onConflict: () => 'skip'`. */
   conflicted: number;
+  /** Items removed via `handle.cancel(idempotencyKey)` before/during replay. */
+  cancelled: number;
 }
 
 /**
@@ -185,6 +196,8 @@ export interface ActionContext {
   idempotencyKey: string;
   /** 0 on the first attempt, incremented on each replay retry. */
   attempt: number;
+  /** Set when `config.cancellable` is true. Forward to `fetch`/etc. for cancellation support. */
+  signal?: AbortSignal;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -195,6 +208,13 @@ export interface ActionHandle<TArgs extends any[], TReturn> {
   (...args: TArgs): Promise<TReturn | QueuedResult>;
   readonly id: string;
   readonly config: ActionConfig;
+  /**
+   * Cancel an invocation by its `idempotencyKey` (from `ActionContext` /
+   * `onOptimistic`). Aborts the in-flight call if `cancellable: true` and
+   * still running, otherwise removes a not-yet-replayed queued item.
+   * Returns `true` if something was cancelled/removed.
+   */
+  cancel: (idempotencyKey: string) => Promise<boolean>;
 }
 
 // ── Global State ─────────────────────────────────────────────────────────────
