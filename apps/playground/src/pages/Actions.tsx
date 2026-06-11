@@ -1,4 +1,5 @@
 import { useState, useEffect, memo } from 'react';
+import { RefreshCw } from 'lucide-react';
 import { useEidosQueue, useEidosStatus, replayQueue, isBgSyncSupported } from '@sweidos/eidos';
 import type { ActionQueueItem } from '@sweidos/eidos';
 
@@ -36,7 +37,7 @@ export function Actions() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-5 animate-fade-in">
+    <div className="max-w-6xl mx-auto p-5 animate-fade-in">
       <div className="flex items-start justify-between mb-5 border-b border-eidos-border pb-4">
         <div>
           <h2 className="text-base font-bold text-eidos-text mb-1">action queue</h2>
@@ -72,7 +73,8 @@ export function Actions() {
             disabled={busy}
             className="flex items-center gap-2 px-3 py-2 bg-eidos-accent text-eidos-bg text-xs font-bold hover:bg-green-400 transition-colors disabled:opacity-50 cursor-pointer shrink-0"
           >
-            {busy ? '...' : `↺ replay ${pending.length}`}
+            <RefreshCw size={11} className={busy ? 'animate-spin' : ''} />
+            {busy ? 'replaying...' : `replay ${pending.length}`}
           </button>
         )}
       </div>

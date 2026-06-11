@@ -1,5 +1,5 @@
 import { Wifi, WifiOff, Cpu, Github, ExternalLink } from 'lucide-react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, Link } from 'react-router-dom';
 import { useEidosStatus, useEidosQueueStats, setOfflineSimulation, VERSION } from '@sweidos/eidos';
 import { useState } from 'react';
 import { SearchPalette } from './SearchPalette';
@@ -29,7 +29,12 @@ export function Header() {
       <div className="flex flex-col gap-3 border-b border-eidos-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         {/* Brand */}
         <div className="flex items-center gap-3">
-          <span className="text-sm font-bold tracking-[0.22em] text-eidos-accent">eidos</span>
+          <Link
+            to="/"
+            className="text-sm font-bold tracking-[0.22em] text-eidos-accent transition-colors hover:text-green-400 cursor-pointer"
+          >
+            eidos
+          </Link>
           <span className="hidden text-eidos-border sm:inline">·</span>
           <span className="text-2xs text-eidos-muted">v{VERSION}</span>
           <div className="hidden items-center gap-1.5 sm:flex">

@@ -11,7 +11,6 @@ import {
   ArrowUp,
   AlertTriangle,
   X,
-  Github,
 } from 'lucide-react';
 import {
   useEidosQueue,
@@ -245,14 +244,6 @@ export function Demo() {
               >
                 View action queue
               </button>
-              <a
-                href="https://github.com/iamadi11/eidos"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-eidos-border px-4 py-2 text-xs font-medium text-eidos-text-dim transition-colors hover:border-eidos-elevated hover:text-eidos-text cursor-pointer"
-              >
-                <Github size={11} /> GitHub
-              </a>
             </div>
           </div>
 
@@ -357,6 +348,9 @@ export function Demo() {
 
 const ExamplesGrid = memo(function ExamplesGrid() {
   const navigate = useNavigate();
+  const [active, setActive] = useState(0);
+  const example = EXAMPLES[active];
+
   return (
     <section className="space-y-3">
       <div className="flex items-end justify-between gap-4">
@@ -373,22 +367,40 @@ const ExamplesGrid = memo(function ExamplesGrid() {
           open full reference
         </button>
       </div>
-      <div className="grid gap-4 md:grid-cols-2">
-        {EXAMPLES.map((example) => (
-          <Card key={example.title} className="h-full">
-            <CardHeader
-              title={example.title}
-              description={example.description}
-              action={
-                <span className="rounded-full border border-eidos-border px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-eidos-muted">
-                  {example.badge}
-                </span>
-              }
-            />
-            <CodeBlock code={example.code} title={example.badge} />
-          </Card>
+
+      {/* Tab selector */}
+      <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Code examples">
+        {EXAMPLES.map((item, index) => (
+          <button
+            key={item.title}
+            type="button"
+            role="tab"
+            aria-selected={index === active}
+            onClick={() => setActive(index)}
+            className={`inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 text-2xs font-medium transition-colors duration-150 cursor-pointer ${
+              index === active
+                ? 'border-eidos-accent/30 bg-eidos-accent-dim text-eidos-accent'
+                : 'border-eidos-border text-eidos-muted hover:border-eidos-elevated hover:text-eidos-text-dim'
+            }`}
+          >
+            {item.badge}
+          </button>
         ))}
       </div>
+
+      {/* Active example */}
+      <Card key={example.title} className="overflow-hidden animate-fade-in">
+        <CardHeader
+          title={example.title}
+          description={example.description}
+          action={
+            <span className="rounded-full border border-eidos-border px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-eidos-muted">
+              {example.badge}
+            </span>
+          }
+        />
+        <CodeBlock code={example.code} title={example.badge} />
+      </Card>
     </section>
   );
 });

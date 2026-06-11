@@ -200,9 +200,9 @@ export function SearchPalette() {
       >
         <Search size={11} />
         <span className="hidden sm:inline">Search docs</span>
-        <span className="hidden rounded border border-eidos-border px-1 text-[10px] sm:inline">
+        <kbd className="hidden rounded border border-eidos-border px-1 text-[10px] sm:inline">
           ⌘K
-        </span>
+        </kbd>
       </button>
 
       {open && (

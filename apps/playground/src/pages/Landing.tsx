@@ -1,14 +1,5 @@
 import { Link } from 'react-router-dom';
-import {
-  ArrowRight,
-  Github,
-  Wifi,
-  RefreshCw,
-  Database,
-  ShieldCheck,
-  Layers,
-  Zap,
-} from 'lucide-react';
+import { ArrowRight, Wifi, RefreshCw, Database, ShieldCheck, Layers, Zap } from 'lucide-react';
 import { CodeBlock } from '../components/CodeBlock';
 
 const FEATURES = [
@@ -99,16 +90,6 @@ export function Landing() {
           >
             Live playground
           </Link>
-          <a
-            href="https://github.com/iamadi11/eidos"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Eidos on GitHub"
-            className="inline-flex min-h-11 items-center gap-2 rounded-full border border-eidos-border px-5 text-sm font-semibold text-eidos-text-dim transition-colors duration-150 hover:border-eidos-elevated hover:text-eidos-text"
-          >
-            <Github size={15} />
-            GitHub
-          </a>
         </div>
       </section>
 

@@ -6,7 +6,7 @@ export function Resources() {
   const entries = Object.values(useEidosResources());
 
   return (
-    <div className="max-w-4xl mx-auto p-5 animate-fade-in">
+    <div className="max-w-6xl mx-auto p-5 animate-fade-in">
       <div className="border-b border-eidos-border pb-4 mb-5">
         <h2 className="text-base font-bold text-eidos-text mb-1">resources</h2>
         <p className="text-xs text-eidos-muted">
