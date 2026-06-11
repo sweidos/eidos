@@ -20,5 +20,14 @@ const markup = renderToStaticMarkup(
 let html = await readFile(indexPath, 'utf-8');
 html = html.replace('<div id="root"></div>', `<div id="root">${markup}</div>`);
 
+// Inline the built stylesheet to remove the render-blocking CSS request —
+// the file is small enough (~6KB) that inlining beats a round trip.
+const cssLinkMatch = html.match(/<link rel="stylesheet" crossorigin href="(\/assets\/[^"]+\.css)">/);
+if (cssLinkMatch) {
+  const [linkTag, cssHref] = cssLinkMatch;
+  const css = await readFile(resolve(distDir, cssHref.slice(1)), 'utf-8');
+  html = html.replace(linkTag, `<style>${css}</style>`);
+}
+
 await writeFile(indexPath, html);
 console.log('Prerendered "/" into dist/index.html');
