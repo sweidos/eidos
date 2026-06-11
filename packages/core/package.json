@@ -42,6 +42,9 @@
   "main": "./dist/eidos.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "bin": {
+    "eidos": "./dist/cli.js"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -60,6 +63,11 @@
       "types": "./dist/query.d.ts",
       "import": "./dist/query.js",
       "require": "./dist/query.cjs"
+    },
+    "./push": {
+      "types": "./dist/push.d.ts",
+      "import": "./dist/push.js",
+      "require": "./dist/push.cjs"
     },
     "./testing": {
       "types": "./dist/testing.d.ts",
@@ -89,7 +97,7 @@
     "README.md"
   ],
   "scripts": {
-    "build": "vite build && vite build --config vite.cjs.config.ts && vite build --config vite.plugin.config.ts && vite build --config vite.query.config.ts && vite build --config vite.testing.config.ts && vite build --config vite.nextjs.config.ts && vite build --config vite.sveltekit.config.ts && vite build --config vite.devtools.config.ts && vite build --config vite.react-native.config.ts && node scripts/copy-sw.mjs",
+    "build": "vite build && vite build --config vite.cjs.config.ts && vite build --config vite.plugin.config.ts && vite build --config vite.query.config.ts && vite build --config vite.push.config.ts && vite build --config vite.testing.config.ts && vite build --config vite.nextjs.config.ts && vite build --config vite.sveltekit.config.ts && vite build --config vite.devtools.config.ts && vite build --config vite.react-native.config.ts && vite build --config vite.cli.config.ts && node scripts/copy-sw.mjs",
     "dev": "vite build --watch",
     "type-check": "tsc --noEmit",
     "test": "vitest run",

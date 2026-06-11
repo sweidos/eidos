@@ -106,6 +106,12 @@ self.addEventListener('message', (event) => {
     case 'EIDOS_PING':
       event.source?.postMessage({ type: 'EIDOS_PONG' });
       break;
+    case 'EIDOS_CACHE_VAPID_KEY': {
+      // Persisted to IDB (not just memory) so pushsubscriptionchange can
+      // resubscribe even after the SW has been restarted.
+      idbSet('vapidPublicKey', data.key as string);
+      break;
+    }
   }
 });
 
@@ -326,5 +332,126 @@ self.addEventListener('sync', (event) => {
     syncEvent.waitUntil(notifyClients({ type: 'EIDOS_BACKGROUND_SYNC' }));
   }
 });
+
+// ── Push Notifications ────────────────────────────────────────────────────────
+
+interface PushPayload {
+  title: string;
+  body?: string;
+  icon?: string;
+  badge?: string;
+  tag?: string;
+  data?: Record<string, unknown>;
+}
+
+self.addEventListener('push', (event) => {
+  let payload: PushPayload | null = null;
+  try {
+    payload = event.data?.json() as PushPayload;
+  } catch {
+    // Malformed/non-JSON payload — nothing to show.
+    return;
+  }
+  if (!payload?.title) return;
+
+  event.waitUntil(
+    self.registration.showNotification(payload.title, {
+      body: payload.body,
+      icon: payload.icon,
+      badge: payload.badge,
+      tag: payload.tag,
+      data: payload.data,
+    }),
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const data = (event.notification.data ?? {}) as { url?: string; [k: string]: unknown };
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      const client = clients[0];
+      if (client) {
+        client.focus();
+        client.postMessage({ type: 'EIDOS_NOTIFICATION_CLICK', data });
+        return;
+      }
+      if (data.url) return self.clients.openWindow(data.url);
+    }),
+  );
+});
+
+// Browser silently rotated the subscription (e.g. expired key). Resubscribe
+// with the last-known VAPID key so the app can re-send it to the backend.
+self.addEventListener('pushsubscriptionchange', (event) => {
+  const psEvent = event as unknown as ExtendableEvent & {
+    oldSubscription?: PushSubscription;
+    newSubscription?: PushSubscription;
+  };
+
+  psEvent.waitUntil(
+    (async () => {
+      const vapidPublicKey = await idbGet('vapidPublicKey');
+      if (!vapidPublicKey) return;
+
+      const subscription =
+        psEvent.newSubscription ??
+        (await self.registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(vapidPublicKey) as BufferSource,
+        }));
+
+      await notifyClients({
+        type: 'EIDOS_SUBSCRIPTION_EXPIRED',
+        subscription: subscription.toJSON(),
+      });
+    })(),
+  );
+});
+
+function urlBase64ToUint8Array(base64Url: string): Uint8Array {
+  const padding = '='.repeat((4 - (base64Url.length % 4)) % 4);
+  const base64 = (base64Url + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = atob(base64);
+  return Uint8Array.from(raw, (c) => c.charCodeAt(0));
+}
+
+// ── Tiny key-value IDB store (survives SW restarts) ─────────────────────────────
+
+const META_DB = 'eidos-sw-meta';
+const META_STORE = 'kv';
+
+function openMetaDb(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(META_DB, 1);
+    req.onupgradeneeded = () => req.result.createObjectStore(META_STORE);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function idbSet(key: string, value: string): Promise<void> {
+  const db = await openMetaDb();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(META_STORE, 'readwrite');
+    tx.objectStore(META_STORE).put(value, key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+  db.close();
+}
+
+async function idbGet(key: string): Promise<string | undefined> {
+  const db = await openMetaDb();
+  const value = await new Promise<string | undefined>((resolve, reject) => {
+    const tx = db.transaction(META_STORE, 'readonly');
+    const req = tx.objectStore(META_STORE).get(key);
+    req.onsuccess = () => resolve(req.result as string | undefined);
+    req.onerror = () => reject(req.error);
+  });
+  db.close();
+  return value;
+}
 
 export {};

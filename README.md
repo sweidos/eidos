@@ -233,6 +233,81 @@ const mutation = useEidosMutation(createOrder, {
 
 ---
 
+## Push Notifications
+
+Headless, framework-agnostic Web Push. Tree-shaken via a separate subpath — adds zero bytes unless imported.
+
+**1. Generate VAPID keys (one-time):**
+
+```sh
+npx @sweidos/eidos generate-vapid-keys
+```
+
+Detects your framework (Vite/Next/SvelteKit/Nuxt) and writes a correctly-prefixed
+public key + an unprefixed private key to `.env.local`:
+
+```
+VITE_EIDOS_VAPID_PUBLIC_KEY=...
+EIDOS_VAPID_PRIVATE_KEY=...
+```
+
+Give `EIDOS_VAPID_PRIVATE_KEY` (and the public key) to your backend. What the
+backend does with them — language, storage, send timing — is entirely its own
+concern; Eidos never talks to it directly.
+
+**2. Register handlers once at app init (any tab, no permission prompt):**
+
+```ts
+import { registerPushHandlers } from '@sweidos/eidos/push';
+
+registerPushHandlers({
+  onNotificationClick: (data) => router.push(data.url),
+  onSubscriptionExpired: (sub) =>
+    fetch('/api/push-subscribe', { method: 'POST', body: JSON.stringify(sub) }),
+});
+```
+
+**3. Subscribe from a user gesture (e.g. an "Enable notifications" button):**
+
+```ts
+import { subscribeToPush, isPushSupported, getPushPermissionState } from '@sweidos/eidos/push';
+
+async function onEnableClick() {
+  const result = await subscribeToPush({
+    vapidPublicKey: import.meta.env.VITE_EIDOS_VAPID_PUBLIC_KEY,
+    onSubscribe: (sub) =>
+      fetch('/api/push-subscribe', { method: 'POST', body: JSON.stringify(sub) }),
+  });
+
+  if (result.status === 'subscribed') toast('Notifications enabled');
+  else if (result.status === 'denied') toast('Permission denied');
+}
+```
+
+`isPushSupported()` / `getPushPermissionState()` / `getPushUnsupportedReason()`
+let you hide the button when push is unavailable (e.g. iOS Safari outside an
+installed PWA returns `'ios-not-installed'`).
+
+### Server payload schema
+
+The service worker shows whatever your server sends — Eidos never renders UI:
+
+```json
+{
+  "title": "Order shipped",
+  "body": "Your order #1234 is on its way",
+  "icon": "/icon.png",
+  "badge": "/badge.png",
+  "tag": "order-1234",
+  "data": { "url": "/orders/1234" }
+}
+```
+
+Click behavior: if the app is open, `data` is delivered to `onNotificationClick`
+for client-side routing; otherwise the SW opens `data.url` directly.
+
+---
+
 ## Testing
 
 ```ts

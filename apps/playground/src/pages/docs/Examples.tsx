@@ -18,6 +18,7 @@ const SECTIONS = [
   'TTL-backed resource',
   'Connection-aware UI',
   'Queue-drain notifications',
+  'Push notifications',
 ];
 
 interface ExampleProps {
@@ -276,6 +277,69 @@ setInterval(async () => {
 // Fires once, exactly when the queue goes from
 // non-empty to empty — no polling`}
           live={<LiveQueueDrain />}
+        />
+
+        <Example
+          title={SECTIONS[6]}
+          description="Subscribe to Web Push and route notification clicks — headless, framework-agnostic, tree-shaken unless imported."
+          withoutTitle="push.ts (manual)"
+          withoutCode={`// Permission, subscribe, key conversion, click
+// routing, resubscribe-on-rotation — all by hand
+async function enablePush() {
+  const reg = await navigator.serviceWorker.ready
+  const permission = await Notification.requestPermission()
+  if (permission !== 'granted') return
+
+  const key = urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+  let sub = await reg.pushManager.getSubscription()
+  if (!sub) {
+    sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: key,
+    })
+  }
+
+  await fetch('/api/push-subscribe', {
+    method: 'POST',
+    body: JSON.stringify(sub),
+  })
+}
+
+// + a urlBase64ToUint8Array helper, + SW push/
+// notificationclick/pushsubscriptionchange handlers`}
+          withTitle="push.ts (eidos)"
+          withCode={`import {
+  registerPushHandlers,
+  subscribeToPush,
+} from '@sweidos/eidos/push'
+
+// App init — any tab, no permission prompt
+registerPushHandlers({
+  onNotificationClick: (data) => router.push(data.url),
+  onSubscriptionExpired: (sub) =>
+    fetch('/api/push-subscribe', {
+      method: 'POST',
+      body: JSON.stringify(sub),
+    }),
+})
+
+// User gesture — e.g. an "Enable notifications" button
+async function enablePush() {
+  const result = await subscribeToPush({
+    vapidPublicKey: import.meta.env.VITE_EIDOS_VAPID_PUBLIC_KEY,
+    onSubscribe: (sub) =>
+      fetch('/api/push-subscribe', {
+        method: 'POST',
+        body: JSON.stringify(sub),
+      }),
+  })
+
+  if (result.status === 'subscribed') toast('Notifications enabled')
+  if (result.status === 'denied') toast('Permission denied')
+}
+
+// Generate keys once: npx @sweidos/eidos generate-vapid-keys`}
+          live={null}
         />
       </div>
     </section>

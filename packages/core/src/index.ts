@@ -32,7 +32,13 @@ export {
 export { VERSION } from './version';
 
 // Devtools helpers
-export { setOfflineSimulation, isBgSyncSupported } from './sw-bridge';
+export {
+  setOfflineSimulation,
+  isBgSyncSupported,
+  getSwRegistration,
+  sendToWorker,
+  registerPushCallbacks,
+} from './sw-bridge';
 export { useEidosStore } from './store';
 export type { EidosStore } from './store';
 

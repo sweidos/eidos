@@ -92,8 +92,25 @@ export function isBgSyncSupported(): boolean {
   }
 }
 
+interface PushHandlers {
+  onNotificationClick?: (data: unknown) => void;
+  onSubscriptionExpired?: (sub: PushSubscriptionJSON) => void;
+}
+
+let _pushHandlers: PushHandlers = {};
+
+export function registerPushCallbacks(handlers: PushHandlers): void {
+  _pushHandlers = handlers;
+}
+
 function onSwMessage(event: MessageEvent): void {
-  const data = event.data as { type: string; url?: string; strategy?: string };
+  const data = event.data as {
+    type: string;
+    url?: string;
+    strategy?: string;
+    data?: unknown;
+    subscription?: unknown;
+  };
   if (!data?.type) return;
 
   const store = useEidosStore.getState();
@@ -101,6 +118,16 @@ function onSwMessage(event: MessageEvent): void {
 
   if (type === 'EIDOS_BACKGROUND_SYNC') {
     _bgSyncHandler?.();
+    return;
+  }
+
+  if (type === 'EIDOS_NOTIFICATION_CLICK') {
+    _pushHandlers.onNotificationClick?.(data.data);
+    return;
+  }
+
+  if (type === 'EIDOS_SUBSCRIPTION_EXPIRED') {
+    _pushHandlers.onSubscriptionExpired?.(data.subscription as PushSubscriptionJSON);
     return;
   }
 
@@ -144,4 +171,12 @@ function flushPendingMessages(): void {
   if (!sw) return;
   for (const msg of _pendingMessages) sw.postMessage(msg);
   _pendingMessages = [];
+}
+
+/** Test-only: resets module-level state between test cases. */
+export function _resetSwBridgeForTests(): void {
+  _registration = null;
+  _pendingMessages = [];
+  _bgSyncHandler = null;
+  _pushHandlers = {};
 }

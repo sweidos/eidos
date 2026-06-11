@@ -31,7 +31,14 @@ export default defineConfig({
     react(),
     dts({
       include: ['src'],
-      exclude: ['src/**/*.test.*', 'src/vite.ts', 'src/query.ts', 'src/testing.ts'],
+      exclude: [
+        'src/**/*.test.*',
+        'src/vite.ts',
+        'src/query.ts',
+        'src/testing.ts',
+        'src/push.ts',
+        'src/cli.ts',
+      ],
       rollupTypes: true,
     }),
   ],
