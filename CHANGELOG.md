@@ -6,6 +6,24 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.1.0] — 2026-06-11
+
+### Added
+
+- **`subscribeReplayOnReconnect()`** — exported from `@sweidos/eidos`. Extracted from the duplicated auto-replay wiring in `initEidos()` / `initEidosRN()`; subscribes to the store and replays the queue on reconnect (and once on init if items are pending while online). Useful for custom runtimes that don't call `initEidos()`.
+
+### Changed
+
+- **`<EidosDevtools />`** — accessibility and visual pass: emoji icons replaced with inline SVGs, focus rings on all interactive controls, `aria-label`/`aria-pressed`/`aria-selected`/`role="tab"` added to toggle/tabs/buttons, larger touch targets (min 32px/24px).
+- **Playground** — `<EidosDevtools />` is now wired into `apps/playground` (was built but never rendered).
+- Internal refactor (no behavior change): `action.ts` queue-storage fallback now reuses `idbQueueStorage` directly; `store.ts` split into `store-slices.ts` (resource/queue actions); `eidos-gen`'s `generate()` extracted `buildActionDeclaration()` to reduce complexity.
+
+### Docs
+
+- `eidos-gen` gained a Vitest test suite (`parse.test.ts`, `generate.test.ts`).
+
+---
+
 ## [1.0.34] — 2026-06-10
 
 ### Fixed
