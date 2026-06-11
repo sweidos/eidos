@@ -56,11 +56,30 @@ function btn(variant: 'ghost' | 'danger' | 'primary' = 'ghost'): React.CSSProper
     fontSize: 11,
     fontWeight: 500,
     fontFamily: 'inherit',
-    transition: 'opacity 0.15s',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 5,
+    transition: 'background-color 0.15s, color 0.15s',
   };
   if (variant === 'danger') return { ...base, background: `${C.red}22`, color: C.red };
   if (variant === 'primary') return { ...base, background: `${C.blue}22`, color: C.blue };
   return { ...base, background: C.surface, color: C.muted };
+}
+
+// Visible keyboard focus ring — applied via onFocus/onBlur since this
+// component ships without a stylesheet (no :focus-visible pseudo-class).
+const focusRing: React.CSSProperties = { outline: `2px solid ${C.cyan}`, outlineOffset: 1 };
+function withFocusRing(handlers: { onFocus?: () => void; onBlur?: () => void } = {}) {
+  return {
+    onFocus: (e: React.FocusEvent<HTMLButtonElement>) => {
+      Object.assign(e.currentTarget.style, focusRing);
+      handlers.onFocus?.();
+    },
+    onBlur: (e: React.FocusEvent<HTMLButtonElement>) => {
+      e.currentTarget.style.outline = 'none';
+      handlers.onBlur?.();
+    },
+  };
 }
 
 // ── Status helpers ─────────────────────────────────────────────────────────────
@@ -86,6 +105,46 @@ function resourceStatusColor(s: string) {
   if (s === 'fetching') return C.cyan;
   return C.muted;
 }
+
+// ── Icons (inline SVG — no external icon dependency) ─────────────────────────
+
+function Icon({
+  path,
+  size = 12,
+  strokeWidth = 2,
+}: {
+  path: string;
+  size?: number;
+  strokeWidth?: number;
+}) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      style={{ flexShrink: 0 }}
+    >
+      <path d={path} />
+    </svg>
+  );
+}
+
+const ICONS = {
+  bolt: 'M13 2 3 14h7l-1 8 10-12h-7l1-8z',
+  satellite: 'M5 13a8.5 8.5 0 0 0 8 8M11 3a12 12 0 0 1 10 10M5 13l-3 3 6 6 3-3M14 6l4 4M9.5 8.5l6 6',
+  satelliteOff: 'M2 2l20 20M5 13a8.5 8.5 0 0 0 8 8M14 6l4 4M9.5 8.5l6 6M5 13l-3 3 6 6 3-3',
+  play: 'M6 4l13 8-13 8V4z',
+  trash: 'M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m3 0-1 14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1L4 6h16z',
+  arrowUp: 'M12 19V5M5 12l7-7 7 7',
+  arrowDown: 'M12 5v14M19 12l-7 7-7-7',
+  clock: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 6v6l4 2',
+} as const;
 
 // ── Corner positions ──────────────────────────────────────────────────────────
 
@@ -133,7 +192,10 @@ export function EidosDevtools({
   const toggleBtn = (
     <button
       onClick={() => setOpen((v) => !v)}
+      aria-expanded={open}
+      aria-label={open ? 'Close Eidos Devtools' : 'Open Eidos Devtools'}
       title="Eidos Devtools"
+      {...withFocusRing()}
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -149,13 +211,26 @@ export function EidosDevtools({
         fontFamily: 'ui-monospace, "Cascadia Code", "Fira Mono", monospace',
         boxShadow: '0 2px 12px rgba(0,0,0,0.5)',
         userSelect: 'none',
+        minHeight: 32,
       }}
     >
-      <span style={{ color: isOnline ? C.green : C.red, fontSize: 8 }}>●</span>
-      <span style={{ color: C.cyan }}>⚡</span>
+      <span
+        aria-hidden="true"
+        style={{
+          width: 7,
+          height: 7,
+          borderRadius: '50%',
+          background: isOnline ? C.green : C.red,
+          flexShrink: 0,
+        }}
+      />
+      <span style={{ color: C.cyan, display: 'inline-flex' }}>
+        <Icon path={ICONS.bolt} size={12} />
+      </span>
       <span>eidos</span>
       {badgeCount > 0 && (
         <span
+          aria-label={`${badgeCount} ${failed > 0 ? 'failed' : 'pending'} queue item${badgeCount !== 1 ? 's' : ''}`}
           style={{
             background: failed > 0 ? C.red : C.yellow,
             color: '#fff',
@@ -231,16 +306,20 @@ export function EidosDevtools({
             <span style={pill(isOnline ? C.green : C.red)}>{isOnline ? 'online' : 'offline'}</span>
             <button
               onClick={toggleOffline}
+              aria-pressed={simOffline}
               title={simOffline ? 'Disable offline simulation' : 'Enable offline simulation'}
+              {...withFocusRing()}
               style={{
                 ...btn('ghost'),
                 background: simOffline ? `${C.yellow}22` : C.surface,
                 color: simOffline ? C.yellow : C.muted,
                 border: `1px solid ${simOffline ? C.yellow + '44' : C.border}`,
                 fontSize: 10,
+                minHeight: 22,
               }}
             >
-              {simOffline ? '📡 simulating' : '✈ sim offline'}
+              <Icon path={simOffline ? ICONS.satelliteOff : ICONS.satellite} size={11} />
+              {simOffline ? 'simulating offline' : 'sim offline'}
             </button>
           </div>
         </div>
@@ -287,10 +366,14 @@ export function EidosDevtools({
           {(['queue', 'cache'] as Tab[]).map((t) => (
             <button
               key={t}
+              role="tab"
+              aria-selected={tab === t}
               onClick={() => setTab(t)}
+              {...withFocusRing()}
               style={{
                 flex: 1,
                 padding: '6px 0',
+                minHeight: 32,
                 background: 'none',
                 border: 'none',
                 borderBottom: tab === t ? `2px solid ${C.cyan}` : '2px solid transparent',
@@ -301,6 +384,7 @@ export function EidosDevtools({
                 fontFamily: 'inherit',
                 textTransform: 'uppercase',
                 letterSpacing: '0.05em',
+                transition: 'color 0.15s, border-color 0.15s',
               }}
             >
               {t === 'queue' ? `Queue (${queue.length})` : `Cache (${resourceList.length})`}
@@ -347,11 +431,13 @@ function QueueTab({
           flexShrink: 0,
         }}
       >
-        <button onClick={onReplay} style={btn('primary')}>
-          ▶ Replay queue
+        <button onClick={onReplay} {...withFocusRing()} style={{ ...btn('primary'), minHeight: 24 }}>
+          <Icon path={ICONS.play} size={11} />
+          Replay queue
         </button>
-        <button onClick={onClear} style={btn('danger')}>
-          ✕ Clear queue
+        <button onClick={onClear} {...withFocusRing()} style={{ ...btn('danger'), minHeight: 24 }}>
+          <Icon path={ICONS.trash} size={11} />
+          Clear queue
         </button>
         <span style={{ marginLeft: 'auto', color: C.muted, fontSize: 10, alignSelf: 'center' }}>
           {queue.length} item{queue.length !== 1 ? 's' : ''}
@@ -441,14 +527,25 @@ function CacheTab({ resources }: { resources: ReturnType<typeof useEidosResource
               {res.url}
             </div>
             <div style={{ display: 'flex', gap: 10, color: C.muted, fontSize: 10 }}>
-              <span title="Cache hits">
-                ↑{res.cacheHits} hit{res.cacheHits !== 1 ? 's' : ''}
+              <span title="Cache hits" style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                <Icon path={ICONS.arrowUp} size={10} />
+                {res.cacheHits} hit{res.cacheHits !== 1 ? 's' : ''}
               </span>
-              <span title="Cache misses">
-                ↓{res.cacheMisses} miss{res.cacheMisses !== 1 ? 'es' : ''}
+              <span
+                title="Cache misses"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}
+              >
+                <Icon path={ICONS.arrowDown} size={10} />
+                {res.cacheMisses} miss{res.cacheMisses !== 1 ? 'es' : ''}
               </span>
               {res.cachedAt && (
-                <span title="Cached at">⏱ {new Date(res.cachedAt).toLocaleTimeString()}</span>
+                <span
+                  title="Cached at"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}
+                >
+                  <Icon path={ICONS.clock} size={10} />
+                  {new Date(res.cachedAt).toLocaleTimeString()}
+                </span>
               )}
             </div>
           </div>
