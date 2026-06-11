@@ -1,3 +1,4 @@
 pnpm --filter @sweidos/eidos test
+pnpm build:core
 pnpm --filter @sweidos/eidos type-check && pnpm --filter @eidos/playground type-check
 pnpm format:check
