@@ -139,6 +139,60 @@ function toIdentifier(operationId: string | undefined, method: string, urlPath: 
   return `${verb[method] ?? method}${base.charAt(0).toUpperCase() + base.slice(1)}`;
 }
 
+// ── Action declaration (POST / PUT / PATCH / DELETE) ─────────────────────────
+
+function buildActionDeclaration(
+  id: string,
+  comment: string,
+  eidosPath: string,
+  method: string,
+  op: Operation,
+): string {
+  const reqType = getRequestBodyType(op);
+  const resType = getResponseType(op);
+  const methodUpper = method.toUpperCase();
+
+  // Detect path params like :id — they need to be in the payload and interpolated into the URL
+  const pathParams = (eidosPath.match(/:([^/]+)/g) ?? []).map((p) => p.slice(1));
+  const hasPathParams = pathParams.length > 0;
+
+  // Build URL expression — template literal when path params are present
+  const urlExpr = hasPathParams
+    ? '`' + eidosPath.replace(/:([^/]+)/g, '${payload.$1}') + '`'
+    : `'${eidosPath}'`;
+
+  // Build payload type annotation — merge path params into request body type
+  let payloadType: string;
+  if (hasPathParams) {
+    const paramFields = pathParams.map((p) => `${p}: string`).join('; ');
+    payloadType = reqType === 'unknown' ? `{ ${paramFields} }` : `{ ${paramFields} } & ${reqType}`;
+  } else {
+    payloadType = reqType;
+  }
+
+  // For methods that typically have no body (DELETE), omit body if no request body defined
+  const hasBody = !!op.requestBody || (reqType !== 'unknown' && !hasPathParams);
+  const bodyLines = hasBody
+    ? `      headers: { 'Content-Type': 'application/json' },\n      body: JSON.stringify(payload),\n`
+    : '';
+
+  return (
+    `${comment}export const ${id} = action(\n` +
+    `  async (payload: ${payloadType}): Promise<${resType}> => {\n` +
+    `    const res = await fetch(${urlExpr}, {\n` +
+    `      method: '${methodUpper}',\n` +
+    bodyLines +
+    `    })\n` +
+    `    if (!res.ok) throw Object.assign(res, { status: res.status })\n` +
+    (resType === 'void'
+      ? `    if (res.status !== 204) return res.json() as Promise<${resType}>\n`
+      : `    return res.json() as Promise<${resType}>\n`) +
+    `  },\n` +
+    `  { reliability: 'neverLose', name: '${id}' },\n` +
+    `)`
+  );
+}
+
 // ── Main generator ────────────────────────────────────────────────────────────
 
 export function generate(spec: OpenAPISpec, opts: GenerateOptions): string {
@@ -177,53 +231,7 @@ export function generate(spec: OpenAPISpec, opts: GenerateOptions): string {
           `${comment}export const ${id} = resource('${eidosPath}', { offline: ${opts.offline} })`,
         );
       } else {
-        const reqType = getRequestBodyType(op);
-        const resType = getResponseType(op);
-        const methodUpper = method.toUpperCase();
-
-        // Detect path params like :id — they need to be in the payload and interpolated into the URL
-        const pathParams = (eidosPath.match(/:([^/]+)/g) ?? []).map((p) => p.slice(1));
-        const hasPathParams = pathParams.length > 0;
-
-        // Build URL expression — template literal when path params are present
-        let urlExpr: string;
-        if (hasPathParams) {
-          urlExpr = '`' + eidosPath.replace(/:([^/]+)/g, '${payload.$1}') + '`';
-        } else {
-          urlExpr = `'${eidosPath}'`;
-        }
-
-        // Build payload type annotation — merge path params into request body type
-        let payloadType: string;
-        if (hasPathParams) {
-          const paramFields = pathParams.map((p) => `${p}: string`).join('; ');
-          payloadType =
-            reqType === 'unknown' ? `{ ${paramFields} }` : `{ ${paramFields} } & ${reqType}`;
-        } else {
-          payloadType = reqType;
-        }
-
-        // For methods that typically have no body (DELETE), omit body if no request body defined
-        const hasBody = !!op.requestBody || (reqType !== 'unknown' && !hasPathParams);
-        const bodyLines = hasBody
-          ? `      headers: { 'Content-Type': 'application/json' },\n      body: JSON.stringify(payload),\n`
-          : '';
-
-        actionLines.push(
-          `${comment}export const ${id} = action(\n` +
-            `  async (payload: ${payloadType}): Promise<${resType}> => {\n` +
-            `    const res = await fetch(${urlExpr}, {\n` +
-            `      method: '${methodUpper}',\n` +
-            bodyLines +
-            `    })\n` +
-            `    if (!res.ok) throw Object.assign(res, { status: res.status })\n` +
-            (resType === 'void'
-              ? `    if (res.status !== 204) return res.json() as Promise<${resType}>\n`
-              : `    return res.json() as Promise<${resType}>\n`) +
-            `  },\n` +
-            `  { reliability: 'neverLose', name: '${id}' },\n` +
-            `)`,
-        );
+        actionLines.push(buildActionDeclaration(id, comment, eidosPath, method, op));
       }
     }
   }
