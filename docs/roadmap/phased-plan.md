@@ -24,7 +24,7 @@ depth is the named strategic risk.
 **Goal**: no known correctness bugs in `action()` before any new adapter
 work resumes.
 
-- [ ] Namespace `actionId` generation (`namespace::name`), warn on
+- [x] Namespace `actionId` generation (`namespace::name`), warn on
       collision in DEV (`packages/core/src/action.ts`).
 - [ ] Cancellation: `AbortSignal` plumbing for in-flight `neverLose`
       actions + ability to cancel a not-yet-replayed queue item.

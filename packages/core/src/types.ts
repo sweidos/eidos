@@ -78,6 +78,13 @@ export interface ActionConfig {
   /** Human-readable name for the action (used in devtools). */
   name?: string;
   /**
+   * Prefixes the registered action id (`namespace::name`). Use to avoid
+   * collisions when two actions share a name (e.g. across micro-frontends,
+   * or two `createOrder` actions in different modules) — without a
+   * namespace, the second registration silently overwrites the first.
+   */
+  namespace?: string;
+  /**
    * Replay order when multiple queued actions are pending.
    * `'high'` items replay before `'normal'`, which replay before `'low'`.
    * Each tier completes fully before the next tier begins.

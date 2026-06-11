@@ -46,11 +46,18 @@ export function action<TArgs extends any[], TReturn>(
 ): ActionHandle<TArgs, TReturn> {
   // || not ?? — fn.name can be '' (anonymous arrow fn) which ?? treats as a
   // valid value, causing all anonymous actions to share actionId ''.
-  const actionId = config.name || fn.name || uid();
+  const baseId = config.name || fn.name || uid();
+  const actionId = config.namespace ? `${config.namespace}::${baseId}` : baseId;
 
   if (import.meta.env.DEV && config.reliability === 'neverLose' && !config.name && !fn.name) {
     console.warn(
       `[eidos] action() registered with neverLose but no stable name was found (fn.name="${fn.name}"). Pass config.name so queued items survive a page reload and can be replayed.`,
+    );
+  }
+
+  if (import.meta.env.DEV && _actionRegistry.has(actionId)) {
+    console.error(
+      `[eidos] duplicate action id "${actionId}" — a previously registered action will be overwritten. Pass a unique config.name or config.namespace.`,
     );
   }
 
