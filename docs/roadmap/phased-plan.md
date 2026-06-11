@@ -37,8 +37,7 @@ work resumes.
 **Exit criteria**: `action()` API surface stable enough to document as
 "v1 reliability contract" — no planned breaking changes to
 `ActionConfig`/`ActionQueueItem` after this phase without a version bump
-
-- migration.
+and migration.
 
 ---
 
