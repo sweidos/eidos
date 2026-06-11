@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Analytics } from '@vercel/analytics/react';
+import { EidosDevtools } from '@sweidos/eidos/devtools';
 import { Header } from './components/Header';
 
 const Demo = lazy(() => import('./pages/Demo').then((m) => ({ default: m.Demo })));
@@ -67,6 +68,7 @@ export function App() {
         </main>
       </div>
       <Analytics />
+      <EidosDevtools />
     </BrowserRouter>
   );
 }

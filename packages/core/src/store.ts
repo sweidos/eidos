@@ -1,20 +1,12 @@
-import type { EidosState, ResourceEntry, ActionQueueItem } from './types';
+import type { EidosState } from './types';
+import { createResourceActions, createQueueActions } from './store-slices';
+import type { ResourceActions, QueueActions } from './store-slices';
 
-export interface EidosStore extends EidosState {
+export interface EidosStore extends EidosState, ResourceActions, QueueActions {
   // Online
   setOnline: (online: boolean) => void;
   // SW
   setSwStatus: (status: EidosState['swStatus'], error?: string) => void;
-  // Resources
-  registerResource: (url: string, entry: ResourceEntry) => void;
-  updateResource: (url: string, update: Partial<ResourceEntry>) => void;
-  unregisterResource: (url: string) => void;
-  // Queue
-  addQueueItem: (item: ActionQueueItem) => void;
-  updateQueueItem: (id: string, update: Partial<ActionQueueItem>) => void;
-  batchUpdateQueueItems: (updates: Array<{ id: string; update: Partial<ActionQueueItem> }>) => void;
-  removeQueueItem: (id: string) => void;
-  hydrateQueue: (items: ActionQueueItem[]) => void;
 }
 
 type Listener = () => void;
@@ -43,42 +35,8 @@ _state = {
 
   setSwStatus: (swStatus, swError) => _set(() => ({ swStatus, swError })),
 
-  registerResource: (url, entry) => _set((s) => ({ resources: { ...s.resources, [url]: entry } })),
-
-  updateResource: (url, update) =>
-    _set((s) => ({
-      resources: {
-        ...s.resources,
-        [url]: s.resources[url] ? { ...s.resources[url], ...update } : s.resources[url],
-      },
-    })),
-
-  unregisterResource: (url) =>
-    _set((s) => ({
-      resources: Object.fromEntries(Object.entries(s.resources).filter(([k]) => k !== url)),
-    })),
-
-  addQueueItem: (item) => _set((s) => ({ queue: [...s.queue, item] })),
-
-  updateQueueItem: (id, update) =>
-    _set((s) => ({
-      queue: s.queue.map((item) => (item.id === id ? { ...item, ...update } : item)),
-    })),
-
-  batchUpdateQueueItems: (updates) =>
-    _set((s) => {
-      const map = new Map(updates.map((u) => [u.id, u.update]));
-      return {
-        queue: s.queue.map((item) => {
-          const u = map.get(item.id);
-          return u ? { ...item, ...u } : item;
-        }),
-      };
-    }),
-
-  removeQueueItem: (id) => _set((s) => ({ queue: s.queue.filter((item) => item.id !== id) })),
-
-  hydrateQueue: (items) => _set(() => ({ queue: items })),
+  ...createResourceActions(_set),
+  ...createQueueActions(_set),
 };
 
 function _getState() {
