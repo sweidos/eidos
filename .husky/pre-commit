@@ -1,1 +1,7 @@
 pnpm exec lint-staged
+
+pnpm --filter @sweidos/eidos test
+pnpm format:check
+pnpm build:core
+pnpm --filter @sweidos/eidos type-check && pnpm --filter @eidos/playground type-check
+pnpm build:playground
