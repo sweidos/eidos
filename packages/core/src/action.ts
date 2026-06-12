@@ -40,10 +40,10 @@ function uid() {
   return crypto.randomUUID();
 }
 
-function callWithContext<TReturn>(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  fn: ActionFn<any[], TReturn>,
-  args: unknown[],
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function callWithContext<TArgs extends any[], TReturn>(
+  fn: ActionFn<TArgs, TReturn>,
+  args: TArgs,
   ctx: ActionContext,
 ): Promise<TReturn> {
   return fn(...args, ctx);
@@ -52,7 +52,7 @@ function callWithContext<TReturn>(
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function action<TArgs extends any[], TReturn>(
   fn: ActionFn<TArgs, TReturn>,
-  config: ActionConfig,
+  config: ActionConfig<TArgs>,
 ): ActionHandle<TArgs, TReturn> {
   // || not ?? — fn.name can be '' (anonymous arrow fn) which ?? treats as a
   // valid value, causing all anonymous actions to share actionId ''.
@@ -74,7 +74,7 @@ export function action<TArgs extends any[], TReturn>(
   // Registering here means the function is available for replay after
   // the user refreshes the page (actions are defined at module scope).
   _actionRegistry.set(actionId, fn as ActionFn<unknown[], unknown>);
-  _configRegistry.set(actionId, config);
+  _configRegistry.set(actionId, config as ActionConfig);
 
   if (config.onRollback) {
     _rollbackRegistry.set(actionId, config.onRollback);
@@ -100,11 +100,9 @@ export function action<TArgs extends any[], TReturn>(
   const wrapped = async (...args: TArgs): Promise<TReturn | QueuedResult> => {
     const { isOnline } = useEidosStore.getState();
 
-    // Generated for neverLose (always) and best-effort cancellable actions —
-    // reused across every retry/replay of a neverLose item, and used to key
-    // handle.cancel() for in-flight cancellable calls.
-    const needsKey = config.reliability === 'neverLose' || config.cancellable;
-    const idempotencyKey = needsKey ? uid() : '';
+    // Generated for every invocation — reused across every retry/replay of a
+    // neverLose item, and used to key handle.cancel() for in-flight cancellable calls.
+    const idempotencyKey = uid();
 
     let signal: AbortSignal | undefined;
     if (config.cancellable) {
@@ -133,9 +131,9 @@ export function action<TArgs extends any[], TReturn>(
 
       // best-effort: execute directly, rollback on failure
       try {
-        return needsKey ? await callWithContext(fn, args, ctx) : await fn(...args);
+        return await callWithContext(fn, args, ctx);
       } catch (err) {
-        config.onRollback?.(...args);
+        config.onRollback?.(...args, ctx);
         throw err;
       }
     } finally {
@@ -177,11 +175,12 @@ function isJsonSerializable(value: unknown): boolean {
   }
 }
 
-async function persistAndQueue(
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function persistAndQueue<TArgs extends any[]>(
   actionId: string,
   actionName: string,
-  args: unknown[],
-  config: ActionConfig,
+  args: TArgs,
+  config: ActionConfig<TArgs>,
   idempotencyKey: string,
 ): Promise<QueuedResult> {
   if (import.meta.env.DEV && !isJsonSerializable(args)) {
@@ -374,7 +373,8 @@ async function _scheduleRetryOrFail(
     store.updateQueueItem(item.id, update);
     broadcastQueueSync({ type: 'update', id: item.id, update });
     await qs().update(item.id, update);
-    _rollbackRegistry.get(item.actionId)?.(...(item.args as unknown[]));
+    const ctx: ActionContext = { idempotencyKey: item.idempotencyKey, attempt: retryCount };
+    _rollbackRegistry.get(item.actionId)?.(...(item.args as unknown[]), ctx);
     return 'failed';
   }
 

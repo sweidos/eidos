@@ -1,6 +1,7 @@
 // Module-scope declarations — action functions are registered here so they
 // survive page refreshes and are available for queue replay on reconnect.
 import { resource, action } from '@sweidos/eidos';
+import type { ActionContext } from '@sweidos/eidos';
 
 // ── Resources ─────────────────────────────────────────────────────────────────
 
@@ -19,7 +20,7 @@ export const ordersHistoryResource = resource<Order[]>('/api/orders-history', {
 // ── Actions ───────────────────────────────────────────────────────────────────
 
 export const createOrder = action(
-  async (payload: OrderPayload): Promise<Order> => {
+  async (payload: OrderPayload, _ctx: ActionContext): Promise<Order> => {
     const res = await fetch('/api/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

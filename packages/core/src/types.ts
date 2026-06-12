@@ -67,7 +67,8 @@ export interface WarmCacheResult {
 
 // ── Action ───────────────────────────────────────────────────────────────────
 
-export interface ActionConfig {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export interface ActionConfig<TArgs extends any[] = any[]> {
   /**
    * - `best-effort`: call directly, no persistence on failure.
    * - `neverLose`: persist to IndexedDB before executing; replay on reconnect.
@@ -98,16 +99,14 @@ export interface ActionConfig {
    * `handle.cancel(idempotencyKey)` calls. Called on every invocation —
    * online, offline, and during queue replay.
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onOptimistic?: (...args: any[]) => void;
+  onOptimistic?: (...args: [...TArgs, ActionContext]) => void;
   /**
    * Called when the action permanently fails and will not be retried.
    * - `best-effort`: called on first throw.
    * - `neverLose`: called when `maxRetries` is exhausted (status → `'failed'`).
    * Use to revert the optimistic update.
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onRollback?: (...args: any[]) => void;
+  onRollback?: (...args: [...TArgs, ActionContext]) => void;
   /**
    * Called during queue replay when the server responds with a 4xx status code
    * (client error — conflict, gone, unprocessable, etc.).
@@ -251,8 +250,13 @@ export interface ActionContext {
   signal?: AbortSignal;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type ActionFn<TArgs extends any[], TReturn> = (...args: TArgs) => Promise<TReturn>;
+/**
+ * Every action function receives its declared args plus a trailing
+ * `ActionContext` — on every invocation (online, offline, and replay).
+ */
+export type ActionFn<TArgs extends unknown[], TReturn> = (
+  ...args: [...TArgs, ActionContext]
+) => Promise<TReturn>;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface ActionHandle<TArgs extends any[], TReturn> {

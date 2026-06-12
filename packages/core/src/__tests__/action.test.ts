@@ -36,7 +36,10 @@ describe('best-effort', () => {
     const fn = vi.fn().mockResolvedValue({ id: 'ok' });
     const wrapped = action(fn, { reliability: 'best-effort', name: 'bf-test' });
     const result = await wrapped('arg1');
-    expect(fn).toHaveBeenCalledWith('arg1');
+    expect(fn).toHaveBeenCalledWith(
+      'arg1',
+      expect.objectContaining({ idempotencyKey: expect.any(String), attempt: 0 }),
+    );
     expect(result).toEqual({ id: 'ok' });
   });
 
@@ -68,7 +71,7 @@ describe('best-effort', () => {
     });
     await expect(wrapped('payload')).rejects.toThrow('fail');
     expect(onOptimistic).toHaveBeenCalledWith('payload', expect.any(Object));
-    expect(onRollback).toHaveBeenCalledWith('payload');
+    expect(onRollback).toHaveBeenCalledWith('payload', expect.any(Object));
   });
 
   it('does not call onRollback on success', async () => {
@@ -185,7 +188,7 @@ describe('neverLose optimistic / rollback', () => {
     useEidosStore.setState({ isOnline: true });
     await replayQueue();
 
-    expect(onRollback).toHaveBeenCalledWith('payload');
+    expect(onRollback).toHaveBeenCalledWith('payload', expect.any(Object));
   });
 
   it('does not call onRollback when replay succeeds', async () => {

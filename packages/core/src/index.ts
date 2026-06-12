@@ -61,6 +61,8 @@ export type {
   GeneratedStrategy,
   WarmCacheResult,
   ActionConfig,
+  ActionContext,
+  ActionFn,
   ActionHandle,
   ActionQueueItem,
   QueuedResult,
