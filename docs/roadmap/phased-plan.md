@@ -98,18 +98,24 @@ including per-item cancel/retry and idempotency-key inspection.
 
 ---
 
-## Phase 3 — Server-Side Reference Contracts
+## Phase 3 — Server-Side Reference Contracts (DONE)
 
 **Goal**: idempotency/conflict guarantees aren't just client-side promises.
 
-- [ ] `@eidos/server-idempotency` — reference Express/Hono/Next middleware:
+- [x] `@eidos/server-idempotency` — reference Express/Hono middleware:
       `(idempotencyKey → cached response)` store contract, TTL-based
-      cleanup.
-- [ ] Document the 409-with-server-state contract for `lastWriteWins`/
-      `merge` conflict strategies.
+      cleanup (`MemoryIdempotencyStore`, pluggable `IdempotencyStore` for
+      multi-instance deployments). Next adapter not yet started — carry
+      to Phase 4 alongside `@eidos/next`.
+- [x] Documented the 409-with-server-state contract for `merge`/`custom`
+      conflict strategies (`packages/server-idempotency/README.md`) —
+      server returns `409 { error, current }`, client `resolve()` reads
+      it via `ctx.error`.
 
-**Exit criteria**: a sample app (in `apps/`) demonstrates a payment-style
-mutation that survives duplicate replay against the reference middleware.
+**Exit criteria**: met. `apps/payment-demo` — Express app with `POST
+/api/charge` guarded by `idempotency()`; `pnpm --filter @eidos/payment-demo
+demo` replays a duplicate charge and shows a one-entry ledger, and
+`src/__tests__/charge.test.ts` asserts the same in CI.
 
 ---
 

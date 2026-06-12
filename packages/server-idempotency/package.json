@@ -1,0 +1,66 @@
+{
+  "name": "@eidos/server-idempotency",
+  "version": "0.1.0",
+  "description": "Reference server-side idempotency middleware (Express/Hono) implementing the dedupe-store contract for Eidos neverLose actions.",
+  "author": "Aditya Raj",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./express": "./dist/express.js",
+    "./hono": "./dist/hono.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.0.0",
+    "express": "^4.19.2",
+    "hono": "^4.6.0",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.8"
+  },
+  "peerDependencies": {
+    "express": ">=4",
+    "hono": ">=4"
+  },
+  "peerDependenciesMeta": {
+    "express": {
+      "optional": true
+    },
+    "hono": {
+      "optional": true
+    }
+  },
+  "keywords": [
+    "idempotency",
+    "eidos",
+    "express",
+    "hono",
+    "offline",
+    "neverLose"
+  ],
+  "homepage": "https://github.com/iamadi11/eidos/tree/main/packages/server-idempotency#readme",
+  "bugs": {
+    "url": "https://github.com/iamadi11/eidos/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/iamadi11/eidos.git",
+    "directory": "packages/server-idempotency"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
