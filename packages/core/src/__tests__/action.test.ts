@@ -383,9 +383,6 @@ describe('priority', () => {
       callOrder.push('low');
     });
 
-    action(normalFn, { reliability: 'neverLose', name: 'prio-nl-normal', priority: 'normal' });
-    action(lowFn, { reliability: 'neverLose', name: 'prio-nl-low', priority: 'low' });
-
     // Queue low first, normal second
     useEidosStore.setState({ isOnline: false, swStatus: 'active', resources: {}, queue: [] });
     const normalWrapped = action(normalFn, {

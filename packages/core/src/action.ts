@@ -63,9 +63,9 @@ export function action<TArgs extends any[], TReturn>(
     );
   }
 
-  if (import.meta.env.DEV && _actionRegistry.has(actionId)) {
-    console.error(
-      `[eidos] duplicate action id "${actionId}" — a previously registered action will be overwritten. Pass a unique config.name or config.namespace.`,
+  if (_actionRegistry.has(actionId)) {
+    throw new Error(
+      `[eidos] duplicate action id "${actionId}" — an action with this id is already registered. Pass a unique config.name or config.namespace.`,
     );
   }
 

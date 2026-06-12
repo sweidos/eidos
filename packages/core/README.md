@@ -120,7 +120,7 @@ if ('queued' in result) {
 | **Persistent action queue** | Failed writes go to IndexedDB and replay with exponential backoff on reconnect.                                             |
 | **Request deduplication**   | Concurrent `resource.fetch()` calls share one in-flight request.                                                            |
 | **Optimistic updates**      | `onOptimistic` / `onRollback` callbacks for instant UI feedback.                                                            |
-| **Conflict resolution**     | `conflict: { strategy: 'serverWins' \| 'clientWins' \| 'lastWriteWins' \| 'merge' \| 'custom' }` on 4xx replay responses.   |
+| **Conflict resolution**     | `conflict: { strategy: 'serverWins' \| 'clientWins' \| 'merge' \| 'custom' }` on 4xx replay responses.                      |
 | **Idempotent replay**       | Stable `idempotencyKey` per invocation, forwarded to `fn` via `ActionContext` — safe retries even after a dropped response. |
 | **Cancellable actions**     | `cancellable: true` → `AbortSignal` per call, plus `handle.cancel(idempotencyKey)`.                                         |
 | **Queue prioritization**    | `priority: 'high' \| 'normal' \| 'low'` — high items replay before normal.                                                  |
@@ -192,7 +192,7 @@ const createOrder = action(async (payload: OrderPayload, ctx: ActionContext) => 
   onOptimistic?: (...args) => void, // instant UI update
   onRollback?: (...args) => void,   // revert on permanent failure
   conflict?: {               // 4xx replay handling
-    strategy: 'serverWins' | 'clientWins' | 'lastWriteWins' | 'merge' | 'custom',
+    strategy: 'serverWins' | 'clientWins' | 'merge' | 'custom',
     resolve?: (ctx) => 'retry' | 'skip' | { resolved: args },
   },
 })
