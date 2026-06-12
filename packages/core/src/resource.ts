@@ -3,13 +3,14 @@ import { sendToWorker } from './sw-bridge';
 import type {
   ResourceConfig,
   ResourceHandle,
+  PatternResourceHandle,
   ResourceEntry,
   GeneratedStrategy,
   CacheStrategy,
   WarmCacheResult,
 } from './types';
 
-const _registry = new Map<string, ResourceHandle>();
+const _registry = new Map<string, ResourceHandle | PatternResourceHandle>();
 
 // ── Request deduplication ─────────────────────────────────────────────────────
 // If multiple callers invoke handle.fetch() simultaneously for the same URL,
@@ -62,34 +63,11 @@ function patternToRegexStr(pattern: string): string {
   );
 }
 
-function _patternError(url: string, method: string): Error {
-  return new Error(
-    `[eidos] resource('${url}') is a URL pattern — ${method}() is not supported on pattern handles. ` +
-      `The SW intercepts matching requests automatically; call fetch(specificUrl) directly in your app code.`,
-  );
-}
-
-// ── resource() ────────────────────────────────────────────────────────────────
-
-export function resource<T = unknown>(url: string, config: ResourceConfig): ResourceHandle<T> {
-  if (_registry.has(url)) {
-    if (import.meta.env.DEV) {
-      const existing = _registry.get(url)!;
-      const existingCfg = existing.config;
-      if (
-        existingCfg.offline !== config.offline ||
-        existingCfg.strategy !== config.strategy ||
-        existingCfg.cacheName !== config.cacheName
-      ) {
-        console.warn(
-          `[eidos] resource('${url}') already registered with a different config — returning cached handle. Call resource.unregister() first to re-register.`,
-          { registered: existingCfg, ignored: config },
-        );
-      }
-    }
-    return _registry.get(url) as ResourceHandle<T>;
-  }
-
+/** Shared setup for resource()/resourcePattern(): strategy derivation, store + SW registration. */
+function _register(
+  url: string,
+  config: ResourceConfig,
+): { strategy: GeneratedStrategy; regexStr: string | undefined } {
   const strategy = deriveStrategy(config);
   const regexStr = isPattern(url) ? patternToRegexStr(url) : undefined;
 
@@ -112,14 +90,107 @@ export function resource<T = unknown>(url: string, config: ResourceConfig): Reso
     ...(regexStr !== undefined && { pattern: regexStr }),
   });
 
+  return { strategy, regexStr };
+}
+
+function _invalidate(
+  url: string,
+  strategy: GeneratedStrategy,
+  regexStr: string | undefined,
+): () => Promise<void> {
+  return async () => {
+    sendToWorker({ type: 'EIDOS_CLEAR_CACHE', url });
+    const cache = await caches.open(strategy.cacheName).catch(() => null);
+    if (cache) {
+      const keys = await cache.keys();
+      const patternRe = regexStr ? new RegExp(regexStr) : null;
+      const isCrossOrigin = url.startsWith('http');
+      await Promise.all(
+        keys
+          .filter((r) => {
+            const rUrl = r.url;
+            const p = new URL(rUrl).pathname;
+            if (patternRe) {
+              // Cross-origin patterns were compiled from absolute URLs; test full URL.
+              return patternRe.test(isCrossOrigin ? rUrl : p);
+            }
+            return isCrossOrigin ? rUrl === url : rUrl === url || p === url;
+          })
+          .map((r) => cache.delete(r)),
+      );
+    }
+    // For exact-URL resources update the store entry; patterns don't have a
+    // single entry to update (individual URLs are not tracked per-pattern).
+    if (!isPattern(url)) {
+      useEidosStore.getState().updateResource(url, {
+        status: 'stale',
+        cachedAt: undefined,
+        lastEvent: 'cache-cleared',
+        cacheHits: 0,
+        cacheMisses: 0,
+      });
+    }
+    // Notify TanStack Query bridge if registered.
+    _queryInvalidator?.(['eidos', url]);
+  };
+}
+
+function _unregister(url: string): () => void {
+  return () => {
+    _registry.delete(url);
+    sendToWorker({ type: 'EIDOS_UNREGISTER_RESOURCE', url });
+    useEidosStore.getState().unregisterResource(url);
+  };
+}
+
+function _warnIfReregisteredWithDifferentConfig(
+  url: string,
+  existing: ResourceHandle | PatternResourceHandle,
+  config: ResourceConfig,
+  factoryName: string,
+): void {
+  if (!import.meta.env.DEV) return;
+  const existingCfg = existing.config;
+  if (
+    existingCfg.offline !== config.offline ||
+    existingCfg.strategy !== config.strategy ||
+    existingCfg.cacheName !== config.cacheName
+  ) {
+    console.warn(
+      `[eidos] ${factoryName}('${url}') already registered with a different config — returning cached handle. Call handle.unregister() first to re-register.`,
+      { registered: existingCfg, ignored: config },
+    );
+  }
+}
+
+// ── resource() ────────────────────────────────────────────────────────────────
+
+/**
+ * Registers a concrete-URL resource. For URL patterns (`/api/products/*`,
+ * `/api/users/:id`, `**`), use `resourcePattern()` instead.
+ */
+export function resource<T = unknown>(url: string, config: ResourceConfig): ResourceHandle<T> {
+  if (isPattern(url)) {
+    throw new Error(
+      `[eidos] resource('${url}') is a URL pattern — use resourcePattern('${url}', config) instead. ` +
+        `Pattern handles only support invalidate()/unregister(); the SW intercepts matching requests automatically.`,
+    );
+  }
+
+  if (_registry.has(url)) {
+    const existing = _registry.get(url)!;
+    _warnIfReregisteredWithDifferentConfig(url, existing, config, 'resource');
+    return existing as ResourceHandle<T>;
+  }
+
+  const { strategy } = _register(url, config);
+
   const handle: ResourceHandle<T> = {
     url,
     config,
     strategy,
 
     fetch: async () => {
-      if (isPattern(url)) throw _patternError(url, 'fetch');
-
       // ── Deduplication: coalesce concurrent fetches for the same URL ─────
       // If a request is already in-flight, piggyback on it and return a clone
       // so each caller gets an independent readable Response body.
@@ -138,65 +209,56 @@ export function resource<T = unknown>(url: string, config: ResourceConfig): Reso
     },
 
     json: async () => {
-      if (isPattern(url)) throw _patternError(url, 'json');
       const res = await handle.fetch();
       return res.json() as Promise<T>;
     },
 
-    query: () => {
-      if (isPattern(url)) throw _patternError(url, 'query');
-      return {
-        queryKey: ['eidos', url] as [string, string],
-        queryFn: () => handle.json(),
-      };
-    },
+    query: () => ({
+      queryKey: ['eidos', url] as [string, string],
+      queryFn: () => handle.json(),
+    }),
 
     prefetch: async () => {
-      if (isPattern(url)) throw _patternError(url, 'prefetch');
       await handle.fetch();
     },
 
-    invalidate: async () => {
-      sendToWorker({ type: 'EIDOS_CLEAR_CACHE', url });
-      const cache = await caches.open(strategy.cacheName).catch(() => null);
-      if (cache) {
-        const keys = await cache.keys();
-        const patternRe = regexStr ? new RegExp(regexStr) : null;
-        const isCrossOrigin = url.startsWith('http');
-        await Promise.all(
-          keys
-            .filter((r) => {
-              const rUrl = r.url;
-              const p = new URL(rUrl).pathname;
-              if (patternRe) {
-                // Cross-origin patterns were compiled from absolute URLs; test full URL.
-                return patternRe.test(isCrossOrigin ? rUrl : p);
-              }
-              return isCrossOrigin ? rUrl === url : rUrl === url || p === url;
-            })
-            .map((r) => cache.delete(r)),
-        );
-      }
-      // For exact-URL resources update the store entry; patterns don't have a
-      // single entry to update (individual URLs are not tracked per-pattern).
-      if (!isPattern(url)) {
-        useEidosStore.getState().updateResource(url, {
-          status: 'stale',
-          cachedAt: undefined,
-          lastEvent: 'cache-cleared',
-          cacheHits: 0,
-          cacheMisses: 0,
-        });
-      }
-      // Notify TanStack Query bridge if registered.
-      _queryInvalidator?.(['eidos', url]);
-    },
+    invalidate: _invalidate(url, strategy, undefined),
+    unregister: _unregister(url),
+  };
 
-    unregister: () => {
-      _registry.delete(url);
-      sendToWorker({ type: 'EIDOS_UNREGISTER_RESOURCE', url });
-      useEidosStore.getState().unregisterResource(url);
-    },
+  _registry.set(url, handle);
+  return handle;
+}
+
+// ── resourcePattern() ────────────────────────────────────────────────────────
+
+/**
+ * Registers a URL pattern (`/api/products/*`, `/api/users/:id`, `**`). The SW
+ * intercepts all matching requests automatically — there is no single URL to
+ * fetch/cache directly, so the returned handle only supports cache management
+ * (`invalidate`/`unregister`). For a fetchable resource, use `resource()`.
+ */
+export function resourcePattern(url: string, config: ResourceConfig): PatternResourceHandle {
+  if (!isPattern(url)) {
+    throw new Error(
+      `[eidos] resourcePattern('${url}') is not a URL pattern — use resource('${url}', config) instead.`,
+    );
+  }
+
+  if (_registry.has(url)) {
+    const existing = _registry.get(url)!;
+    _warnIfReregisteredWithDifferentConfig(url, existing, config, 'resourcePattern');
+    return existing as PatternResourceHandle;
+  }
+
+  const { strategy, regexStr } = _register(url, config);
+
+  const handle: PatternResourceHandle = {
+    url,
+    config,
+    strategy,
+    invalidate: _invalidate(url, strategy, regexStr),
+    unregister: _unregister(url),
   };
 
   _registry.set(url, handle);

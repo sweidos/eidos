@@ -3,7 +3,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Public API
-export { resource, warmCache, setQueryInvalidator } from './resource';
+export { resource, resourcePattern, warmCache, setQueryInvalidator } from './resource';
 export { action, replayQueue, clearQueue } from './action';
 export { initEidos, _resetEidos } from './runtime';
 export type { EidosConfig } from './runtime';
@@ -57,6 +57,8 @@ export type { EidosReadable } from './stores';
 export type {
   ResourceConfig,
   ResourceHandle,
+  PatternResourceHandle,
+  AnyResourceHandle,
   ResourceEntry,
   GeneratedStrategy,
   WarmCacheResult,

@@ -122,14 +122,14 @@ await replayQueue()`,
     description:
       'One wildcard declaration intercepts every matching URL — no per-route setup needed.',
     code: `// * matches one segment, ** matches anything
-resource('/api/products/*', { offline: true })
+resourcePattern('/api/products/*', { offline: true })
 // → /api/products/1, /api/products/abc
 
-resource('/api/users/:id/orders', { offline: true })
+resourcePattern('/api/users/:id/orders', { offline: true })
 // → /api/users/alice/orders
 
 // Cross-origin CDN assets
-resource('https://cdn.example.com/assets/**', {
+resourcePattern('https://cdn.example.com/assets/**', {
   offline: true,
   strategy: 'cache-first',
 })`,

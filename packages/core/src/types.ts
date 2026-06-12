@@ -55,6 +55,26 @@ export interface ResourceHandle<T = unknown> {
   unregister: () => void;
 }
 
+/**
+ * Handle for a URL pattern (`/api/products/*`, `/api/users/:id`, `**`).
+ * The SW intercepts all matching requests automatically — there is no single
+ * URL to fetch/cache directly, so only cache-management methods are exposed.
+ * Returned by `resourcePattern()`.
+ */
+export interface PatternResourceHandle {
+  readonly url: string;
+  readonly config: ResourceConfig;
+  readonly strategy: GeneratedStrategy;
+  /** Clears all cache entries matching this pattern. */
+  invalidate: () => Promise<void>;
+  /** Remove from registry and SW. Required before re-registering the same pattern with different config. */
+  unregister: () => void;
+}
+
+/** A handle returned by either `resource()` or `resourcePattern()`. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type AnyResourceHandle = ResourceHandle<any> | PatternResourceHandle;
+
 /** Summary returned by warmCache(). */
 export interface WarmCacheResult {
   /** Resources that were prefetched successfully. */

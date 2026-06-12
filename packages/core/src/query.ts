@@ -30,7 +30,7 @@ import type {
 // Import from the main package (external at build-time) so all code shares
 // the same module instance — required for the setQueryInvalidator bridge to work.
 import { setQueryInvalidator } from '@sweidos/eidos';
-import type { ResourceHandle, ActionHandle, QueuedResult } from '@sweidos/eidos';
+import type { ResourceHandle, AnyResourceHandle, ActionHandle, QueuedResult } from '@sweidos/eidos';
 
 // ── Global QueryClient reference ──────────────────────────────────────────────
 
@@ -104,9 +104,6 @@ export function useEidosQuery<T>(
 
 // ── useEidosMutation ──────────────────────────────────────────────────────────
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyResourceHandle = ResourceHandle<any>;
-
 export interface EidosMutationOptions<TArg, TData> extends Omit<
   UseMutationOptions<TData | QueuedResult, Error, TArg>,
   'mutationFn' | 'networkMode'
@@ -175,7 +172,7 @@ export function useEidosMutation<TArg, TData>(
         // context client, still invalidate TQ queries directly.
         if (!_globalClient && contextClient) {
           invalidates.forEach((h) => {
-            contextClient!.invalidateQueries({ queryKey: h.query().queryKey });
+            contextClient!.invalidateQueries({ queryKey: ['eidos', h.url] });
           });
         }
       }

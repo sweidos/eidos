@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { resource } from '../resource';
+import { resource, resourcePattern } from '../resource';
 import { useEidosStore } from '../store';
 import { resetEidosState } from './test-utils';
 
@@ -44,39 +44,28 @@ describe('cross-origin exact URL resource', () => {
 
 describe('cross-origin pattern resource', () => {
   it('wildcard pattern registers under full URL pattern key', () => {
-    resource('https://api.example.com/products/*', { offline: true });
+    resourcePattern('https://api.example.com/products/*', { offline: true });
     expect(useEidosStore.getState().resources['https://api.example.com/products/*']).toBeDefined();
   });
 
   it(':param pattern registers under full URL pattern key', () => {
-    resource('https://api.example.com/users/:id', { offline: true });
+    resourcePattern('https://api.example.com/users/:id', { offline: true });
     expect(useEidosStore.getState().resources['https://api.example.com/users/:id']).toBeDefined();
   });
 
   it('** multi-segment pattern registers under full URL key', () => {
-    resource('https://cdn.example.com/assets/**', { offline: false });
+    resourcePattern('https://cdn.example.com/assets/**', { offline: false });
     expect(useEidosStore.getState().resources['https://cdn.example.com/assets/**']).toBeDefined();
   });
 
-  it('fetch() throws helpful error on pattern handle', async () => {
-    const h = resource('https://api.example.com/orders/*', { offline: true });
-    await expect(h.fetch()).rejects.toThrow(
+  it('resource() throws helpful error on cross-origin pattern', () => {
+    expect(() => resource('https://api.example.com/orders/*', { offline: true })).toThrow(
       "resource('https://api.example.com/orders/*') is a URL pattern",
     );
   });
 
-  it('json() throws on cross-origin pattern', async () => {
-    const h = resource('https://api.example.com/posts/:id', { offline: true });
-    await expect(h.json()).rejects.toThrow('is a URL pattern');
-  });
-
-  it('query() throws on cross-origin pattern', () => {
-    const h = resource('https://cdn.example.com/static/**', { offline: false });
-    expect(() => h.query()).toThrow('is a URL pattern');
-  });
-
   it('unregister removes cross-origin pattern from store', () => {
-    const h = resource('https://api.example.com/cats/*', { offline: true });
+    const h = resourcePattern('https://api.example.com/cats/*', { offline: true });
     h.unregister();
     expect(useEidosStore.getState().resources['https://api.example.com/cats/*']).toBeUndefined();
   });
@@ -88,7 +77,7 @@ describe('cross-origin pattern resource', () => {
 
 describe('cross-origin pattern regex behaviour (indirect)', () => {
   it('pattern handle registered — config reflects correct strategy', () => {
-    const h = resource('https://api.example.com/v2/*', { offline: true });
+    const h = resourcePattern('https://api.example.com/v2/*', { offline: true });
     // stale-while-revalidate is derived for offline:true resources
     expect(h.strategy.swStrategy).toBe('stale-while-revalidate');
   });

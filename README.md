@@ -177,7 +177,19 @@ products.query()                 // { queryKey, queryFn } for useQuery
 | `offline: true, strategy: 'cache-first'`   | CacheFirst           | Static assets, config data          |
 | `offline: true, strategy: 'network-first'` | NetworkFirst         | Always-fresh with offline fallback  |
 
-URL patterns work on any handle: `/api/products/*`, `/api/users/:id`, `**`
+### `resourcePattern(pattern, config)`
+
+For URL patterns — `/api/products/*`, `/api/users/:id`, `**` — the SW intercepts
+all matching requests automatically, so there's no single URL to fetch. Use
+`resourcePattern()` instead of `resource()`; it returns a handle with only
+`invalidate()` and `unregister()`:
+
+```ts
+const productPattern = resourcePattern('/api/products/*', { offline: true });
+
+await productPattern.invalidate(); // clear all cached entries matching the pattern
+productPattern.unregister();
+```
 
 ### `action(fn, config)`
 

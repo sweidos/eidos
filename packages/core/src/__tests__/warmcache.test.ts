@@ -59,14 +59,4 @@ describe('warmCache', () => {
     expect(result.failed).toBe(2);
     expect(result.errors).toHaveLength(2);
   });
-
-  it('pattern handles throw — counted as failed', async () => {
-    // prefetch() on a pattern handle throws synchronously with _patternError
-    const h = resource('/api/warm-pattern/*', { offline: true });
-
-    const result = await warmCache([h]);
-
-    expect(result.warmed).toBe(0);
-    expect(result.failed).toBe(1);
-  });
 });

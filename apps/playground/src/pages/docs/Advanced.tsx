@@ -18,13 +18,16 @@ export function Advanced() {
             <p className="text-sm leading-relaxed text-eidos-text-dim">
               Use <InlineCode>*</InlineCode> for one path segment, <InlineCode>**</InlineCode> for
               nested paths, and <InlineCode>:param</InlineCode> for named segments. For external
-              APIs, pass the full URL including origin.
+              APIs, pass the full URL including origin. Patterns use{' '}
+              <InlineCode>resourcePattern()</InlineCode> — the SW intercepts matching requests
+              automatically, so the handle only exposes <InlineCode>invalidate()</InlineCode> and{' '}
+              <InlineCode>unregister()</InlineCode>.
             </p>
             <CodeBlock
               title="patterns.ts"
-              code={`resource('/api/products/*', { offline: true })
-resource('/api/users/:id/orders', { offline: true })
-resource('https://cdn.example.com/assets/**', { offline: true })`}
+              code={`resourcePattern('/api/products/*', { offline: true })
+resourcePattern('/api/users/:id/orders', { offline: true })
+resourcePattern('https://cdn.example.com/assets/**', { offline: true })`}
             />
           </div>
         </Collapse>
