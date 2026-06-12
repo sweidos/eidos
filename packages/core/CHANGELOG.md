@@ -1,5 +1,26 @@
 # @sweidos/eidos
 
+## 2.0.0
+
+### Major Changes
+
+- bdf90f0: `ActionFn`, `onOptimistic`, and `onRollback` now correctly type the trailing `ActionContext` argument that the runtime always passes. Every action function — `best-effort` and `neverLose` alike — now receives `ActionContext` as its last argument on every invocation (previously only `neverLose`/`cancellable` actions did). Update action signatures to accept it, e.g. `async (orderId: string, ctx: ActionContext) => {...}`.
+- 2df19a2: Registering two actions with the same id (`config.namespace::config.name` or `fn.name`) now throws in all environments, not just a DEV-only `console.error`. The second registration was silently overwriting the first's queue replay handler — a real bug in any environment. Pass a unique `config.name` or `config.namespace` to disambiguate.
+- d4098f2: Remove `'lastWriteWins'` from `ConflictConfig.strategy`. It was documented as "same as `clientWins` for now, pending a server-timestamp contract" — a placeholder that was never implemented. Use `'clientWins'` (identical current behavior) or `'custom'` with `resolve()` for timestamp-based resolution.
+- ef76e90: Remove the deprecated `ActionConfig.onConflict` callback. Use `conflict: { strategy: ... }` (with `resolve` for `'merge'`/`'custom'`) instead — it has been the recommended API and previously took precedence whenever both were set.
+- 4305a25: `ActionConfig.name` is now required (compile-time) when `reliability: 'neverLose'`. Queued items must survive a page reload and be matched back to the action on replay — `fn.name` is unreliable (minified, anonymous arrows), so a previously DEV-only console warning is now a type error.
+- 3aaf64d: Split `resource()` into two functions. `resource(url, config)` now only accepts concrete URLs and returns a handle with `fetch`/`json`/`query`/`prefetch`/`invalidate`/`unregister`. For URL patterns (`/api/products/*`, `/api/users/:id`, `**`), use the new `resourcePattern(pattern, config)`, which returns a `PatternResourceHandle` with only `invalidate`/`unregister` — the SW intercepts matching requests automatically, so there's no single URL to fetch.
+
+  Calling `resource()` with a pattern (or `resourcePattern()` with a concrete URL) now throws immediately at registration time instead of failing later when `fetch`/`json`/`query`/`prefetch` is called. `warmCache()` now only accepts `ResourceHandle[]` (pattern handles have no `prefetch` to warm).
+
+  New exported types: `PatternResourceHandle`, `AnyResourceHandle`.
+
+### Patch Changes
+
+- 73f245c: Update README docs for conflict resolution, idempotency, and cancellable actions; raise core size-limit budget to 7 KB to match actual bundle size.
+- 9095c02: Publish sourcemaps for minified dist output, so reviewers/security scanners can inspect the unminified source behind the published bundle.
+- a44a026: Sync action-queue item status across tabs via BroadcastChannel — non-leader tabs now reflect live `replaying`/`succeeded`/`failed`/`pending`/`conflicted`/`cancelled` status during replay instead of waiting for their own store to re-hydrate.
+
 ## 1.2.0
 
 ### Minor Changes
