@@ -22,8 +22,6 @@ import type {
 const _actionRegistry = new Map<string, ActionFn<any[], any>>();
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const _rollbackRegistry = new Map<string, (...args: any[]) => void>();
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const _conflictRegistry = new Map<string, (error: unknown, args: any[]) => 'retry' | 'skip'>();
 const _conflictConfigRegistry = new Map<string, ConflictConfig>();
 const _configRegistry = new Map<string, ActionConfig>();
 
@@ -78,10 +76,6 @@ export function action<TArgs extends any[], TReturn>(
 
   if (config.onRollback) {
     _rollbackRegistry.set(actionId, config.onRollback);
-  }
-
-  if (config.onConflict) {
-    _conflictRegistry.set(actionId, config.onConflict);
   }
 
   if (config.conflict) {
@@ -341,9 +335,6 @@ async function _resolveConflict(
         break;
       }
     }
-  } else {
-    const onConflict = _conflictRegistry.get(item.actionId);
-    if (onConflict) resolution = onConflict(err, item.args as unknown[]);
   }
 
   if (resolution === 'skip') {

@@ -589,20 +589,4 @@ describe('conflict resolution', () => {
     );
     expect(result.conflicted).toBe(1);
   });
-
-  it('conflict config takes precedence over deprecated onConflict', async () => {
-    const fn = vi.fn().mockRejectedValue(conflictError());
-    const onConflict = vi.fn().mockReturnValue('retry');
-    const wrapped = action(fn, {
-      reliability: 'neverLose',
-      name: 'conflict-precedence',
-      conflict: { strategy: 'serverWins' },
-      onConflict,
-    });
-
-    const result = await queueOfflineThenReplay(wrapped, 'x');
-
-    expect(onConflict).not.toHaveBeenCalled();
-    expect(result.conflicted).toBe(1);
-  });
 });

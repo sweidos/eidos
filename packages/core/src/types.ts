@@ -108,29 +108,11 @@ export interface ActionConfig<TArgs extends any[] = any[]> {
    */
   onRollback?: (...args: [...TArgs, ActionContext]) => void;
   /**
-   * Called during queue replay when the server responds with a 4xx status code
-   * (client error — conflict, gone, unprocessable, etc.).
-   *
-   * Return `'retry'` to keep the item in the queue and retry per normal backoff.
-   * Return `'skip'` to silently remove the item without triggering `onRollback`.
-   *
-   * If not provided, 4xx errors are treated identically to other errors (retried
-   * until `maxRetries` is exhausted, then `onRollback` is called).
-   *
-   * The `error` argument is whatever `fn` threw — typically a `Response` object
-   * or a custom error with a `.status` property.
-   */
-  /**
-   * @deprecated Use `conflict` instead. If both are set, `conflict` wins.
-   * Return `'retry'` to keep the item in the queue and retry per normal
-   * backoff, or `'skip'` to silently remove the item.
-   */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onConflict?: (error: unknown, args: any[]) => 'retry' | 'skip';
-  /**
    * Declarative conflict-resolution strategy used during queue replay when
    * the server responds with a 4xx status (conflict, gone, unprocessable,
-   * etc.). Replaces `onConflict` for new code — see `ConflictConfig`.
+   * etc.). If not provided, 4xx errors are treated identically to other
+   * errors (retried until `maxRetries` is exhausted, then `onRollback` is
+   * called). See `ConflictConfig`.
    */
   conflict?: ConflictConfig;
   /**
@@ -229,7 +211,7 @@ export interface ReplayResult {
   retrying: number;
   /** Items whose actionId had no registered function — likely not yet imported. */
   skipped: number;
-  /** Items that received a 4xx response and were dropped via `onConflict: () => 'skip'`. */
+  /** Items that received a 4xx response and were dropped via `conflict: { strategy: 'serverWins' }` (or `resolve()` returning `'skip'`). */
   conflicted: number;
   /** Items removed via `handle.cancel(idempotencyKey)` before/during replay. */
   cancelled: number;
