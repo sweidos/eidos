@@ -19,25 +19,27 @@ depth is the named strategic risk.
 
 ---
 
-## Phase 1 — Close Remaining P0/P1 Core Gaps
+## Phase 1 — Close Remaining P0/P1 Core Gaps (DONE)
 
 **Goal**: no known correctness bugs in `action()` before any new adapter
 work resumes.
 
-- [x] Namespace `actionId` generation (`namespace::name`), warn on
-      collision in DEV (`packages/core/src/action.ts`).
+- [x] Namespace `actionId` generation (`namespace::name`), throw on
+      collision in all environments (`packages/core/src/action.ts`).
 - [x] Cancellation: `AbortSignal` plumbing for in-flight `neverLose`
       actions + ability to cancel a not-yet-replayed queue item.
-- [x] Conflict resolution presets (`serverWins`/`clientWins`/
-      `lastWriteWins`/`merge`/`custom`) replacing the raw `onConflict`
-      callback (keep old callback as deprecated alias).
+- [x] Conflict resolution presets (`serverWins`/`clientWins`/`merge`/
+      `custom`) replacing the raw `onConflict` callback. Placeholder
+      `lastWriteWins` removed (v2.0.0, breaking).
 - [x] BroadcastChannel sync of queue-item status across tabs (cosmetic
       follow-up to the Web Locks fix).
 
-**Exit criteria**: `action()` API surface stable enough to document as
-"v1 reliability contract" — no planned breaking changes to
-`ActionConfig`/`ActionQueueItem` after this phase without a version bump
-and migration.
+**Exit criteria**: met. Shipped as v2.0.0 (breaking changes: duplicate
+`actionId` now throws in all environments, `lastWriteWins` removed,
+`neverLose` actions require `config.name`, `resource()` split into
+concrete vs pattern handles). `action()`/`resource()` API surface now
+the v2 reliability contract — no further breaking changes without
+another version bump and migration.
 
 ---
 
@@ -45,21 +47,25 @@ and migration.
 
 **Goal**: keep docs/metrics honest as the core grows — no feature work.
 
-- [ ] Bundle-size numbers drift from reality after every feature lands
-      (core was documented as ~5.4 kB, actually 5.97 kB brotli; size-limit
-      threshold raised 6 KB → 7 KB this pass to give headroom). Add a CI
-      check or release checklist step that re-runs `size-limit` and
-      flags when README tables (`README.md`, `packages/core/README.md`)
-      drift from actual output.
-- [ ] Sweep `docs/` and both READMEs for other stale claims left over from
-      earlier phases (e.g. caveats about missing idempotency/namespacing
-      that are now fixed but may still read as open issues).
-- [ ] Re-verify `phased-plan.md` / `2026-06-architecture-review.md`
-      checkboxes against current `src/` on each release — they should
-      reflect shipped code, not aspirational state.
+- [x] Bundle-size numbers drift from reality after every feature lands
+      (was documented as ~5.97 kB, actual v2.0.0 build is 6.22 kB brotli,
+      still under the 7 KB size-limit threshold). README tables
+      (`README.md`, `packages/core/README.md`) updated to ~6.2 kB.
+      **Still open**: no CI check/release-checklist step that re-runs
+      `size-limit` and flags README drift automatically — carry to a
+      future pass.
+- [x] Swept `docs/` and both READMEs for stale claims from earlier
+      phases — no open "missing idempotency/namespacing" caveats found;
+      "Known limitations" table in `README.md` reflects current (post-v2)
+      state.
+- [x] Re-verified `phased-plan.md` / `2026-06-architecture-review.md`
+      checkboxes against `src/` for this release — Phase 1 confirmed
+      fully shipped in v2.0.0, checkboxes updated above.
 
 **Exit criteria**: README/docs bundle-size and feature-status claims match
-`size-limit` output and `src/` reality at time of release.
+`size-limit` output and `src/` reality at time of release. Met for
+v2.0.0; automated drift-check remains a follow-up (see Phase 2 devtools
+work or a new lightweight CI task).
 
 ---
 
