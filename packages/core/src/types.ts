@@ -68,12 +68,7 @@ export interface WarmCacheResult {
 // ── Action ───────────────────────────────────────────────────────────────────
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export interface ActionConfig<TArgs extends any[] = any[]> {
-  /**
-   * - `best-effort`: call directly, no persistence on failure.
-   * - `neverLose`: persist to IndexedDB before executing; replay on reconnect.
-   */
-  reliability: 'best-effort' | 'neverLose';
+interface ActionConfigBase<TArgs extends any[] = any[]> {
   /** Max retry attempts before marking as failed. Default: 3. */
   maxRetries?: number;
   /** Human-readable name for the action (used in devtools). */
@@ -123,6 +118,23 @@ export interface ActionConfig<TArgs extends any[] = any[]> {
    */
   cancellable?: boolean;
 }
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type ActionConfig<TArgs extends any[] = any[]> =
+  | (ActionConfigBase<TArgs> & {
+      /** Call directly, no persistence on failure. */
+      reliability: 'best-effort';
+    })
+  | (ActionConfigBase<TArgs> & {
+      /** Persist to IndexedDB before executing; replay on reconnect. */
+      reliability: 'neverLose';
+      /**
+       * Required for `neverLose` — queued items must survive a page reload
+       * and be matched back to this action on replay. `fn.name` is not
+       * reliable (minifiers rename it, arrow functions may be anonymous).
+       */
+      name: string;
+    });
 
 /**
  * Passed to `ConflictConfig.resolve` (for `'merge'`/`'custom'` strategies)
