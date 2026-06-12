@@ -4,7 +4,7 @@
 
 // Public API
 export { resource, resourcePattern, warmCache, setQueryInvalidator } from './resource';
-export { action, replayQueue, clearQueue } from './action';
+export { action, replayQueue, clearQueue, cancelByIdempotencyKey, requeueItem } from './action';
 export { initEidos, _resetEidos } from './runtime';
 export type { EidosConfig } from './runtime';
 export { subscribeReplayOnReconnect } from './replay';

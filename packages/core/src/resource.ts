@@ -154,7 +154,8 @@ function _warnIfReregisteredWithDifferentConfig(
   if (
     existingCfg.offline !== config.offline ||
     existingCfg.strategy !== config.strategy ||
-    existingCfg.cacheName !== config.cacheName
+    existingCfg.cacheName !== config.cacheName ||
+    existingCfg.version !== config.version
   ) {
     console.warn(
       `[eidos] ${factoryName}('${url}') already registered with a different config — returning cached handle. Call handle.unregister() first to re-register.`,
@@ -382,8 +383,10 @@ async function _fetchResource(
 
 function deriveStrategy(config: ResourceConfig): GeneratedStrategy {
   const explicit = config.strategy;
-  if (config.offline) return buildStrategy(explicit ?? 'stale-while-revalidate', config.cacheName);
-  return buildStrategy(explicit ?? 'network-first', config.cacheName);
+  if (config.offline) {
+    return buildStrategy(explicit ?? 'stale-while-revalidate', config.cacheName, config.version);
+  }
+  return buildStrategy(explicit ?? 'network-first', config.cacheName, config.version);
 }
 
 // Strategy display names — always included (tiny, used by devtools).
@@ -444,12 +447,17 @@ new NetworkFirst({
   },
 };
 
-function buildStrategy(swStrategy: CacheStrategy, cacheName?: string): GeneratedStrategy {
+function buildStrategy(
+  swStrategy: CacheStrategy,
+  cacheName?: string,
+  version?: string | number,
+): GeneratedStrategy {
   const meta = _STRATEGY_DEV_META[swStrategy];
+  const baseName = cacheName ?? 'eidos-resources-v1';
   return {
     name: STRATEGY_NAMES[swStrategy],
     swStrategy,
-    cacheName: cacheName ?? 'eidos-resources-v1',
+    cacheName: version !== undefined ? `${baseName}-v${version}` : baseName,
     // reasoning + behavior are rendered by the playground UI from live ResourceEntry objects —
     // keep them in all builds. equivalentCode is a static code block only used in DEV tools.
     reasoning: meta.reasoning,

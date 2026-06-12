@@ -135,29 +135,61 @@ export function action<TArgs extends any[], TReturn>(
     }
   };
 
-  const cancel = async (idempotencyKey: string): Promise<boolean> => {
-    const controller = _inflightControllers.get(idempotencyKey);
-    if (controller) {
-      controller.abort();
-      return true;
-    }
-
-    // Not in flight — check for a not-yet-replayed queued item with this key.
-    const items = await qs().getAll();
-    const item = items.find((i) => i.idempotencyKey === idempotencyKey && i.status === 'pending');
-    if (!item) return false;
-
-    useEidosStore.getState().removeQueueItem(item.id);
-    broadcastQueueSync({ type: 'remove', id: item.id });
-    await qs().remove(item.id);
-    return true;
-  };
-
   Object.defineProperty(wrapped, 'id', { value: actionId, writable: false });
   Object.defineProperty(wrapped, 'config', { value: config, writable: false });
-  Object.defineProperty(wrapped, 'cancel', { value: cancel, writable: false });
+  Object.defineProperty(wrapped, 'cancel', { value: cancelByIdempotencyKey, writable: false });
 
   return wrapped as unknown as ActionHandle<TArgs, TReturn>;
+}
+
+/**
+ * Cancel an invocation by its `idempotencyKey` (from `ActionContext` /
+ * `onOptimistic`). Aborts the in-flight call if `cancellable: true` and
+ * still running, otherwise removes a not-yet-replayed queued item.
+ * Returns `true` if something was cancelled/removed.
+ *
+ * Shared by every `ActionHandle.cancel()` and by devtools, which can't
+ * address a specific handle from a queue item alone.
+ */
+export async function cancelByIdempotencyKey(idempotencyKey: string): Promise<boolean> {
+  const controller = _inflightControllers.get(idempotencyKey);
+  if (controller) {
+    controller.abort();
+    return true;
+  }
+
+  // Not in flight — check for a not-yet-replayed queued item with this key.
+  const items = await qs().getAll();
+  const item = items.find((i) => i.idempotencyKey === idempotencyKey && i.status === 'pending');
+  if (!item) return false;
+
+  useEidosStore.getState().removeQueueItem(item.id);
+  broadcastQueueSync({ type: 'remove', id: item.id });
+  await qs().remove(item.id);
+  return true;
+}
+
+/**
+ * Reset a `'failed'` queue item back to `'pending'` so the next
+ * `replayQueue()` retries it — clears `error`/`nextRetryAt` and resets
+ * `retryCount` to 0. Returns `true` if the item existed and was failed.
+ * Used by devtools' per-item "Retry" action.
+ */
+export async function requeueItem(id: string): Promise<boolean> {
+  const items = await qs().getAll();
+  const item = items.find((i) => i.id === id);
+  if (!item || item.status !== 'failed') return false;
+
+  const update: Partial<ActionQueueItem> = {
+    status: 'pending',
+    error: undefined,
+    nextRetryAt: undefined,
+    retryCount: 0,
+  };
+  useEidosStore.getState().updateQueueItem(id, update);
+  broadcastQueueSync({ type: 'update', id, update });
+  await qs().update(id, update);
+  return true;
 }
 
 function isJsonSerializable(value: unknown): boolean {

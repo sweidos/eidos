@@ -69,6 +69,25 @@ describe('cacheName propagation', () => {
     expect(s.cacheName).toBe('static-v1');
     expect(s.swStrategy).toBe('cache-first');
   });
+
+  it('version is appended as a suffix to the default cacheName', () => {
+    const s = getStrategy('/test/cachename-version-default', { offline: true, version: 2 });
+    expect(s.cacheName).toBe('eidos-resources-v1-v2');
+  });
+
+  it('version is appended as a suffix to a custom cacheName', () => {
+    const s = getStrategy('/test/cachename-version-custom', {
+      offline: true,
+      cacheName: 'my-bucket',
+      version: 'shape-2',
+    });
+    expect(s.cacheName).toBe('my-bucket-vshape-2');
+  });
+
+  it('omitting version leaves cacheName unsuffixed', () => {
+    const s = getStrategy('/test/cachename-no-version', { offline: true });
+    expect(s.cacheName).toBe('eidos-resources-v1');
+  });
 });
 
 describe('GeneratedStrategy shape', () => {

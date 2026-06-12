@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { action, replayQueue } from '../action';
+import { action, replayQueue, requeueItem } from '../action';
 import { useEidosStore } from '../store';
 import { idbClearQueue, idbGetQueue } from '../idb';
 
@@ -492,6 +492,51 @@ describe('cancellable', () => {
     useEidosStore.setState({ isOnline: true });
     await replayQueue();
     expect(fn).not.toHaveBeenCalled();
+  });
+});
+
+// ── requeueItem ──────────────────────────────────────────────────────────────
+
+describe('requeueItem', () => {
+  it('resets a failed item to pending so the next replay retries it', async () => {
+    const fn = vi.fn().mockImplementation(async () => {
+      throw new Error('always fails');
+    });
+    const wrapped = action(fn, { reliability: 'neverLose', name: 'requeue-failed', maxRetries: 1 });
+
+    useEidosStore.setState({ isOnline: false, swStatus: 'active', resources: {}, queue: [] });
+    await wrapped('x');
+
+    useEidosStore.setState({ isOnline: true });
+    await replayQueue();
+
+    const failedItem = useEidosStore
+      .getState()
+      .queue.find((q) => q.actionName === 'requeue-failed')!;
+    expect(failedItem.status).toBe('failed');
+
+    const requeued = await requeueItem(failedItem.id);
+    expect(requeued).toBe(true);
+
+    const item = useEidosStore.getState().queue.find((q) => q.id === failedItem.id);
+    expect(item?.status).toBe('pending');
+    expect(item?.retryCount).toBe(0);
+    expect(item?.error).toBeUndefined();
+  });
+
+  it('returns false for a non-existent or non-failed item', async () => {
+    useEidosStore.setState({ isOnline: true, swStatus: 'active', resources: {}, queue: [] });
+    expect(await requeueItem('does-not-exist')).toBe(false);
+
+    const fn = vi.fn().mockResolvedValue({});
+    const wrapped = action(fn, { reliability: 'neverLose', name: 'requeue-pending' });
+    useEidosStore.setState({ isOnline: false, swStatus: 'active', resources: {}, queue: [] });
+    await wrapped('x');
+
+    const pendingItem = useEidosStore
+      .getState()
+      .queue.find((q) => q.actionName === 'requeue-pending')!;
+    expect(await requeueItem(pendingItem.id)).toBe(false);
   });
 });
 

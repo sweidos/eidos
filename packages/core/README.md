@@ -160,6 +160,9 @@ const products = resource('/api/products', {
   strategy?: 'cache-first' | 'stale-while-revalidate' | 'network-first',
   cacheName?: string, // custom cache bucket
   maxAge?: number,    // TTL in ms — re-fetch after expiry
+  version?: string | number, // bump when the response shape changes —
+                              // appended to cacheName (e.g. 'eidos-resources-v1-v2')
+                              // so old-shaped cache entries aren't served
 })
 
 await products.fetch()          // Promise<Response>
@@ -211,6 +214,13 @@ const createOrder = action(async (payload: OrderPayload, ctx: ActionContext) => 
 
 // ctx.idempotencyKey is stable across retries — forward as e.g. an
 // `Idempotency-Key` header so the server can dedupe replayed writes.
+
+// Module-level helpers (used by the devtools queue inspector, and usable
+// directly): cancel/remove a queue item by idempotency key, or reset a
+// 'failed' item back to 'pending' for the next replayQueue().
+import { cancelByIdempotencyKey, requeueItem } from '@sweidos/eidos'
+await cancelByIdempotencyKey(idempotencyKey) // true if cancelled/removed
+await requeueItem(queueItemId)               // true if it was 'failed'
 ```
 
 ### React hooks
@@ -418,7 +428,7 @@ Panel shows: live queue state · cache entries · SW status · offline simulatio
 | Offline writes        | IndexedDB queue, auto-replay + backoff via `action()` | Background Sync, you wire it | No built-in mutation queue |
 | Framework support     | React, Svelte, Vue, Next.js, React Native, vanilla JS | Framework-agnostic (SW only) | Per-library                |
 | TanStack Query bridge | `@sweidos/eidos/query` adapter                        | —                            | Native                     |
-| Bundle size (core)    | ~6.2 kB brotli                                        | ~3-6 kB (modular)            | ~13 kB                     |
+| Bundle size (core)    | ~6.3 kB brotli                                        | ~3-6 kB (modular)            | ~13 kB                     |
 
 Not a TanStack Query replacement — `@sweidos/eidos/query` is a thin adapter so
 you keep TQ's cache/devtools while Eidos owns the offline layer. Workbox is a

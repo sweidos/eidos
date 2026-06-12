@@ -69,22 +69,32 @@ work or a new lightweight CI task).
 
 ---
 
-## Phase 2 — Resource Layer Polish
+## Phase 2 — Resource Layer Polish (DONE)
 
 **Goal**: close the gaps identified in `resource()` before SW-codegen
 becomes the marketing centerpiece.
 
-- [ ] Cache key includes a content/version hash so response-shape changes
-      don't serve stale-shaped JSON from old caches.
-- [ ] Fix cross-origin pattern matching in `invalidate()` (currently
-      string equality on absolute URL vs pathname).
-- [ ] Devtools: queue inspector (status, retry countdown, idempotency key,
-      requeue/cancel actions per item).
-- [ ] Offline simulator that intercepts via the SW (real `503`s), not just
-      a `navigator.onLine` flip.
+- [x] Cache key includes a content/version hash so response-shape changes
+      don't serve stale-shaped JSON from old caches. `ResourceConfig.version`
+      appended as `-v{version}` suffix to `cacheName`
+      (`packages/core/src/resource.ts`).
+- [x] Fix cross-origin pattern matching in `invalidate()` — already handled
+      via `isCrossOrigin` check (full-URL test for absolute patterns) in
+      `_invalidate()` (`packages/core/src/resource.ts:107-118`). Landed
+      ahead of this pass during the v2.0.0 `resource()` split.
+- [x] Devtools: queue inspector (status, retry count, idempotency key on
+      hover, requeue/cancel actions per item) — added per-item Cancel
+      (`pending`) and Retry (`failed`) buttons backed by new exported
+      `cancelByIdempotencyKey()` / `requeueItem()`
+      (`packages/core/src/action.ts`, `react/Devtools.tsx`).
+- [x] Offline simulator that intercepts via the SW (real `503`s) — already
+      implemented (`setOfflineSimulation()` → `EIDOS_SIMULATE_OFFLINE` →
+      `eidos-sw.js` `serveOffline()`), wired into devtools' "sim offline"
+      toggle.
 
-**Exit criteria**: a dev can demo "toggle offline → mutate → reconnect →
-watch replay" end-to-end in devtools with zero app-side instrumentation.
+**Exit criteria**: met. A dev can demo "toggle offline → mutate → reconnect
+→ watch replay" end-to-end in devtools with zero app-side instrumentation,
+including per-item cancel/retry and idempotency-key inspection.
 
 ---
 

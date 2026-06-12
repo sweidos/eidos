@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useEidosStatus, useEidosQueue, useEidosQueueStats, useEidosResources } from './hooks';
-import { replayQueue, clearQueue } from '../action';
+import { replayQueue, clearQueue, cancelByIdempotencyKey, requeueItem } from '../action';
 import { setOfflineSimulation } from '../sw-bridge';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -146,6 +146,8 @@ const ICONS = {
   arrowUp: 'M12 19V5M5 12l7-7 7 7',
   arrowDown: 'M12 5v14M19 12l-7 7-7-7',
   clock: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 6v6l4 2',
+  x: 'M18 6 6 18M6 6l12 12',
+  rotateCcw: 'M3 12a9 9 0 1 0 2.6-6.4M3 12V5m0 7h7',
 } as const;
 
 // ── Corner positions ──────────────────────────────────────────────────────────
@@ -475,6 +477,7 @@ function QueueTab({
                 </span>
               )}
               <span
+                title={`idempotencyKey: ${item.idempotencyKey}`}
                 style={{
                   flex: 1,
                   overflow: 'hidden',
@@ -489,6 +492,28 @@ function QueueTab({
                 <span style={{ color: C.muted, fontSize: 10, flexShrink: 0 }}>
                   ×{item.retryCount}/{item.maxRetries}
                 </span>
+              )}
+              {item.status === 'pending' && (
+                <button
+                  onClick={() => void cancelByIdempotencyKey(item.idempotencyKey)}
+                  title="Cancel — remove this item before it's replayed"
+                  aria-label={`Cancel ${item.actionName}`}
+                  {...withFocusRing()}
+                  style={{ ...btn('ghost'), padding: '2px 4px', minHeight: 18, color: C.red }}
+                >
+                  <Icon path={ICONS.x} size={11} />
+                </button>
+              )}
+              {item.status === 'failed' && (
+                <button
+                  onClick={() => void requeueItem(item.id)}
+                  title="Retry — reset for the next replay"
+                  aria-label={`Retry ${item.actionName}`}
+                  {...withFocusRing()}
+                  style={{ ...btn('ghost'), padding: '2px 4px', minHeight: 18, color: C.blue }}
+                >
+                  <Icon path={ICONS.rotateCcw} size={11} />
+                </button>
               )}
             </div>
           ))

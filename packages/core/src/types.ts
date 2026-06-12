@@ -13,6 +13,14 @@ export interface ResourceConfig {
   strategy?: CacheStrategy;
   /** Custom cache bucket name. Defaults to 'eidos-resources-v1'. */
   cacheName?: string;
+  /**
+   * Cache schema version. Bump when the response shape changes so old
+   * cached entries (a different shape) aren't served from a stale bucket.
+   * Appended to `cacheName` as a suffix (e.g. `eidos-resources-v1-v2`).
+   * Old-versioned buckets are left in Cache Storage — clear them via
+   * `caches.delete()` if needed.
+   */
+  version?: string | number;
   /** Max age of cached response in milliseconds. Expired entries trigger a network fetch. */
   maxAge?: number;
 }
