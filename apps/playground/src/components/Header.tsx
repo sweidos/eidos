@@ -63,11 +63,11 @@ export function Header() {
         </div>
 
         {/* Status chips */}
-        <div className="flex flex-wrap items-center gap-2 text-2xs sm:justify-end">
+        <div className="flex flex-wrap items-center gap-2 text-xs sm:justify-end">
           <SearchPalette />
 
           <span
-            className={`hidden items-center gap-1.5 rounded-full border px-2.5 py-1 sm:inline-flex ${
+            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 ${
               swStatus === 'active'
                 ? 'border-eidos-accent/30 text-eidos-accent'
                 : swStatus === 'registering'

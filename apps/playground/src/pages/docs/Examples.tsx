@@ -42,7 +42,6 @@ function Example({
   live,
 }: ExampleProps) {
   const [view, setView] = useState<'code' | 'demo'>('code');
-  const hasDemo = live !== null;
 
   return (
     <Card className="scroll-mt-20 space-y-3" id={slugify(title)}>
@@ -50,48 +49,43 @@ function Example({
         title={title}
         description={description}
         action={
-          hasDemo ? (
-            <div className="inline-flex items-center rounded-full border border-eidos-border p-0.5 text-2xs">
-              <button
-                type="button"
-                onClick={() => setView('code')}
-                className={`rounded-full px-3 py-1 font-medium transition-colors duration-150 cursor-pointer ${
-                  view === 'code'
-                    ? 'bg-eidos-accent-dim text-eidos-accent'
-                    : 'text-eidos-muted hover:text-eidos-text-dim'
-                }`}
-              >
-                Code
-              </button>
-              <button
-                type="button"
-                onClick={() => setView('demo')}
-                className={`rounded-full px-3 py-1 font-medium transition-colors duration-150 cursor-pointer ${
-                  view === 'demo'
-                    ? 'bg-eidos-accent-dim text-eidos-accent'
-                    : 'text-eidos-muted hover:text-eidos-text-dim'
-                }`}
-              >
-                Animated demo
-              </button>
-            </div>
-          ) : undefined
+          <div className="inline-flex items-center rounded-full border border-eidos-border p-0.5 text-2xs">
+            <button
+              type="button"
+              onClick={() => setView('code')}
+              className={`rounded-full px-3 py-1 font-medium transition-colors duration-150 cursor-pointer ${
+                view === 'code'
+                  ? 'bg-eidos-accent-dim text-eidos-accent'
+                  : 'text-eidos-muted hover:text-eidos-text-dim'
+              }`}
+            >
+              Code
+            </button>
+            <button
+              type="button"
+              onClick={() => setView('demo')}
+              className={`rounded-full px-3 py-1 font-medium transition-colors duration-150 cursor-pointer ${
+                view === 'demo'
+                  ? 'bg-eidos-accent-dim text-eidos-accent'
+                  : 'text-eidos-muted hover:text-eidos-text-dim'
+              }`}
+            >
+              Live demo
+            </button>
+          </div>
         }
       />
-      {view === 'code' || !hasDemo ? (
-        <div className="grid gap-3 lg:grid-cols-2">
-          <div className="space-y-2">
-            <p className="text-2xs uppercase tracking-[0.24em] text-eidos-muted">Without Eidos</p>
-            <CodeBlock title={withoutTitle} code={withoutCode} />
-          </div>
-          <div className="space-y-2">
-            <p className="text-2xs uppercase tracking-[0.24em] text-eidos-accent">With Eidos</p>
-            <CodeBlock title={withTitle} code={withCode} />
-          </div>
+      <div className={view === 'code' ? 'grid gap-3 lg:grid-cols-2' : 'hidden'}>
+        <div className="space-y-2">
+          <p className="text-2xs uppercase tracking-[0.24em] text-eidos-muted">Without Eidos</p>
+          <CodeBlock title={withoutTitle} code={withoutCode} />
         </div>
-      ) : (
-        <div className="animate-fade-in">{live}</div>
-      )}
+        <div className="space-y-2">
+          <p className="text-2xs uppercase tracking-[0.24em] text-eidos-accent">With Eidos</p>
+          <CodeBlock title={withTitle} code={withCode} />
+        </div>
+      </div>
+      <div className={view === 'demo' ? 'animate-fade-in' : 'hidden'}>{live}</div>
     </Card>
   );
 }

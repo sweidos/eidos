@@ -1,5 +1,15 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, Wifi, RefreshCw, Database, ShieldCheck, Layers, Zap } from 'lucide-react';
+import {
+  ArrowRight,
+  Wifi,
+  RefreshCw,
+  Database,
+  ShieldCheck,
+  Layers,
+  Zap,
+  BellRing,
+  Gauge,
+} from 'lucide-react';
 import { CodeBlock } from '../components/CodeBlock';
 
 const FEATURES = [
@@ -32,6 +42,18 @@ const FEATURES = [
     title: 'Idempotent replay',
     description:
       'Idempotency keys and replay locks keep retried mutations safe, even across reloads.',
+  },
+  {
+    icon: BellRing,
+    title: 'Web push, built in',
+    description:
+      'Subscribe, route notification clicks, and resubscribe on key rotation — headless and tree-shaken unless imported.',
+  },
+  {
+    icon: Gauge,
+    title: 'Devtools & inspector',
+    description:
+      'Inspect the cache, action queue, and sync status live — drop in a panel or use the full-page inspector.',
   },
   {
     icon: Zap,
@@ -107,7 +129,7 @@ export function Landing() {
           One config surface for caching, queuing, and replay — generated, not hand-rolled.
         </p>
 
-        <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {FEATURES.map(({ icon: Icon, title, description }) => (
             <div
               key={title}

@@ -35,7 +35,7 @@ export function Inspector() {
       title: 'intent declaration',
       note: 'what you write',
       content: (
-        <pre className="text-2xs text-eidos-text leading-relaxed bg-eidos-bg border border-eidos-border p-3">{`resource('${sel.url}', {
+        <pre className="text-2xs text-eidos-text leading-relaxed rounded-lg bg-eidos-bg border border-eidos-border p-3">{`resource('${sel.url}', {
   offline: ${sel.config.offline},${sel.config.strategy ? `\n  strategy: '${sel.config.strategy}',` : ''}
 })`}</pre>
       ),
@@ -45,7 +45,7 @@ export function Inspector() {
       title: 'strategy resolution',
       note: 'what eidos decides',
       content: (
-        <div className="bg-eidos-bg border border-eidos-border p-3">
+        <div className="rounded-lg bg-eidos-bg border border-eidos-border p-3">
           <div className="flex items-center gap-2 text-xs mb-2">
             <code className="text-eidos-muted">
               offline: {String(sel.config.offline)}
@@ -63,7 +63,7 @@ export function Inspector() {
       title: 'sw postmessage',
       note: 'EIDOS_REGISTER_RESOURCE',
       content: (
-        <pre className="text-2xs text-eidos-text-dim leading-relaxed bg-eidos-bg border border-eidos-border p-3">{`{
+        <pre className="text-2xs text-eidos-text-dim leading-relaxed rounded-lg bg-eidos-bg border border-eidos-border p-3">{`{
   type:      'EIDOS_REGISTER_RESOURCE',
   url:       '${sel.url}',
   strategy:  '${sel.strategy.swStrategy}',
@@ -76,7 +76,7 @@ export function Inspector() {
       title: 'runtime behavior',
       note: 'on every matching fetch',
       content: (
-        <div className="bg-eidos-bg border border-eidos-border p-3 space-y-1.5">
+        <div className="rounded-lg bg-eidos-bg border border-eidos-border p-3 space-y-1.5">
           {sel.strategy.behavior.map((step, i) => (
             <div key={i} className="flex gap-2 text-2xs">
               <span className="text-eidos-accent shrink-0 w-3 font-bold">{i + 1}.</span>
@@ -104,7 +104,7 @@ export function Inspector() {
           <button
             key={e.url}
             onClick={() => setSel(e)}
-            className={`text-xs px-3 py-1.5 border transition-colors cursor-pointer ${
+            className={`rounded-full text-xs px-3 py-1.5 border transition-colors cursor-pointer ${
               sel.url === e.url
                 ? 'border-eidos-accent text-eidos-accent bg-eidos-accent-dim'
                 : 'border-eidos-border text-eidos-muted hover:border-eidos-border hover:text-eidos-text-dim'
@@ -116,7 +116,7 @@ export function Inspector() {
       </div>
 
       {/* Steps */}
-      <div className="space-y-0 border border-eidos-border divide-y divide-eidos-border">
+      <div className="space-y-0 rounded-xl border border-eidos-border divide-y divide-eidos-border overflow-hidden">
         {STEPS.map(({ n, title, note, content }) => (
           <div key={n} className="p-4">
             <div className="flex items-center gap-2 mb-3">
@@ -132,7 +132,7 @@ export function Inspector() {
       </div>
 
       {/* Decision tree */}
-      <div className="mt-5 border border-eidos-border">
+      <div className="mt-5 rounded-xl border border-eidos-border overflow-hidden">
         <div className="px-4 py-2 border-b border-eidos-border bg-eidos-surface text-2xs text-eidos-muted uppercase tracking-widest">
           decision tree
         </div>

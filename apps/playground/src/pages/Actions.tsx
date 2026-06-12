@@ -48,7 +48,7 @@ export function Actions() {
           {/* Background Sync badge */}
           <div className="flex items-center gap-2 mt-2">
             <span
-              className={`inline-flex items-center gap-1.5 text-2xs px-2 py-0.5 border transition-colors duration-300 ${
+              className={`inline-flex items-center gap-1.5 rounded-full text-2xs px-2 py-0.5 border transition-colors duration-300 ${
                 bgSyncFlash
                   ? 'border-eidos-accent text-eidos-accent bg-eidos-accent/10'
                   : bgSync
@@ -71,7 +71,7 @@ export function Actions() {
           <button
             onClick={replay}
             disabled={busy}
-            className="flex items-center gap-2 px-3 py-2 bg-eidos-accent text-eidos-bg text-xs font-bold hover:bg-green-400 transition-colors disabled:opacity-50 cursor-pointer shrink-0"
+            className="flex items-center gap-2 rounded-full px-3 py-2 bg-eidos-accent text-eidos-bg text-xs font-bold hover:bg-green-400 transition-colors disabled:opacity-50 cursor-pointer shrink-0"
           >
             <RefreshCw size={11} className={busy ? 'animate-spin' : ''} />
             {busy ? 'replaying...' : `replay ${pending.length}`}
@@ -86,7 +86,7 @@ export function Actions() {
           { label: 'replaying', count: active.length, color: 'text-eidos-blue' },
           { label: 'done', count: done.length, color: 'text-eidos-accent' },
         ].map(({ label, count, color }) => (
-          <div key={label} className="border border-eidos-border px-4 py-3">
+          <div key={label} className="rounded-lg border border-eidos-border px-4 py-3">
             <div className="text-2xs text-eidos-muted uppercase tracking-widest mb-1">{label}</div>
             <div className={`text-2xl font-bold font-tabular ${color}`}>{count}</div>
           </div>
@@ -95,14 +95,14 @@ export function Actions() {
 
       {/* Queue items */}
       {queue.length === 0 ? (
-        <div className="border border-eidos-border p-8 text-center">
+        <div className="rounded-xl border border-eidos-border p-8 text-center">
           <p className="text-sm text-eidos-text mb-1">queue is empty</p>
           <p className="text-xs text-eidos-muted">
             go to overview → simulate offline → submit an order
           </p>
         </div>
       ) : (
-        <div className="border border-eidos-border divide-y divide-eidos-border">
+        <div className="rounded-xl border border-eidos-border divide-y divide-eidos-border overflow-hidden">
           {[...active, ...pending, ...done].map((item) => (
             <QueueItem key={item.id} item={item} />
           ))}
@@ -110,7 +110,7 @@ export function Actions() {
       )}
 
       {/* How it works */}
-      <div className="mt-5 border border-eidos-border bg-eidos-surface p-4">
+      <div className="mt-5 rounded-xl border border-eidos-border bg-eidos-surface p-4">
         <div className="text-2xs text-eidos-muted mb-2">lifecycle</div>
         <pre className="text-2xs text-eidos-text-dim leading-relaxed overflow-x-auto">{`// 1. Declare at module scope
 const createOrder = action(fn, { reliability: 'neverLose', name: 'createOrder' })
@@ -182,7 +182,9 @@ const QueueItem = memo(function QueueItem({ item }: { item: ActionQueueItem }) {
     <div className={`px-4 py-3 text-xs border-l-2 ${borderColor}`}>
       <div className="flex items-center gap-3 mb-1.5">
         <span className="text-eidos-text font-bold">{item.actionName}</span>
-        <span className={`text-2xs border px-1.5 py-0.5 ${statusColor} border-current/30`}>
+        <span
+          className={`rounded-full text-2xs border px-1.5 py-0.5 ${statusColor} border-current/30`}
+        >
           {item.status}
         </span>
       </div>

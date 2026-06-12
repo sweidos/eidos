@@ -17,7 +17,7 @@ export function Resources() {
       </div>
 
       {entries.length === 0 ? (
-        <div className="border border-eidos-border p-8 text-center">
+        <div className="rounded-xl border border-eidos-border p-8 text-center">
           <p className="text-sm text-eidos-text mb-1">no resources registered</p>
           <p className="text-xs text-eidos-muted">
             call{' '}
@@ -30,14 +30,14 @@ export function Resources() {
           </p>
         </div>
       ) : (
-        <div className="border border-eidos-border divide-y divide-eidos-border">
+        <div className="rounded-xl border border-eidos-border divide-y divide-eidos-border overflow-hidden">
           {entries.map((e) => (
             <ResourceRow key={e.url} entry={e} />
           ))}
         </div>
       )}
 
-      <div className="mt-5 border border-eidos-border bg-eidos-surface p-4">
+      <div className="mt-5 rounded-xl border border-eidos-border bg-eidos-surface p-4">
         <div className="text-2xs text-eidos-muted mb-2">registration.ts</div>
         <pre className="text-2xs text-eidos-text-dim leading-relaxed overflow-x-auto">{`import { resource } from '@sweidos/eidos'
 
@@ -95,7 +95,7 @@ function ResourceRow({ entry }: { entry: ResourceEntry }) {
           {open ? '▼' : '▶'}
         </span>
         <span className="text-eidos-text flex-1 font-bold">{entry.url}</span>
-        <span className="text-eidos-muted border border-eidos-border px-2 py-0.5 text-2xs">
+        <span className="text-eidos-muted rounded-full border border-eidos-border px-2 py-0.5 text-2xs">
           {entry.strategy.name}
         </span>
         <span className={`w-16 text-2xs ${statusColor}`}>{entry.status}</span>
@@ -121,7 +121,7 @@ function ResourceRow({ entry }: { entry: ResourceEntry }) {
               ],
               ['hits / misses', `${entry.cacheHits} / ${entry.cacheMisses}`],
             ].map(([l, v]) => (
-              <div key={l} className="border border-eidos-border px-3 py-2">
+              <div key={l} className="rounded-lg border border-eidos-border px-3 py-2">
                 <div className="text-2xs text-eidos-muted uppercase tracking-widest mb-0.5">
                   {l}
                 </div>
