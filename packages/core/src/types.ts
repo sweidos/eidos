@@ -166,12 +166,9 @@ export interface ConflictConfig {
    * - `'serverWins'`: drop the queued item, keeping the server's state.
    * - `'clientWins'`: keep retrying — the client's write should eventually
    *   be accepted (e.g. once the server-side conflict is cleared).
-   * - `'lastWriteWins'`: same as `'clientWins'` for now — requires a
-   *   server-supplied timestamp contract to compare against `queuedAt`
-   *   (see Phase 3 of the roadmap). Treated as `'clientWins'` until then.
    * - `'merge'` / `'custom'`: call `resolve` to decide.
    */
-  strategy: 'serverWins' | 'clientWins' | 'lastWriteWins' | 'merge' | 'custom';
+  strategy: 'serverWins' | 'clientWins' | 'merge' | 'custom';
   /** Required for `'merge'` and `'custom'`. */
   resolve?: (ctx: ConflictContext) => ConflictResolution;
 }

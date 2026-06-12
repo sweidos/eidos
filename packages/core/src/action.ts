@@ -320,7 +320,6 @@ async function _resolveConflict(
         resolution = 'skip';
         break;
       case 'clientWins':
-      case 'lastWriteWins':
         resolution = 'retry';
         break;
       case 'merge':
