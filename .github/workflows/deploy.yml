@@ -136,8 +136,9 @@ jobs:
       - name: Publish to GitHub Packages
         if: steps.check.outputs.publish == 'true'
         run: |
-          pnpm config set //npm.pkg.github.com/:_authToken ${{ secrets.GITHUB_TOKEN }}
-          pnpm --filter @sweidos/eidos publish --registry https://npm.pkg.github.com/ --no-git-checks
+          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" > ~/.npmrc
+          echo "@sweidos:registry=https://npm.pkg.github.com" >> ~/.npmrc
+          pnpm --filter @sweidos/eidos publish --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
