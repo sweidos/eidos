@@ -25,7 +25,7 @@
   ],
   "homepage": "https://sweidos.vercel.app/overview",
   "bugs": {
-    "url": "https://github.com/iamadi11/eidos/issues"
+    "url": "https://github.com/sweidos/eidos/issues"
   },
   "funding": {
     "type": "github",
@@ -36,7 +36,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/iamadi11/eidos.git",
+    "url": "https://github.com/sweidos/eidos.git",
     "directory": "packages/core"
   },
   "main": "./dist/eidos.cjs",

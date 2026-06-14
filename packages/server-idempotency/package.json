@@ -51,13 +51,13 @@
     "offline",
     "neverLose"
   ],
-  "homepage": "https://github.com/iamadi11/eidos/tree/main/packages/server-idempotency#readme",
+  "homepage": "https://github.com/sweidos/eidos/tree/main/packages/server-idempotency#readme",
   "bugs": {
-    "url": "https://github.com/iamadi11/eidos/issues"
+    "url": "https://github.com/sweidos/eidos/issues"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/iamadi11/eidos.git",
+    "url": "https://github.com/sweidos/eidos.git",
     "directory": "packages/server-idempotency"
   },
   "engines": {
