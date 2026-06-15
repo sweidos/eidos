@@ -13,7 +13,7 @@ Only the latest published version of `@sweidos/eidos` on npm receives security f
 
 Please **do not open a public issue** for security vulnerabilities.
 
-Instead, report it privately via [GitHub Security Advisories](https://github.com/iamadi11/eidos/security/advisories/new) for this repository.
+Instead, report it privately via [GitHub Security Advisories](https://github.com/sweidos/eidos/security/advisories/new) for this repository.
 
 Include as much detail as possible:
 

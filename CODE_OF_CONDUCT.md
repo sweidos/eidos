@@ -51,7 +51,7 @@ representing the community in public spaces.
 ## Enforcement
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
-reported to the maintainers via a [GitHub Security Advisory](https://github.com/iamadi11/eidos/security/advisories/new)
+reported to the maintainers via a [GitHub Security Advisory](https://github.com/sweidos/eidos/security/advisories/new)
 or by opening a confidential issue. All complaints will be reviewed and
 investigated promptly and fairly.
 
