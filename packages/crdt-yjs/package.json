@@ -1,0 +1,56 @@
+{
+  "name": "@eidos/crdt-yjs",
+  "version": "0.1.0",
+  "description": "Yjs-backed merge conflict resolver for Eidos action() — automatic CRDT merge for 'merge'/'custom' conflict strategies.",
+  "author": "Aditya Raj",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@sweidos/eidos": "workspace:*",
+    "@types/node": "^20.0.0",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.8",
+    "yjs": "^13.6.0"
+  },
+  "peerDependencies": {
+    "@sweidos/eidos": ">=2.0.0",
+    "yjs": ">=13.6.0"
+  },
+  "keywords": [
+    "eidos",
+    "crdt",
+    "yjs",
+    "conflict-resolution",
+    "merge",
+    "offline",
+    "neverLose"
+  ],
+  "homepage": "https://github.com/sweidos/eidos/tree/main/packages/crdt-yjs#readme",
+  "bugs": {
+    "url": "https://github.com/sweidos/eidos/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sweidos/eidos.git",
+    "directory": "packages/crdt-yjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
