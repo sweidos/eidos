@@ -35,6 +35,8 @@ jobs:
         run: pnpm --filter @sweidos/eidos test
       - name: Build core
         run: pnpm build:core
+      - name: Build server-idempotency
+        run: pnpm --filter @sweidos/server-idempotency build
       - name: Type-check all
         run: pnpm type-check
       - name: Test other packages
