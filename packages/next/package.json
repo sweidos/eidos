@@ -1,0 +1,59 @@
+{
+  "name": "@eidos/next",
+  "version": "0.1.0",
+  "description": "Next.js Server Actions integration for Eidos action() — neverLose wrapper, idempotency context for Server Action bodies.",
+  "author": "Aditya Raj",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@sweidos/eidos": "workspace:*",
+    "@types/node": "^20.0.0",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.8"
+  },
+  "peerDependencies": {
+    "@sweidos/eidos": ">=2.0.0",
+    "next": ">=14"
+  },
+  "peerDependenciesMeta": {
+    "next": {
+      "optional": true
+    }
+  },
+  "keywords": [
+    "eidos",
+    "nextjs",
+    "server-actions",
+    "offline",
+    "idempotency",
+    "neverLose"
+  ],
+  "homepage": "https://github.com/sweidos/eidos/tree/main/packages/next#readme",
+  "bugs": {
+    "url": "https://github.com/sweidos/eidos/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sweidos/eidos.git",
+    "directory": "packages/next"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
