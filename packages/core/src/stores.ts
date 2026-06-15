@@ -14,7 +14,7 @@
 import { useEidosStore } from './store';
 import type { EidosStore } from './store';
 import { countQueueByStatus } from './types';
-import type { ActionQueueItem, ResourceEntry } from './types';
+import type { ActionQueueItem, ResourceEntry, ReliabilityStats } from './types';
 
 // ── Readable<T> — compatible with Svelte's Readable interface ─────────────────
 
@@ -92,6 +92,16 @@ export const eidosQueueStats: EidosReadable<{
   total: number;
 }> = readable((s) => countQueueByStatus(s.queue), shallowEq);
 
+/**
+ * Cumulative, session-scoped `neverLose` queue outcome counters — opt-in
+ * reliability telemetry. Re-emits only when a counter changes. See
+ * `EidosConfig.onReliabilityReport` to forward these to an analytics backend.
+ */
+export const eidosReliabilityStats: EidosReadable<ReliabilityStats> = readable(
+  (s) => s.reliability,
+  shallowEq,
+);
+
 // ── Dynamic stores (created per URL / ID) ─────────────────────────────────────
 
 /**
@@ -115,4 +125,22 @@ export function eidosResource(url: string): EidosReadable<ResourceEntry | undefi
  */
 export function eidosAction(id: string): EidosReadable<ActionQueueItem | undefined> {
   return readable((s) => s.queue.find((item) => item.id === id));
+}
+
+/**
+ * Calls `callback` once each time the action queue drains from non-empty → 0.
+ * Framework-agnostic equivalent of `useEidosOnDrain` for Svelte/Vue/vanilla.
+ * Returns an unsubscribe function.
+ *
+ * @example
+ *   // Svelte
+ *   onMount(() => onQueueDrain(() => toast.success('All offline actions synced!')))
+ */
+export function onQueueDrain(callback: () => void): () => void {
+  let prev = useEidosStore.getState().queue.length;
+  return useEidosStore.subscribe(() => {
+    const total = useEidosStore.getState().queue.length;
+    if (prev > 0 && total === 0) callback();
+    prev = total;
+  });
 }

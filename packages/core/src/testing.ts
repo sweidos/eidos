@@ -201,6 +201,6 @@ export async function resetEidos(): Promise<void> {
  * expect(getEidosState().queue).toHaveLength(1)
  */
 export function getEidosState(): EidosState {
-  const { isOnline, swStatus, swError, resources, queue } = useEidosStore.getState();
-  return { isOnline, swStatus, swError, resources, queue };
+  const { isOnline, swStatus, swError, resources, queue, reliability } = useEidosStore.getState();
+  return { isOnline, swStatus, swError, resources, queue, reliability };
 }

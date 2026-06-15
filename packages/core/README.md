@@ -7,9 +7,9 @@
 [![CI](https://github.com/sweidos/eidos/actions/workflows/deploy.yml/badge.svg)](https://github.com/sweidos/eidos/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-22C55E.svg)](LICENSE)
 
-> **Describe intent. The runtime figures out how.**
+> **Never lose a write.**
 
-Declare what your app needs offline. Eidos picks the cache strategy, registers the Service Worker, and persists your action queue to IndexedDB — automatically.
+Declare what your app needs offline. Eidos picks the cache strategy, registers the Service Worker, and persists your action queue to IndexedDB — with idempotency keys and cross-tab replay locks built in, so a queued mutation runs exactly once.
 
 ```ts
 import { resource, action } from '@sweidos/eidos';
@@ -135,16 +135,19 @@ if ('queued' in result) {
 
 ## Framework support
 
-| Framework              | Import path                   | Notes                                                          |
-| ---------------------- | ----------------------------- | -------------------------------------------------------------- |
-| **React**              | `@sweidos/eidos`              | Hooks + `EidosProvider`                                        |
-| **Next.js App Router** | `@sweidos/eidos/nextjs`       | Pre-marked `'use client'` — no wrapper needed                  |
-| **SvelteKit**          | `@sweidos/eidos/sveltekit`    | `initEidosSvelteKit()` in `onMount`, framework-agnostic stores |
-| **Vue**                | `@sweidos/eidos`              | Framework-agnostic stores via `eidosStatus.subscribe()`        |
-| **React Native**       | `@sweidos/eidos/react-native` | AsyncStorage-backed queue, same `action()` API                 |
-| **Vanilla JS**         | `@sweidos/eidos`              | `eidosStatus`, `eidosQueue`, `eidosQueueStats` stores          |
-| **Vite**               | `@sweidos/eidos/vite`         | Plugin auto-copies `eidos-sw.js` on every build                |
-| **TanStack Query**     | `@sweidos/eidos/query`        | `useEidosQuery`, `useEidosMutation`, `withEidosQueryClient`    |
+| Framework                  | Import path                   | Notes                                                          |
+| -------------------------- | ----------------------------- | -------------------------------------------------------------- |
+| **React**                  | `@sweidos/eidos`              | Hooks + `EidosProvider`                                        |
+| **Next.js App Router**     | `@sweidos/eidos/nextjs`       | Pre-marked `'use client'` — no wrapper needed                  |
+| **Next.js Server Actions** | `@eidos/next`                 | `serverAction()` neverLose wrapper + idempotency context       |
+| **SvelteKit**              | `@sweidos/eidos/sveltekit`    | `initEidosSvelteKit()` in `onMount`, framework-agnostic stores |
+| **Vue**                    | `@sweidos/eidos`              | Framework-agnostic stores via `eidosStatus.subscribe()`        |
+| **React Native**           | `@sweidos/eidos/react-native` | AsyncStorage-backed queue, same `action()` API                 |
+| **Vanilla JS**             | `@sweidos/eidos`              | `eidosStatus`, `eidosQueue`, `eidosQueueStats` stores          |
+| **Vite**                   | `@sweidos/eidos/vite`         | Plugin auto-copies `eidos-sw.js` on every build                |
+| **CRDT merge (Yjs)**       | `@eidos/crdt-yjs`             | `createYjsMergeResolver()` for `conflict.strategy: 'merge'`    |
+| **TanStack Query**         | `@sweidos/eidos/query`        | `useEidosQuery`, `useEidosMutation`, `withEidosQueryClient`    |
+| **Tauri / Electron**       | `@eidos/sqlite-storage`       | SQLite-backed `QueueStorage`, same `action()` API              |
 
 ---
 
@@ -231,6 +234,9 @@ const { pending, failed } = useEidosQueueStats();
 const entry = useEidosResource('/api/products');
 const item = useEidosAction(queuedResult.id);
 useEidosOnDrain(() => toast('All offline actions synced!'));
+
+// Cumulative neverLose outcome counters (queued/succeeded/failed/retried/conflicted/cancelled)
+const { queued, succeeded, failed: failedCount } = useEidosReliabilityStats();
 ```
 
 ### Framework-agnostic stores
@@ -241,7 +247,24 @@ eidosStatus.subscribe(({ isOnline }) => { ... })
 eidosQueue.subscribe((queue) => { ... })
 eidosQueueStats.getState() // { pending, failed, replaying, total }
 eidosResource('/api/products').getState() // ResourceEntry | undefined
+onQueueDrain(() => toast('All offline actions synced!')) // returns unsubscribe
+eidosReliabilityStats.getState() // { queued, succeeded, failed, retried, conflicted, cancelled }
 ```
+
+### Reliability telemetry
+
+Opt in to periodic reporting of cumulative `neverLose` queue outcomes — wire it
+up to your analytics backend:
+
+```ts
+initEidos({
+  onReliabilityReport: (stats) => analytics.track('eidos_reliability', stats),
+  reliabilityReportInterval: 60_000, // default
+});
+```
+
+The same counters are visible live in `<EidosDevtools />` under the
+"Reliability" tab.
 
 ---
 
@@ -402,9 +425,15 @@ Panel shows: live queue state · cache entries · SW status · offline simulatio
 
 **Next.js** — import from `@sweidos/eidos/nextjs`. Pre-marked `'use client'`, works in App Router layouts without a wrapper.
 
+**Next.js Server Actions** — `@eidos/next`'s `serverAction()` wraps a `'use server'` function with `action()` (`reliability: 'neverLose'` by default), keyed by `config.name` + `config.namespace`. `getActionContext()` / `idempotencyHeaders()` recover the `idempotencyKey`/`attempt` inside the action body.
+
 **SvelteKit** — `initEidosSvelteKit()` inside `onMount`. Framework-agnostic stores (`$eidosQueue`, `$eidosStatus`) work with Svelte's `$` auto-subscribe.
 
 **React Native** — `@sweidos/eidos/react-native` with AsyncStorage-backed queue. Same `action()` API surface, no Service Worker dependency.
+
+**Tauri / Electron** — `@eidos/sqlite-storage` with a SQLite-backed `QueueStorage`. Pass a `@tauri-apps/plugin-sql` `Database` directly, or wrap `better-sqlite3` with the `SqliteLike` interface. Same `action()` API surface, no Service Worker dependency.
+
+**CRDT merge (Yjs)** — `@eidos/crdt-yjs`'s `createYjsMergeResolver()` builds a `conflict.resolve` for the `'merge'`/`'custom'` strategy that applies the server's Yjs state and the queued local update to a `Y.Doc`, then rewrites the queued args with the merged update — automatic, loss-free reconciliation of concurrent edits instead of a hand-written `resolve()`.
 
 ---
 
@@ -428,7 +457,7 @@ Panel shows: live queue state · cache entries · SW status · offline simulatio
 | Offline writes        | IndexedDB queue, auto-replay + backoff via `action()` | Background Sync, you wire it | No built-in mutation queue |
 | Framework support     | React, Svelte, Vue, Next.js, React Native, vanilla JS | Framework-agnostic (SW only) | Per-library                |
 | TanStack Query bridge | `@sweidos/eidos/query` adapter                        | —                            | Native                     |
-| Bundle size (core)    | ~6.3 kB brotli                                        | ~3-6 kB (modular)            | ~13 kB                     |
+| Bundle size (core)    | ~6.5 kB brotli                                        | ~3-6 kB (modular)            | ~13 kB                     |
 
 Not a TanStack Query replacement — `@sweidos/eidos/query` is a thin adapter so
 you keep TQ's cache/devtools while Eidos owns the offline layer. Workbox is a

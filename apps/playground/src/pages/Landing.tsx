@@ -14,16 +14,22 @@ import { CodeBlock } from '../components/CodeBlock';
 
 const FEATURES = [
   {
-    icon: Database,
-    title: 'resource()',
+    icon: ShieldCheck,
+    title: 'neverLose reliability',
     description:
-      'Declare a fetchable endpoint once. Eidos handles caching strategy, freshness, and offline reads automatically.',
+      'Idempotency keys on every retry, Web Locks-coordinated replay across tabs, and queue schema migration — a queued write executes exactly once.',
   },
   {
     icon: RefreshCw,
     title: 'action()',
     description:
-      'Mutations queue when offline and replay in order once the network returns — with conflict-resolution presets.',
+      'Mutations queue when offline and replay in order once the network returns — with conflict-resolution presets (serverWins, clientWins, merge, custom).',
+  },
+  {
+    icon: Database,
+    title: 'resource()',
+    description:
+      'Declare a fetchable endpoint once. Eidos handles caching strategy, freshness, and offline reads automatically.',
   },
   {
     icon: Wifi,
@@ -38,10 +44,10 @@ const FEATURES = [
       'cache-first, network-first, and stale-while-revalidate — pick per resource, no boilerplate.',
   },
   {
-    icon: ShieldCheck,
-    title: 'Idempotent replay',
+    icon: Zap,
+    title: 'Every runtime, one queue contract',
     description:
-      'Idempotency keys and replay locks keep retried mutations safe, even across reloads.',
+      'React, Next.js Server Actions, SvelteKit, Vue, React Native, and Tauri/Electron (SQLite-backed queue) — all share the same neverLose guarantees.',
   },
   {
     icon: BellRing,
@@ -53,13 +59,7 @@ const FEATURES = [
     icon: Gauge,
     title: 'Devtools & inspector',
     description:
-      'Inspect the cache, action queue, and sync status live — drop in a panel or use the full-page inspector.',
-  },
-  {
-    icon: Zap,
-    title: 'Framework-agnostic',
-    description:
-      'React hooks ship today. Stores follow the Svelte contract — works with Vue and vanilla JS too.',
+      'Live queue, cache state, and offline simulation — plus per-item cancel/retry and idempotency-key inspection.',
   },
 ] as const;
 
@@ -70,10 +70,13 @@ export const products = resource('/api/products', {
   strategy: 'stale-while-revalidate',
 })
 
-export const createOrder = action('/api/orders', {
-  method: 'POST',
-  conflict: 'last-write-wins',
-})
+export const createOrder = action(
+  async (payload: OrderPayload) => {
+    const res = await fetch('/api/orders', { method: 'POST', body: JSON.stringify(payload) })
+    return res.json()
+  },
+  { reliability: 'neverLose', name: 'createOrder' },
+)
 
 const data = await products.json<Product[]>()`;
 
@@ -83,19 +86,20 @@ export function Landing() {
       {/* Hero */}
       <section className="flex flex-col items-center text-center">
         <span className="inline-flex items-center gap-1.5 rounded-full border border-eidos-border px-3 py-1 text-2xs text-eidos-muted">
-          <Zap size={11} className="text-eidos-accent" />
-          Offline-first, declared in minutes
+          <ShieldCheck size={11} className="text-eidos-accent" />
+          Idempotent by default, even offline
         </span>
 
         <h1 className="mt-6 max-w-3xl text-4xl font-bold leading-tight tracking-tight text-eidos-text sm:text-5xl md:text-6xl">
-          Offline-first, <span className="text-eidos-accent">made declarative</span>
+          Never lose a <span className="text-eidos-accent">write</span>
         </h1>
 
         <p className="mt-5 max-w-2xl text-base text-eidos-text-dim sm:text-md">
           <code className="font-mono text-eidos-blue">resource()</code> and{' '}
           <code className="font-mono text-eidos-blue">action()</code> replace 200 lines of Workbox
-          config, IndexedDB schema, and retry logic. Works with React, Next.js, Svelte, Vue, and
-          React Native.
+          config, IndexedDB schema, and retry logic — with idempotency keys and cross-tab replay
+          locks built in, so a queued mutation runs exactly once. Works with React, Next.js Server
+          Actions, SvelteKit, Vue, React Native, and Tauri/Electron.
         </p>
 
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
@@ -123,10 +127,11 @@ export function Landing() {
       {/* Feature bento grid */}
       <section className="mt-16 sm:mt-24">
         <h2 className="text-center text-2xl font-bold text-eidos-text sm:text-3xl">
-          Everything offline-first needs, declared
+          A reliability core, not just a cache
         </h2>
         <p className="mx-auto mt-3 max-w-xl text-center text-sm text-eidos-muted">
-          One config surface for caching, queuing, and replay — generated, not hand-rolled.
+          One config surface for caching, queuing, and replay — with the idempotency, locking, and
+          conflict-resolution guarantees payments and inventory writes need.
         </p>
 
         <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -148,11 +153,12 @@ export function Landing() {
       {/* Final CTA */}
       <section className="mt-16 flex flex-col items-center rounded-2xl border border-eidos-border bg-eidos-surface/60 px-6 py-12 text-center sm:mt-24">
         <h2 className="text-2xl font-bold text-eidos-text sm:text-3xl">
-          Ship offline support without the boilerplate
+          Ship writes that survive offline, reloads, and retries
         </h2>
         <p className="mt-3 max-w-lg text-sm text-eidos-muted">
           Install <code className="font-mono text-eidos-blue">@sweidos/eidos</code> and declare your
-          first resource in under five minutes.
+          first <code className="font-mono text-eidos-blue">neverLose</code> action in under five
+          minutes.
         </p>
         <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
           <Link

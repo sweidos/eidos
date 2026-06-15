@@ -233,6 +233,7 @@ async function persistAndQueue<TArgs extends any[]>(
 
   await qs().add(item);
   useEidosStore.getState().addQueueItem(item);
+  useEidosStore.getState().recordReliabilityEvent('queued');
 
   // Register Background Sync tag so the browser can wake up open clients
   // when connectivity returns, even if the user navigated away briefly.
@@ -322,6 +323,7 @@ async function _markSucceeded(
 ): Promise<void> {
   const completedAt = Date.now();
   store.updateQueueItem(item.id, { status: 'succeeded', completedAt });
+  store.recordReliabilityEvent('succeeded');
   broadcastQueueSync({ type: 'update', id: item.id, update: { status: 'succeeded', completedAt } });
   await qs().update(item.id, { status: 'succeeded', completedAt });
 
@@ -370,6 +372,7 @@ async function _resolveConflict(
 
   if (resolution === 'skip') {
     store.removeQueueItem(item.id);
+    store.recordReliabilityEvent('conflicted');
     broadcastQueueSync({ type: 'remove', id: item.id });
     await qs().remove(item.id);
     return 'conflicted';
@@ -393,6 +396,7 @@ async function _scheduleRetryOrFail(
   if (retryCount >= item.maxRetries) {
     const update = { status: 'failed' as const, error: String(err), retryCount };
     store.updateQueueItem(item.id, update);
+    store.recordReliabilityEvent('failed');
     broadcastQueueSync({ type: 'update', id: item.id, update });
     await qs().update(item.id, update);
     const ctx: ActionContext = { idempotencyKey: item.idempotencyKey, attempt: retryCount };
@@ -403,6 +407,7 @@ async function _scheduleRetryOrFail(
   const nextRetryAt = Date.now() + backoffMs(retryCount);
   const update = { status: 'pending' as const, retryCount, nextRetryAt };
   store.updateQueueItem(item.id, update);
+  store.recordReliabilityEvent('retried');
   broadcastQueueSync({ type: 'update', id: item.id, update });
   await qs().update(item.id, update);
   return 'retrying';
@@ -437,6 +442,7 @@ async function _replayItem(
     // Cancelled via handle.cancel(idempotencyKey) — drop the item, no rollback/retry.
     if (isAbortError(err)) {
       store.removeQueueItem(item.id);
+      store.recordReliabilityEvent('cancelled');
       broadcastQueueSync({ type: 'remove', id: item.id });
       await qs().remove(item.id);
       return 'cancelled';

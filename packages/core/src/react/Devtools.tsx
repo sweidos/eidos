@@ -1,5 +1,11 @@
 import { useState, useCallback } from 'react';
-import { useEidosStatus, useEidosQueue, useEidosQueueStats, useEidosResources } from './hooks';
+import {
+  useEidosStatus,
+  useEidosQueue,
+  useEidosQueueStats,
+  useEidosResources,
+  useEidosReliabilityStats,
+} from './hooks';
 import { replayQueue, clearQueue, cancelByIdempotencyKey, requeueItem } from '../action';
 import { setOfflineSimulation } from '../sw-bridge';
 
@@ -12,7 +18,7 @@ export interface EidosDevtoolsProps {
   defaultOpen?: boolean;
 }
 
-type Tab = 'queue' | 'cache';
+type Tab = 'queue' | 'cache' | 'reliability';
 
 // ── Colours ───────────────────────────────────────────────────────────────────
 
@@ -148,6 +154,7 @@ const ICONS = {
   clock: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 6v6l4 2',
   x: 'M18 6 6 18M6 6l12 12',
   rotateCcw: 'M3 12a9 9 0 1 0 2.6-6.4M3 12V5m0 7h7',
+  activity: 'M22 12h-4l-3 9L9 3l-3 9H2',
 } as const;
 
 // ── Corner positions ──────────────────────────────────────────────────────────
@@ -175,6 +182,7 @@ export function EidosDevtools({
   const { pending, failed, replaying } = useEidosQueueStats();
   const resources = useEidosResources();
   const resourceList = Object.values(resources);
+  const reliability = useEidosReliabilityStats();
 
   const badgeCount = pending + failed + replaying;
 
@@ -367,7 +375,7 @@ export function EidosDevtools({
             background: C.surface,
           }}
         >
-          {(['queue', 'cache'] as Tab[]).map((t) => (
+          {(['queue', 'cache', 'reliability'] as Tab[]).map((t) => (
             <button
               key={t}
               role="tab"
@@ -391,7 +399,11 @@ export function EidosDevtools({
                 transition: 'color 0.15s, border-color 0.15s',
               }}
             >
-              {t === 'queue' ? `Queue (${queue.length})` : `Cache (${resourceList.length})`}
+              {t === 'queue'
+                ? `Queue (${queue.length})`
+                : t === 'cache'
+                  ? `Cache (${resourceList.length})`
+                  : 'Reliability'}
             </button>
           ))}
         </div>
@@ -400,8 +412,10 @@ export function EidosDevtools({
         <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
           {tab === 'queue' ? (
             <QueueTab queue={queue} onReplay={handleReplay} onClear={handleClear} />
-          ) : (
+          ) : tab === 'cache' ? (
             <CacheTab resources={resourceList} />
+          ) : (
+            <ReliabilityTab stats={reliability} />
           )}
         </div>
       </div>
@@ -585,6 +599,65 @@ function CacheTab({ resources }: { resources: ReturnType<typeof useEidosResource
           </div>
         ))
       )}
+    </div>
+  );
+}
+
+// ── Reliability tab ──────────────────────────────────────────────────────────
+
+function ReliabilityTab({ stats }: { stats: ReturnType<typeof useEidosReliabilityStats> }) {
+  const rows: Array<{ label: string; key: keyof typeof stats; color: string }> = [
+    { label: 'Queued', key: 'queued', color: C.blue },
+    { label: 'Succeeded', key: 'succeeded', color: C.green },
+    { label: 'Retried', key: 'retried', color: C.yellow },
+    { label: 'Failed', key: 'failed', color: C.red },
+    { label: 'Conflicted', key: 'conflicted', color: C.purple },
+    { label: 'Cancelled', key: 'cancelled', color: C.muted },
+  ];
+
+  const total = stats.queued;
+  const successRate = total > 0 ? Math.round((stats.succeeded / total) * 100) : null;
+
+  return (
+    <div>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: '8px 12px',
+          borderBottom: `1px solid ${C.border}`,
+        }}
+      >
+        <span style={{ color: C.muted, display: 'inline-flex' }}>
+          <Icon path={ICONS.activity} size={12} />
+        </span>
+        <span style={{ color: C.muted, fontSize: 10 }}>
+          {successRate === null
+            ? 'No queued actions yet this session'
+            : `${successRate}% succeeded`}
+        </span>
+      </div>
+      {rows.map(({ label, key, color }) => (
+        <div
+          key={key}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '7px 12px',
+            borderBottom: `1px solid ${C.border}`,
+          }}
+        >
+          <span style={{ color: C.text }}>{label}</span>
+          <span style={pill(color)}>{stats[key]}</span>
+        </div>
+      ))}
+      <div style={{ padding: '8px 12px', color: C.muted, fontSize: 10 }}>
+        Session-only counters — reset on reload. Wire up{' '}
+        <code style={{ color: C.cyan }}>onReliabilityReport</code> in{' '}
+        <code style={{ color: C.cyan }}>initEidos()</code> to forward these to analytics.
+      </div>
     </div>
   );
 }

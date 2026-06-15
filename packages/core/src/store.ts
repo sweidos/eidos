@@ -1,8 +1,13 @@
 import type { EidosState } from './types';
-import { createResourceActions, createQueueActions } from './store-slices';
-import type { ResourceActions, QueueActions } from './store-slices';
+import { emptyReliabilityStats } from './types';
+import {
+  createResourceActions,
+  createQueueActions,
+  createReliabilityActions,
+} from './store-slices';
+import type { ResourceActions, QueueActions, ReliabilityActions } from './store-slices';
 
-export interface EidosStore extends EidosState, ResourceActions, QueueActions {
+export interface EidosStore extends EidosState, ResourceActions, QueueActions, ReliabilityActions {
   // Online
   setOnline: (online: boolean) => void;
   // SW
@@ -30,6 +35,7 @@ _state = {
   swError: undefined,
   resources: {},
   queue: [],
+  reliability: emptyReliabilityStats(),
 
   setOnline: (isOnline) => _set(() => ({ isOnline })),
 
@@ -37,6 +43,7 @@ _state = {
 
   ...createResourceActions(_set),
   ...createQueueActions(_set),
+  ...createReliabilityActions(_set),
 };
 
 function _getState() {

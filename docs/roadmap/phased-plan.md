@@ -123,17 +123,32 @@ demo` replays a duplicate charge and shows a one-entry ledger, and
 
 **Goal**: framework adapters built on a core that's actually hardened.
 
-- [ ] `@eidos/next` — Server Actions integration using the action's stable
-      reference (file path + export) as `actionId`, sidestepping the
-      namespacing issue from Phase 1 in the Next.js context.
-- [ ] `@eidos/sqlite-storage` — `QueueStorage` adapter for Tauri/Electron
-      (interface already supports this — low risk once Phase 1 is settled).
-- [ ] Re-evaluate Svelte/Vue store parity now that `action()` context arg
-      is part of the contract.
+- [x] `@eidos/next` — Server Actions integration. `serverAction()` wraps
+      `action()` with `reliability: 'neverLose'` by default, requiring
+      `config.name` (+ optional `config.namespace`) for a stable `actionId`,
+      sidestepping the namespacing issue from Phase 1 in the Next.js context.
+      `getActionContext()` / `idempotencyHeaders()` recover the
+      `idempotencyKey`/`attempt` inside the Server Action body for forwarding
+      to `@eidos/server-idempotency`.
+- [x] `@eidos/sqlite-storage` — `QueueStorage` adapter for Tauri/Electron.
+      `SqliteLike` interface is satisfied directly by `@tauri-apps/plugin-sql`,
+      or by a thin wrapper around `better-sqlite3`. Stores each queue item as
+      a JSON blob with a denormalized `status` column for `getPending()`.
+- [x] Re-evaluate Svelte/Vue store parity now that `action()` context arg
+      is part of the contract. `ActionQueueItem.idempotencyKey` and
+      `schemaVersion` were already exposed via `eidosQueue`/`eidosAction`
+      (plain data, no React dependency), and `cancelByIdempotencyKey()` /
+      `requeueItem()` are framework-agnostic exports — no gap there. The one
+      real gap: `useEidosOnDrain` had no Svelte/Vue/vanilla equivalent. Added
+      `onQueueDrain()` to `stores.ts` (subscription-based, returns an
+      unsubscribe fn); `useEidosOnDrain` now delegates to it.
 
 **Exit criteria**: each adapter ships with its own test suite exercising
 the idempotency + multi-tab guarantees from Phase 0/1 (not just happy-path
-wiring).
+wiring). Met — `@eidos/next` and `@eidos/sqlite-storage` both have test
+suites; `onQueueDrain` covered in `stores.test.ts`.
+
+**Phase 4 status: DONE.**
 
 ---
 
@@ -141,11 +156,45 @@ wiring).
 
 **Goal**: convert the hardened core into adoption.
 
-- [ ] Landing page: "never lose a write" framing (see architecture review
-      Part 12 from prior session — positioning options).
-- [ ] Reliability dashboard (opt-in telemetry of queue success/failure
-      rates).
-- [ ] CRDT merge strategy package (`@eidos/crdt-yjs`) — last, niche.
+- [x] Landing page: "never lose a write" framing. Hero badge/h1/subhead in
+      `apps/playground/src/pages/Landing.tsx` lead with the reliability story
+      (idempotency keys, cross-tab replay locks) instead of generic
+      "declarative offline-first"; feature grid reordered to put `neverLose`
+      reliability first and adds the new `@eidos/next` / `@eidos/sqlite-storage`
+      adapters. Root `README.md` tagline updated to match
+      (`packages/core/README.md` is generated from it via `build:core`). Also
+      fixed the landing page's `action()` code sample, which used a stale
+      pre-v2 signature (`action('/api/orders', { method, conflict })`).
+- [x] Reliability dashboard (opt-in telemetry of queue success/failure
+      rates). New `ReliabilityStats` (`queued`/`succeeded`/`failed`/`retried`/
+      `conflicted`/`cancelled`) tracked in `EidosState.reliability`, updated at
+      every queue/replay outcome in `action.ts`. Exposed via
+      `eidosReliabilityStats` (framework-agnostic) and
+      `useEidosReliabilityStats()` (React). Opt-in
+      `EidosConfig.onReliabilityReport(stats)` +
+      `reliabilityReportInterval` in `initEidos()` periodically reports a
+      snapshot for forwarding to analytics. `<EidosDevtools />` gained a
+      "Reliability" tab showing live counters and success rate.
+- [x] CRDT merge strategy package (`@eidos/crdt-yjs`) — `createYjsMergeResolver()`
+      builds a `ConflictConfig.resolve` for `'merge'`/`'custom'` strategies:
+      applies the server's Yjs state (from a `409 { current }` body, per
+      `@eidos/server-idempotency`'s contract) and the queued local update to a
+      fresh `Y.Doc`, then rewrites the queued args with
+      `Y.encodeStateAsUpdate()` for the next replay. `uint8ArrayToBase64` /
+      `base64ToUint8Array` transport helpers included for JSON-serializing
+      updates across the queue/network boundary. Required exporting
+      `ConflictContext`/`ConflictResolution`/`ConflictConfig` from
+      `@sweidos/eidos`'s public API.
+
+**Phase 5 status: DONE.**
+
+---
+
+## Roadmap status
+
+All five phases complete. No further phases currently planned — future work
+should start from a fresh scoping pass against `2026-06-architecture-review.md`
+and real adoption feedback rather than continuing this sequence.
 
 ---
 

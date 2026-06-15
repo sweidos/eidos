@@ -6,7 +6,7 @@ import { _getQueueStorage } from './queue-storage';
 import { subscribeReplayOnReconnect } from './replay';
 import { subscribeQueueSync } from './queue-sync';
 import { CURRENT_QUEUE_SCHEMA_VERSION } from './types';
-import type { ActionQueueItem } from './types';
+import type { ActionQueueItem, ReliabilityStats } from './types';
 
 // Items persisted before idempotencyKey/schemaVersion existed (v1) are migrated
 // in place: assign a fresh idempotencyKey and bump schemaVersion. A fresh key on
@@ -37,11 +37,21 @@ export interface EidosConfig {
   swPath?: string;
   /** Automatically replay the action queue on reconnect. Default: true. */
   autoReplay?: boolean;
+  /**
+   * Opt-in reliability telemetry. Called with a snapshot of cumulative
+   * `neverLose` queue outcome counters (`ReliabilityStats`) every
+   * `reliabilityReportInterval` ms — wire this up to your analytics backend.
+   * Not called if omitted.
+   */
+  onReliabilityReport?: (stats: ReliabilityStats) => void;
+  /** Interval (ms) between `onReliabilityReport` calls. Default: 60000. */
+  reliabilityReportInterval?: number;
 }
 
 let _initialized = false;
 let _unsubscribe: (() => void) | null = null;
 let _unsubscribeQueueSync: (() => void) | null = null;
+let _reliabilityReportTimer: ReturnType<typeof setInterval> | null = null;
 
 export async function initEidos(config: EidosConfig = {}): Promise<void> {
   // Skip silently during SSR — SW, IndexedDB, and window are browser-only.
@@ -86,6 +96,14 @@ export async function initEidos(config: EidosConfig = {}): Promise<void> {
   // non-leader tabs reflect live status without waiting for re-hydration.
   _unsubscribeQueueSync = subscribeQueueSync();
 
+  if (config.onReliabilityReport) {
+    const interval = config.reliabilityReportInterval ?? 60_000;
+    const report = config.onReliabilityReport;
+    _reliabilityReportTimer = setInterval(() => {
+      report(useEidosStore.getState().reliability);
+    }, interval);
+  }
+
   if (import.meta.env.DEV) {
     const store = useEidosStore.getState();
     console.groupCollapsed('%c⚡ Eidos', 'color:#22C55E;font-weight:bold');
@@ -101,5 +119,7 @@ export function _resetEidos() {
   _unsubscribe = null;
   _unsubscribeQueueSync?.();
   _unsubscribeQueueSync = null;
+  if (_reliabilityReportTimer) clearInterval(_reliabilityReportTimer);
+  _reliabilityReportTimer = null;
   _initialized = false;
 }

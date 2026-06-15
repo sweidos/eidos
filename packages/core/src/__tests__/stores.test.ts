@@ -6,9 +6,12 @@ import {
   eidosQueueStats,
   eidosResource,
   eidosAction,
+  onQueueDrain,
+  eidosReliabilityStats,
 } from '../stores';
 import { useEidosStore } from '../store';
 import type { ActionQueueItem, ResourceEntry } from '../types';
+import { emptyReliabilityStats } from '../types';
 import { seedMixedStatusQueue } from './test-utils';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -49,6 +52,7 @@ beforeEach(() => {
     swError: undefined,
     resources: {},
     queue: [],
+    reliability: emptyReliabilityStats(),
   });
 });
 
@@ -168,6 +172,40 @@ describe('eidosQueueStats', () => {
   });
 });
 
+// ── eidosReliabilityStats ─────────────────────────────────────────────────────
+
+describe('eidosReliabilityStats', () => {
+  it('all counters are 0 initially', () => {
+    expect(eidosReliabilityStats.getState()).toEqual(emptyReliabilityStats());
+  });
+
+  it('recordReliabilityEvent increments the matching counter', () => {
+    useEidosStore.getState().recordReliabilityEvent('queued');
+    useEidosStore.getState().recordReliabilityEvent('queued');
+    useEidosStore.getState().recordReliabilityEvent('succeeded');
+    const s = eidosReliabilityStats.getState();
+    expect(s.queued).toBe(2);
+    expect(s.succeeded).toBe(1);
+    expect(s.failed).toBe(0);
+  });
+
+  it('resetReliabilityStats zeroes all counters', () => {
+    useEidosStore.getState().recordReliabilityEvent('failed');
+    useEidosStore.getState().resetReliabilityStats();
+    expect(eidosReliabilityStats.getState()).toEqual(emptyReliabilityStats());
+  });
+
+  it('subscriber only re-emits when a counter changes', () => {
+    const snapshots: number[] = [];
+    const unsub = eidosReliabilityStats.subscribe((s) => snapshots.push(s.queued));
+    useEidosStore.getState().recordReliabilityEvent('queued');
+    useEidosStore.getState().setOnline(false); // unrelated state change — no extra emit
+    useEidosStore.getState().setOnline(true);
+    expect(snapshots).toEqual([0, 1]);
+    unsub();
+  });
+});
+
 // ── eidosResource ─────────────────────────────────────────────────────────────
 
 describe('eidosResource', () => {
@@ -232,5 +270,44 @@ describe('eidosAction', () => {
     useEidosStore.getState().addQueueItem(makeItem('gone'));
     useEidosStore.getState().removeQueueItem('gone');
     expect(eidosAction('gone').getState()).toBeUndefined();
+  });
+});
+
+// ── onQueueDrain ──────────────────────────────────────────────────────────────
+
+describe('onQueueDrain', () => {
+  it('does not fire on the initial empty queue', () => {
+    const calls: number[] = [];
+    const unsub = onQueueDrain(() => calls.push(1));
+    expect(calls).toHaveLength(0);
+    unsub();
+  });
+
+  it('fires once when the queue drains from non-empty to empty', () => {
+    useEidosStore.getState().addQueueItem(makeItem('a'));
+    const calls: number[] = [];
+    const unsub = onQueueDrain(() => calls.push(1));
+    useEidosStore.getState().removeQueueItem('a');
+    expect(calls).toHaveLength(1);
+    unsub();
+  });
+
+  it('does not fire while items remain in the queue', () => {
+    useEidosStore.getState().addQueueItem(makeItem('a'));
+    useEidosStore.getState().addQueueItem(makeItem('b'));
+    const calls: number[] = [];
+    const unsub = onQueueDrain(() => calls.push(1));
+    useEidosStore.getState().removeQueueItem('a');
+    expect(calls).toHaveLength(0);
+    unsub();
+  });
+
+  it('stops firing after unsubscribe', () => {
+    useEidosStore.getState().addQueueItem(makeItem('a'));
+    const calls: number[] = [];
+    const unsub = onQueueDrain(() => calls.push(1));
+    unsub();
+    useEidosStore.getState().removeQueueItem('a');
+    expect(calls).toHaveLength(0);
   });
 });

@@ -1,7 +1,7 @@
 {
-  "name": "Eidos — Offline-first made declarative",
+  "name": "Eidos — Never lose a write",
   "short_name": "Eidos",
-  "description": "Declare intent. Eidos generates the Service Worker, cache strategies, and offline queue.",
+  "description": "resource() + action() generate the Service Worker, cache strategies, and an offline action queue with idempotency keys and cross-tab replay locks.",
   "start_url": "/overview",
   "display": "standalone",
   "background_color": "#0F172A",

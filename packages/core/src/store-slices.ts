@@ -1,4 +1,5 @@
-import type { ResourceEntry, ActionQueueItem } from './types';
+import type { ResourceEntry, ActionQueueItem, ReliabilityStats } from './types';
+import { emptyReliabilityStats } from './types';
 import type { EidosStore } from './store';
 
 type Setter = (updater: (prev: EidosStore) => Partial<EidosStore>) => void;
@@ -63,5 +64,21 @@ export function createQueueActions(set: Setter): QueueActions {
     removeQueueItem: (id) => set((s) => ({ queue: s.queue.filter((item) => item.id !== id) })),
 
     hydrateQueue: (items) => set(() => ({ queue: items })),
+  };
+}
+
+// ── Reliability slice ─────────────────────────────────────────────────────────
+
+export interface ReliabilityActions {
+  recordReliabilityEvent: (event: keyof ReliabilityStats) => void;
+  resetReliabilityStats: () => void;
+}
+
+export function createReliabilityActions(set: Setter): ReliabilityActions {
+  return {
+    recordReliabilityEvent: (event) =>
+      set((s) => ({ reliability: { ...s.reliability, [event]: s.reliability[event] + 1 } })),
+
+    resetReliabilityStats: () => set(() => ({ reliability: emptyReliabilityStats() })),
   };
 }

@@ -2,9 +2,16 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { action, replayQueue, requeueItem } from '../action';
 import { useEidosStore } from '../store';
 import { idbClearQueue, idbGetQueue } from '../idb';
+import { emptyReliabilityStats } from '../types';
 
 beforeEach(async () => {
-  useEidosStore.setState({ isOnline: true, swStatus: 'idle', resources: {}, queue: [] });
+  useEidosStore.setState({
+    isOnline: true,
+    swStatus: 'idle',
+    resources: {},
+    queue: [],
+    reliability: emptyReliabilityStats(),
+  });
   await idbClearQueue();
   vi.clearAllMocks();
 });
@@ -311,6 +318,56 @@ describe('replayQueue', () => {
     await replayQueue();
     expect(calls).toBe(1);
     expect(onRollback).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ── reliability stats ────────────────────────────────────────────────────────
+
+describe('reliability stats', () => {
+  it('increments queued and succeeded on a successful replay', async () => {
+    const fn = vi.fn().mockResolvedValue({ ok: true });
+    const wrapped = action(fn, { reliability: 'neverLose', name: 'reliability-success' });
+
+    await queueOfflineThenReplay(wrapped, 'payload');
+
+    const { reliability } = useEidosStore.getState();
+    expect(reliability.queued).toBe(1);
+    expect(reliability.succeeded).toBe(1);
+    expect(reliability.failed).toBe(0);
+  });
+
+  it('increments retried when a replay fails but retries remain', async () => {
+    const fn = vi.fn().mockRejectedValue(new Error('always fails'));
+    const wrapped = action(fn, {
+      reliability: 'neverLose',
+      name: 'reliability-retried',
+      maxRetries: 5,
+    });
+
+    useEidosStore.setState({ isOnline: false, swStatus: 'active', resources: {}, queue: [] });
+    await wrapped('x');
+    useEidosStore.setState({ isOnline: true });
+
+    await replayQueue(); // retryCount 1 < maxRetries 5 → retrying
+    expect(useEidosStore.getState().reliability.retried).toBe(1);
+    expect(useEidosStore.getState().reliability.failed).toBe(0);
+  });
+
+  it('increments failed once maxRetries is exhausted', async () => {
+    const fn = vi.fn().mockRejectedValue(new Error('always fails'));
+    const wrapped = action(fn, {
+      reliability: 'neverLose',
+      name: 'reliability-failed',
+      maxRetries: 1,
+    });
+
+    useEidosStore.setState({ isOnline: false, swStatus: 'active', resources: {}, queue: [] });
+    await wrapped('x');
+    useEidosStore.setState({ isOnline: true });
+
+    await replayQueue(); // retryCount 1 >= maxRetries 1 → failed
+    expect(useEidosStore.getState().reliability.failed).toBe(1);
+    expect(useEidosStore.getState().reliability.queued).toBe(1);
   });
 });
 

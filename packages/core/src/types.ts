@@ -299,6 +299,32 @@ export interface EidosState {
   swError?: string;
   resources: Record<string, ResourceEntry>;
   queue: ActionQueueItem[];
+  reliability: ReliabilityStats;
+}
+
+/**
+ * Cumulative, session-scoped counters for `neverLose` queue outcomes — opt-in
+ * telemetry surfaced via `eidosReliabilityStats` / `useEidosReliabilityStats()`
+ * and `EidosConfig.onReliabilityReport`. Reset on page reload (not persisted).
+ */
+export interface ReliabilityStats {
+  [key: string]: number;
+  /** Actions persisted to the queue (offline, or online call that threw). */
+  queued: number;
+  /** Queue items that executed successfully (first attempt or a retry). */
+  succeeded: number;
+  /** Queue items that exhausted `maxRetries` and moved to `'failed'`. */
+  failed: number;
+  /** Replay attempts that failed but will retry (haven't exhausted `maxRetries`). */
+  retried: number;
+  /** Queue items dropped by a `serverWins`/`merge`/`custom` conflict resolution. */
+  conflicted: number;
+  /** Queue items removed via `handle.cancel(idempotencyKey)` before replay completed. */
+  cancelled: number;
+}
+
+export function emptyReliabilityStats(): ReliabilityStats {
+  return { queued: 0, succeeded: 0, failed: 0, retried: 0, conflicted: 0, cancelled: 0 };
 }
 
 export interface QueueStatusCounts {

@@ -2,6 +2,7 @@ import { useEffect, useRef, useSyncExternalStore } from 'react';
 import { useEidosStore } from '../store';
 import type { EidosStore } from '../store';
 import { countQueueByStatus } from '../types';
+import { onQueueDrain } from '../stores';
 
 function useStore(): EidosStore;
 function useStore<T>(selector: (state: EidosStore) => T): T;
@@ -76,19 +77,21 @@ export function useEidosQueueStats() {
  * @example
  * useEidosOnDrain(() => toast.success('All offline actions synced!'))
  */
+/**
+ * Cumulative, session-scoped `neverLose` queue outcome counters — opt-in
+ * reliability telemetry for dashboards/devtools. Re-renders only when a
+ * counter changes.
+ */
+export function useEidosReliabilityStats() {
+  return useStore((s) => s.reliability);
+}
+
 export function useEidosOnDrain(callback: () => void) {
-  const total = useStore((s) => s.queue.length);
-  const prevRef = useRef(0);
   const callbackRef = useRef(callback);
 
   useEffect(() => {
     callbackRef.current = callback;
   });
 
-  useEffect(() => {
-    if (prevRef.current > 0 && total === 0) {
-      callbackRef.current();
-    }
-    prevRef.current = total;
-  }, [total]);
+  useEffect(() => onQueueDrain(() => callbackRef.current()), []);
 }

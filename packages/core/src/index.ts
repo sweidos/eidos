@@ -26,6 +26,7 @@ export {
   useEidosQueueStats,
   useEidosStatus,
   useEidosOnDrain,
+  useEidosReliabilityStats,
 } from './react/hooks';
 
 // Package version — exported so host apps can display it without importing package.json
@@ -50,6 +51,8 @@ export {
   eidosQueueStats,
   eidosResource,
   eidosAction,
+  onQueueDrain,
+  eidosReliabilityStats,
 } from './stores';
 export type { EidosReadable } from './stores';
 
@@ -70,5 +73,9 @@ export type {
   QueuedResult,
   ReplayResult,
   EidosState,
+  ReliabilityStats,
+  ConflictContext,
+  ConflictResolution,
+  ConflictConfig,
   CacheStrategy,
 } from './types';
