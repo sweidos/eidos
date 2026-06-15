@@ -1,4 +1,4 @@
-import { Wifi, WifiOff, Cpu, Github, ExternalLink } from 'lucide-react';
+import { Wifi, WifiOff, Cpu, GitBranch, ExternalLink } from 'lucide-react';
 import { NavLink, Link } from 'react-router-dom';
 import { useEidosStatus, useEidosQueueStats, setOfflineSimulation, VERSION } from '@sweidos/eidos';
 import { useState } from 'react';
@@ -45,7 +45,7 @@ export function Header() {
               aria-label="GitHub repository"
               className="inline-flex items-center gap-1 text-xs text-eidos-muted transition-colors hover:text-eidos-text"
             >
-              <Github size={11} />
+              <GitBranch size={11} />
               <span className="hidden md:inline">GitHub</span>
             </a>
             <span className="text-eidos-border">·</span>
