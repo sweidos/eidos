@@ -25,8 +25,8 @@ new `ActionContext { idempotencyKey, attempt }` trailing argument on every
 call path (online direct call + replay). Devs forward it as e.g.
 `Idempotency-Key` header.
 
-**Still open**: no reference server-side middleware package
-(`@sweidos/server-idempotency`) implementing the dedupe-store contract.
+**Resolved (Phase 3)**: `@sweidos/server-idempotency` reference middleware
+shipped — see [phased-plan.md](./phased-plan.md).
 
 ### P0 — Multi-tab duplicate replay (FIXED in this pass)
 
@@ -40,9 +40,8 @@ Only the lock holder replays; other tabs no-op. Falls back to the old
 per-tab flag where Web Locks is unavailable (React Native, old Safari,
 test runners).
 
-**Still open**: no `BroadcastChannel` sync of queue-item status across
-tabs — non-leader tabs don't see live status updates until their own store
-re-hydrates. Low severity (cosmetic), tracked for Phase 2.
+**Resolved (Phase 1)**: `BroadcastChannel` sync of queue-item status across
+tabs shipped — see [phased-plan.md](./phased-plan.md).
 
 ### P1 — No queue schema versioning (FIXED in this pass)
 
@@ -55,18 +54,27 @@ items would silently corrupt items already persisted in users' IndexedDBs.
 (assigned a fresh `idempotencyKey`, bumped to current version, persisted
 back).
 
-### P1 — Action registry collisions (NOT FIXED — Phase 1)
+### P1 — Action registry collisions (RESOLVED — Phase 1)
 
 `actionId = config.name || fn.name || uid()` — two actions with the same
 name (e.g. across micro-frontends, or two devs both naming something
 `createOrder`) silently overwrite each other in `_actionRegistry`. No
 namespacing.
 
-### P1 — Resource cache versioning / cross-origin invalidate edge cases (NOT FIXED — Phase 2)
+**Resolved**: `actionId` is now `namespace::name`; collisions throw in all
+environments — see [phased-plan.md](./phased-plan.md). Shipped as part of
+the v2.0.0 breaking-change set.
+
+### P1 — Resource cache versioning / cross-origin invalidate edge cases (RESOLVED — Phase 2)
 
 `resource()` cache names are static (`eidos-resources-v1`); response shape
 changes aren't detected. `invalidate()` pattern matching on cross-origin
 URLs uses fragile string comparison.
+
+**Resolved**: `ResourceConfig.version` is appended as a `-v{version}`
+cache-name suffix, and cross-origin `invalidate()` matching uses a
+full-URL test for absolute patterns — see
+[phased-plan.md](./phased-plan.md).
 
 ### Scope risk — breadth before depth (STRATEGIC — ongoing)
 
