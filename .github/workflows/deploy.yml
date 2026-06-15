@@ -48,6 +48,9 @@ jobs:
       - name: Bundle size check
         run: pnpm --filter @sweidos/eidos size
 
+      - name: Bundle size doc drift check
+        run: pnpm --filter @sweidos/eidos size:check-docs
+
   # ── Deploy playground to Vercel ───────────────────────────────────────────────
   deploy:
     name: Deploy Playground

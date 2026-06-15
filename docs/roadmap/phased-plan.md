@@ -51,9 +51,12 @@ another version bump and migration.
       (was documented as ~5.97 kB, actual v2.0.0 build is 6.22 kB brotli,
       still under the 7 KB size-limit threshold). README tables
       (`README.md`, `packages/core/README.md`) updated to ~6.2 kB.
-      **Still open**: no CI check/release-checklist step that re-runs
-      `size-limit` and flags README drift automatically — carry to a
-      future pass.
+- [x] CI/release-checklist step that re-runs `size-limit` and flags README
+      drift automatically. `packages/core/scripts/check-bundle-size-doc.mjs`
+      (`pnpm --filter @sweidos/eidos size:check-docs`) compares the measured
+      brotli size of `dist/index.js` against the "Bundle size (core)" row in
+      `README.md` and fails if they diverge by more than 0.5 kB. Wired into
+      `.github/workflows/deploy.yml` after the existing `size-limit` step.
 - [x] Swept `docs/` and both READMEs for stale claims from earlier
       phases — no open "missing idempotency/namespacing" caveats found;
       "Known limitations" table in `README.md` reflects current (post-v2)

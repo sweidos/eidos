@@ -104,6 +104,7 @@
     "bench": "vitest bench run",
     "test:coverage": "vitest run --coverage",
     "size": "size-limit",
+    "size:check-docs": "node scripts/check-bundle-size-doc.mjs",
     "prepublishOnly": "pnpm build"
   },
   "size-limit": [
