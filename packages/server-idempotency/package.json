@@ -24,9 +24,9 @@
     "test:watch": "vitest"
   },
   "devDependencies": {
-    "@types/express": "^4.17.21",
+    "@types/express": "^5.0.6",
     "@types/node": "^20.0.0",
-    "express": "^4.19.2",
+    "express": "^5.2.1",
     "hono": "^4.6.0",
     "typescript": "^6.0.3",
     "vitest": "^4.1.8"
