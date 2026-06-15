@@ -31,12 +31,14 @@ jobs:
           cache: pnpm
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Run tests
+      - name: Run core tests
         run: pnpm --filter @sweidos/eidos test
       - name: Build core
         run: pnpm build:core
       - name: Type-check all
-        run: pnpm --filter @sweidos/eidos type-check && pnpm --filter @sweidos/playground type-check
+        run: pnpm type-check
+      - name: Test other packages
+        run: pnpm --filter '!@sweidos/eidos' --filter '!@sweidos/e2e' -r test
       - name: Lint
         run: pnpm lint
       - name: Format check
