@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useEidosStore } from '../store';
 import { subscribeQueueSync, _resetQueueSyncChannel } from '../queue-sync';
 import type { ActionQueueItem } from '../types';
@@ -38,9 +38,10 @@ describe('queue-sync', () => {
     const unsubscribe = subscribeQueueSync();
 
     broadcastFromOtherTab({ type: 'update', id: 'item-1', update: { status: 'succeeded' } });
-    await new Promise((r) => setTimeout(r, 0));
+    await vi.waitFor(() => {
+      expect(useEidosStore.getState().queue[0].status).toBe('succeeded');
+    });
 
-    expect(useEidosStore.getState().queue[0].status).toBe('succeeded');
     unsubscribe();
   });
 
@@ -51,9 +52,10 @@ describe('queue-sync', () => {
       type: 'batchUpdate',
       updates: [{ id: 'item-1', update: { status: 'pending', retryCount: 1 } }],
     });
-    await new Promise((r) => setTimeout(r, 0));
+    await vi.waitFor(() => {
+      expect(useEidosStore.getState().queue[0]).toMatchObject({ status: 'pending', retryCount: 1 });
+    });
 
-    expect(useEidosStore.getState().queue[0]).toMatchObject({ status: 'pending', retryCount: 1 });
     unsubscribe();
   });
 
@@ -61,9 +63,10 @@ describe('queue-sync', () => {
     const unsubscribe = subscribeQueueSync();
 
     broadcastFromOtherTab({ type: 'remove', id: 'item-1' });
-    await new Promise((r) => setTimeout(r, 0));
+    await vi.waitFor(() => {
+      expect(useEidosStore.getState().queue).toHaveLength(0);
+    });
 
-    expect(useEidosStore.getState().queue).toHaveLength(0);
     unsubscribe();
   });
 
@@ -72,7 +75,7 @@ describe('queue-sync', () => {
     unsubscribe();
 
     broadcastFromOtherTab({ type: 'remove', id: 'item-1' });
-    await new Promise((r) => setTimeout(r, 0));
+    await new Promise((r) => setTimeout(r, 20));
 
     expect(useEidosStore.getState().queue).toHaveLength(1);
   });
