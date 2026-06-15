@@ -1,0 +1,54 @@
+{
+  "name": "@eidos/sqlite-storage",
+  "version": "0.1.0",
+  "description": "SQLite-backed QueueStorage adapter for Eidos action() queues — Tauri (@tauri-apps/plugin-sql), better-sqlite3, or any compatible driver.",
+  "author": "Aditya Raj",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@sweidos/eidos": "workspace:*",
+    "@types/node": "^20.0.0",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.8"
+  },
+  "peerDependencies": {
+    "@sweidos/eidos": ">=2.0.0"
+  },
+  "keywords": [
+    "sqlite",
+    "eidos",
+    "tauri",
+    "electron",
+    "offline",
+    "queue-storage",
+    "neverLose"
+  ],
+  "homepage": "https://github.com/sweidos/eidos/tree/main/packages/sqlite-storage#readme",
+  "bugs": {
+    "url": "https://github.com/sweidos/eidos/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sweidos/eidos.git",
+    "directory": "packages/sqlite-storage"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
