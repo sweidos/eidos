@@ -6,7 +6,7 @@
 // directly — Eidos generates the required behaviour from intent declarations.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { urlBase64ToUint8Array } from '../../core/src/internal/url-base64';
+import { urlBase64ToUint8Array } from './internal/url-base64';
 
 declare const self: ServiceWorkerGlobalScope;
 
