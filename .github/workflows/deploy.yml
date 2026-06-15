@@ -126,6 +126,10 @@ jobs:
             echo "v$VERSION not on npm — will publish"
           fi
 
+      - name: Build core
+        if: steps.check.outputs.publish == 'true' && matrix.package != 'core'
+        run: pnpm build:core
+
       - name: Build package
         if: steps.check.outputs.publish == 'true'
         run: pnpm --filter ${{ steps.check.outputs.name }} build
