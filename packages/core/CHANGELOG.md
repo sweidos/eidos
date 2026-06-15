@@ -1,5 +1,13 @@
 # @sweidos/eidos
 
+## 2.2.0
+
+### Minor Changes
+
+- 3868615: Export `ConflictContext`, `ConflictResolution`, and `ConflictConfig` from the public API — required by the new `@eidos/crdt-yjs` package (`createYjsMergeResolver()`), which builds a `conflict.resolve` for `'merge'`/`'custom'` strategies that automatically reconciles 409 conflicts via Yjs CRDT merge.
+- e32d40c: Add opt-in reliability telemetry: `ReliabilityStats` (`queued`/`succeeded`/`failed`/`retried`/`conflicted`/`cancelled`) tracked on every `neverLose` queue/replay outcome, exposed via `eidosReliabilityStats` / `useEidosReliabilityStats()`, and reported periodically via `EidosConfig.onReliabilityReport` + `reliabilityReportInterval`. `<EidosDevtools />` gained a "Reliability" tab.
+- e32d40c: Add `onQueueDrain()` — a framework-agnostic equivalent of `useEidosOnDrain` for Svelte/Vue/vanilla. Calls a callback once when the action queue drains from non-empty to empty, returns an unsubscribe function. `useEidosOnDrain` now delegates to it internally.
+
 ## 2.0.0
 
 ### Major Changes
