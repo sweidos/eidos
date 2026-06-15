@@ -101,6 +101,7 @@
     "type-check": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "bench": "vitest bench run",
     "test:coverage": "vitest run --coverage",
     "size": "size-limit",
     "prepublishOnly": "pnpm build"
