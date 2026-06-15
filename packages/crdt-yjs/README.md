@@ -1,4 +1,4 @@
-# @eidos/crdt-yjs
+# @sweidos/crdt-yjs
 
 Yjs-backed merge conflict resolver for [`@sweidos/eidos`](https://www.npmjs.com/package/@sweidos/eidos)
 `action()` — automatic CRDT merge for the `'merge'`/`'custom'` conflict
@@ -7,13 +7,13 @@ strategies, instead of hand-writing `resolve()` per action.
 ## Install
 
 ```bash
-npm install @eidos/crdt-yjs yjs @sweidos/eidos
+npm install @sweidos/crdt-yjs yjs @sweidos/eidos
 ```
 
 ## Usage
 
 Your server must return the document's current Yjs state in the `409`
-response body (per `@eidos/server-idempotency`'s `409 { error, current }`
+response body (per `@sweidos/server-idempotency`'s `409 { error, current }`
 contract). Encode/decode `Uint8Array` updates as base64 to keep everything
 JSON-serializable across the queue/network boundary — `uint8ArrayToBase64`
 and `base64ToUint8Array` are provided for this.
@@ -21,7 +21,7 @@ and `base64ToUint8Array` are provided for this.
 ```ts
 import { action } from '@sweidos/eidos';
 import * as Y from 'yjs';
-import { createYjsMergeResolver, uint8ArrayToBase64, base64ToUint8Array } from '@eidos/crdt-yjs';
+import { createYjsMergeResolver, uint8ArrayToBase64, base64ToUint8Array } from '@sweidos/crdt-yjs';
 
 export const updateDoc = action(
   async (docUpdateBase64: string) => {

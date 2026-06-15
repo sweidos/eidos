@@ -1,5 +1,5 @@
 {
-  "name": "@eidos/worker",
+  "name": "@sweidos/worker",
   "version": "0.1.0",
   "description": "Eidos service worker source (compiled output ships with the eidos package)",
   "private": true,

@@ -1,6 +1,6 @@
 import express from 'express';
-import { idempotency } from '@eidos/server-idempotency/express';
-import { MemoryIdempotencyStore } from '@eidos/server-idempotency';
+import { idempotency } from '@sweidos/server-idempotency/express';
+import { MemoryIdempotencyStore } from '@sweidos/server-idempotency';
 
 /**
  * Minimal payment processor. Each successful charge appends to `ledger` —

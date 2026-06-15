@@ -1,4 +1,4 @@
-# @eidos/next
+# @sweidos/next
 
 ## 1.0.0
 

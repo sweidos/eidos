@@ -66,7 +66,7 @@ importers:
 
   apps/payment-demo:
     dependencies:
-      '@eidos/server-idempotency':
+      '@sweidos/server-idempotency':
         specifier: workspace:*
         version: link:../../packages/server-idempotency
       express:

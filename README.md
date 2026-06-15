@@ -139,15 +139,15 @@ if ('queued' in result) {
 | -------------------------- | ----------------------------- | -------------------------------------------------------------- |
 | **React**                  | `@sweidos/eidos`              | Hooks + `EidosProvider`                                        |
 | **Next.js App Router**     | `@sweidos/eidos/nextjs`       | Pre-marked `'use client'` — no wrapper needed                  |
-| **Next.js Server Actions** | `@eidos/next`                 | `serverAction()` neverLose wrapper + idempotency context       |
+| **Next.js Server Actions** | `@sweidos/next`               | `serverAction()` neverLose wrapper + idempotency context       |
 | **SvelteKit**              | `@sweidos/eidos/sveltekit`    | `initEidosSvelteKit()` in `onMount`, framework-agnostic stores |
 | **Vue**                    | `@sweidos/eidos`              | Framework-agnostic stores via `eidosStatus.subscribe()`        |
 | **React Native**           | `@sweidos/eidos/react-native` | AsyncStorage-backed queue, same `action()` API                 |
 | **Vanilla JS**             | `@sweidos/eidos`              | `eidosStatus`, `eidosQueue`, `eidosQueueStats` stores          |
 | **Vite**                   | `@sweidos/eidos/vite`         | Plugin auto-copies `eidos-sw.js` on every build                |
-| **CRDT merge (Yjs)**       | `@eidos/crdt-yjs`             | `createYjsMergeResolver()` for `conflict.strategy: 'merge'`    |
+| **CRDT merge (Yjs)**       | `@sweidos/crdt-yjs`           | `createYjsMergeResolver()` for `conflict.strategy: 'merge'`    |
 | **TanStack Query**         | `@sweidos/eidos/query`        | `useEidosQuery`, `useEidosMutation`, `withEidosQueryClient`    |
-| **Tauri / Electron**       | `@eidos/sqlite-storage`       | SQLite-backed `QueueStorage`, same `action()` API              |
+| **Tauri / Electron**       | `@sweidos/sqlite-storage`     | SQLite-backed `QueueStorage`, same `action()` API              |
 
 ---
 
@@ -425,15 +425,15 @@ Panel shows: live queue state · cache entries · SW status · offline simulatio
 
 **Next.js** — import from `@sweidos/eidos/nextjs`. Pre-marked `'use client'`, works in App Router layouts without a wrapper.
 
-**Next.js Server Actions** — `@eidos/next`'s `serverAction()` wraps a `'use server'` function with `action()` (`reliability: 'neverLose'` by default), keyed by `config.name` + `config.namespace`. `getActionContext()` / `idempotencyHeaders()` recover the `idempotencyKey`/`attempt` inside the action body.
+**Next.js Server Actions** — `@sweidos/next`'s `serverAction()` wraps a `'use server'` function with `action()` (`reliability: 'neverLose'` by default), keyed by `config.name` + `config.namespace`. `getActionContext()` / `idempotencyHeaders()` recover the `idempotencyKey`/`attempt` inside the action body.
 
 **SvelteKit** — `initEidosSvelteKit()` inside `onMount`. Framework-agnostic stores (`$eidosQueue`, `$eidosStatus`) work with Svelte's `$` auto-subscribe.
 
 **React Native** — `@sweidos/eidos/react-native` with AsyncStorage-backed queue. Same `action()` API surface, no Service Worker dependency.
 
-**Tauri / Electron** — `@eidos/sqlite-storage` with a SQLite-backed `QueueStorage`. Pass a `@tauri-apps/plugin-sql` `Database` directly, or wrap `better-sqlite3` with the `SqliteLike` interface. Same `action()` API surface, no Service Worker dependency.
+**Tauri / Electron** — `@sweidos/sqlite-storage` with a SQLite-backed `QueueStorage`. Pass a `@tauri-apps/plugin-sql` `Database` directly, or wrap `better-sqlite3` with the `SqliteLike` interface. Same `action()` API surface, no Service Worker dependency.
 
-**CRDT merge (Yjs)** — `@eidos/crdt-yjs`'s `createYjsMergeResolver()` builds a `conflict.resolve` for the `'merge'`/`'custom'` strategy that applies the server's Yjs state and the queued local update to a `Y.Doc`, then rewrites the queued args with the merged update — automatic, loss-free reconciliation of concurrent edits instead of a hand-written `resolve()`.
+**CRDT merge (Yjs)** — `@sweidos/crdt-yjs`'s `createYjsMergeResolver()` builds a `conflict.resolve` for the `'merge'`/`'custom'` strategy that applies the server's Yjs state and the queued local update to a `Y.Doc`, then rewrites the queued args with the merged update — automatic, loss-free reconciliation of concurrent edits instead of a hand-written `resolve()`.
 
 ---
 

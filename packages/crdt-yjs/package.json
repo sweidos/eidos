@@ -1,5 +1,5 @@
 {
-  "name": "@eidos/crdt-yjs",
+  "name": "@sweidos/crdt-yjs",
   "version": "1.0.0",
   "description": "Yjs-backed merge conflict resolver for Eidos action() — automatic CRDT merge for 'merge'/'custom' conflict strategies.",
   "author": "Aditya Raj",

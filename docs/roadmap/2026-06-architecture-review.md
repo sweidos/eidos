@@ -26,7 +26,7 @@ call path (online direct call + replay). Devs forward it as e.g.
 `Idempotency-Key` header.
 
 **Still open**: no reference server-side middleware package
-(`@eidos/server-idempotency`) implementing the dedupe-store contract.
+(`@sweidos/server-idempotency`) implementing the dedupe-store contract.
 
 ### P0 — Multi-tab duplicate replay (FIXED in this pass)
 

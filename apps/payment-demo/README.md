@@ -1,7 +1,7 @@
-# @eidos/payment-demo
+# @sweidos/payment-demo
 
 Phase 3 exit-criteria sample app: a payment-style mutation that survives
-duplicate replay against [`@eidos/server-idempotency`](../../packages/server-idempotency).
+duplicate replay against [`@sweidos/server-idempotency`](../../packages/server-idempotency).
 
 ## What it shows
 
@@ -13,7 +13,7 @@ a dropped response) would append twice — a double charge.
 ## Run
 
 ```bash
-pnpm --filter @eidos/payment-demo demo
+pnpm --filter @sweidos/payment-demo demo
 ```
 
 Sends two `POST /api/charge` requests with the same `Idempotency-Key`,
@@ -22,7 +22,7 @@ then prints the ledger — one entry, total `4999`.
 ## Test
 
 ```bash
-pnpm --filter @eidos/payment-demo test
+pnpm --filter @sweidos/payment-demo test
 ```
 
 `src/__tests__/charge.test.ts` asserts: first request returns `201` with no

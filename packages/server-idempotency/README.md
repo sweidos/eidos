@@ -1,4 +1,4 @@
-# @eidos/server-idempotency
+# @sweidos/server-idempotency
 
 Reference server-side middleware implementing the dedupe-store contract for
 [`@sweidos/eidos`](https://www.npmjs.com/package/@sweidos/eidos) `neverLose`
@@ -13,7 +13,7 @@ write.
 ## Install
 
 ```bash
-npm install @eidos/server-idempotency
+npm install @sweidos/server-idempotency
 ```
 
 Express and Hono are optional peer dependencies — install whichever you use.
@@ -24,7 +24,7 @@ Express and Hono are optional peer dependencies — install whichever you use.
 
 ```ts
 import express from 'express';
-import { idempotency } from '@eidos/server-idempotency/express';
+import { idempotency } from '@sweidos/server-idempotency/express';
 
 const app = express();
 app.use(express.json());
@@ -39,7 +39,7 @@ app.post('/api/charge', idempotency(), async (req, res) => {
 
 ```ts
 import { Hono } from 'hono';
-import { idempotency } from '@eidos/server-idempotency/hono';
+import { idempotency } from '@sweidos/server-idempotency/hono';
 
 const app = new Hono();
 
@@ -103,7 +103,7 @@ implement it with `SETNX`/`SET ... NX` (Redis) or a unique-constraint insert
 (SQL).
 
 ```ts
-import { idempotency } from '@eidos/server-idempotency/express';
+import { idempotency } from '@sweidos/server-idempotency/express';
 import { redisIdempotencyStore } from './redis-store';
 
 app.post(

@@ -1,4 +1,4 @@
-# @eidos/sqlite-storage
+# @sweidos/sqlite-storage
 
 ## 1.0.0
 

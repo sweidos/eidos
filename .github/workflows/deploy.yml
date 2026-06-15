@@ -36,7 +36,7 @@ jobs:
       - name: Build core
         run: pnpm build:core
       - name: Type-check all
-        run: pnpm --filter @sweidos/eidos type-check && pnpm --filter @eidos/playground type-check
+        run: pnpm --filter @sweidos/eidos type-check && pnpm --filter @sweidos/playground type-check
       - name: Lint
         run: pnpm lint
       - name: Format check

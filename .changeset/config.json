@@ -7,5 +7,5 @@
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": ["@eidos/worker", "@eidos/e2e", "@eidos/playground"]
+  "ignore": ["@sweidos/worker", "@sweidos/e2e", "@sweidos/playground"]
 }

@@ -1,5 +1,5 @@
 {
-  "name": "@eidos/server-idempotency",
+  "name": "@sweidos/server-idempotency",
   "version": "0.1.0",
   "description": "Reference server-side idempotency middleware (Express/Hono) implementing the dedupe-store contract for Eidos neverLose actions.",
   "author": "Aditya Raj",

@@ -1,4 +1,4 @@
-# @eidos/crdt-yjs
+# @sweidos/crdt-yjs
 
 ## 1.0.0
 

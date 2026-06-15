@@ -27,7 +27,7 @@ export function isActionContext(value: unknown): value is ActionContext {
 /**
  * Maps an {@link ActionContext} to headers for forwarding to a downstream
  * fetch from inside a Server Action — e.g. an internal API guarded by
- * `@eidos/server-idempotency`.
+ * `@sweidos/server-idempotency`.
  */
 export function idempotencyHeaders(ctx: ActionContext): Record<string, string> {
   return {

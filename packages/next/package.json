@@ -1,5 +1,5 @@
 {
-  "name": "@eidos/next",
+  "name": "@sweidos/next",
   "version": "1.0.0",
   "description": "Next.js Server Actions integration for Eidos action() — neverLose wrapper, idempotency context for Server Action bodies.",
   "author": "Aditya Raj",

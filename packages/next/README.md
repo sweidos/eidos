@@ -1,4 +1,4 @@
-# @eidos/next
+# @sweidos/next
 
 Next.js Server Actions integration for [`@sweidos/eidos`](https://www.npmjs.com/package/@sweidos/eidos)
 `action()`. Server Actions are the canonical "don't lose this write" case —
@@ -9,7 +9,7 @@ that `action()` threads through on every call.
 ## Install
 
 ```bash
-npm install @eidos/next
+npm install @sweidos/next
 ```
 
 ## Usage
@@ -19,7 +19,7 @@ npm install @eidos/next
 'use server';
 
 import type { ActionContext } from '@sweidos/eidos';
-import { getActionContext, idempotencyHeaders } from '@eidos/next';
+import { getActionContext, idempotencyHeaders } from '@sweidos/next';
 
 export async function createOrderRaw(input: { amount: number }, _ctx?: ActionContext) {
   const ctx = getActionContext(arguments);
@@ -38,7 +38,7 @@ export async function createOrderRaw(input: { amount: number }, _ctx?: ActionCon
 // app/orders/client-actions.ts
 'use client';
 
-import { serverAction } from '@eidos/next';
+import { serverAction } from '@sweidos/next';
 import { createOrderRaw } from './actions';
 
 export const createOrder = serverAction(createOrderRaw, {
@@ -71,7 +71,7 @@ invoked through `action()` (e.g. called directly in a test).
 
 Maps an `ActionContext` to `{ 'Idempotency-Key', 'Idempotency-Attempt' }`
 headers for forwarding to a downstream API guarded by
-[`@eidos/server-idempotency`](https://www.npmjs.com/package/@eidos/server-idempotency).
+[`@sweidos/server-idempotency`](https://www.npmjs.com/package/@sweidos/server-idempotency).
 
 ## License
 

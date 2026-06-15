@@ -1,5 +1,5 @@
 {
-  "name": "@eidos/payment-demo",
+  "name": "@sweidos/payment-demo",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -10,7 +10,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@eidos/server-idempotency": "workspace:*",
+    "@sweidos/server-idempotency": "workspace:*",
     "express": "^5.2.1"
   },
   "devDependencies": {

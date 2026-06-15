@@ -1,4 +1,4 @@
-# @eidos/sqlite-storage
+# @sweidos/sqlite-storage
 
 SQLite-backed `QueueStorage` adapter for [`@sweidos/eidos`](https://www.npmjs.com/package/@sweidos/eidos)
 `action()` queues. Use this when shipping a Tauri or Electron desktop app
@@ -8,7 +8,7 @@ database is.
 ## Install
 
 ```bash
-npm install @eidos/sqlite-storage
+npm install @sweidos/sqlite-storage
 ```
 
 ## Usage
@@ -18,7 +18,7 @@ npm install @eidos/sqlite-storage
 ```ts
 import Database from '@tauri-apps/plugin-sql';
 import { setQueueStorage } from '@sweidos/eidos';
-import { SqliteQueueStorage } from '@eidos/sqlite-storage';
+import { SqliteQueueStorage } from '@sweidos/sqlite-storage';
 
 const db = await Database.load('sqlite:eidos.db');
 setQueueStorage(new SqliteQueueStorage(db));
@@ -34,7 +34,7 @@ setQueueStorage(new SqliteQueueStorage(db));
 ```ts
 import BetterSqlite3 from 'better-sqlite3';
 import { setQueueStorage } from '@sweidos/eidos';
-import { SqliteQueueStorage, type SqliteLike } from '@eidos/sqlite-storage';
+import { SqliteQueueStorage, type SqliteLike } from '@sweidos/sqlite-storage';
 
 const raw = new BetterSqlite3('eidos.db');
 

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { createApp } from '../server.js';
 
 describe('payment-demo: duplicate charge replay', () => {
-  it('a payment-style mutation survives duplicate replay against @eidos/server-idempotency', async () => {
+  it('a payment-style mutation survives duplicate replay against @sweidos/server-idempotency', async () => {
     const app = createApp();
     const server = app.listen(0);
     const { port } = server.address() as { port: number };
