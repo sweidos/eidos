@@ -16,14 +16,23 @@ import {
   Wifi,
   WifiOff,
   Cpu,
+  PackageSearch,
+  Scale,
+  PackageCheck,
 } from 'lucide-react';
 import {
   useEidosResource,
   useEidosStatus,
   useEidosQueueStats,
   useEidosOnDrain,
+  useEidosQueue,
+  useEidosReliabilityStats,
   useEidosStore,
   replayQueue,
+  setOfflineSimulation,
+  cancelByIdempotencyKey,
+  requeueItem,
+  clearQueue,
   getSwRegistration,
 } from '@sweidos/eidos';
 import { useEidosMutation } from '@sweidos/eidos/query';
@@ -36,6 +45,9 @@ import {
   productsResource,
   ordersHistoryResource,
   createOrder,
+  reserveStock,
+  productDetailPattern,
+  flakyAction,
   type Product,
   type Order,
 } from '../../lib/eidos';
@@ -727,6 +739,406 @@ export function LivePushDemo() {
           {routeDone && <Stat>onNotificationClick fired → routed to {routedTo}</Stat>}
           {error && <Stat className="text-eidos-red">{error}</Stat>}
         </div>
+      </div>
+    </LiveBox>
+  );
+}
+
+// ── 8. Conflict resolution ───────────────────────────────────────────────────
+
+type ConflictPhase = 'idle' | 'queued' | 'replaying' | 'resolved';
+
+function ConflictStep({
+  icon: Icon,
+  label,
+  status,
+}: {
+  icon: typeof PackageSearch;
+  label: string;
+  status: PushStepStatus;
+}) {
+  return (
+    <div className="flex flex-1 items-center gap-2">
+      <div
+        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border transition-colors duration-300 ${
+          status === 'done'
+            ? 'border-eidos-accent bg-eidos-accent-dim text-eidos-accent'
+            : status === 'active'
+              ? 'border-eidos-amber text-eidos-amber animate-pulse'
+              : 'border-eidos-border text-eidos-muted'
+        }`}
+      >
+        {status === 'done' ? <Check size={13} /> : <Icon size={13} />}
+      </div>
+      <span
+        className={`text-2xs leading-tight transition-colors duration-300 ${
+          status === 'pending' ? 'text-eidos-muted' : 'text-eidos-text-dim'
+        }`}
+      >
+        {label}
+      </span>
+    </div>
+  );
+}
+
+const WEBCAM_STOCK = 5;
+const REQUESTED_QTY = 8;
+
+export function LiveConflictResolution() {
+  const queue = useEidosQueue();
+  const [phase, setPhase] = useState<ConflictPhase>('idle');
+  const [loading, setLoading] = useState(false);
+
+  const item = queue.find((q) => q.actionName === 'reserveStock');
+  const observedQty = item ? (item.args[0] as { quantity: number }).quantity : null;
+
+  async function reserve() {
+    setLoading(true);
+    setPhase('idle');
+    setOfflineSimulation(true);
+    try {
+      await reserveStock({ productId: 4, quantity: REQUESTED_QTY });
+      setPhase('queued');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function replay() {
+    setLoading(true);
+    setPhase('replaying');
+    setOfflineSimulation(false);
+    try {
+      await replayQueue();
+      setPhase('resolved');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const queuedDone = phase !== 'idle';
+  const conflictDone = phase === 'replaying' || phase === 'resolved';
+  const conflictActive = phase === 'replaying' && observedQty === REQUESTED_QTY;
+  const resolveDone =
+    phase === 'resolved' ||
+    (phase === 'replaying' && observedQty !== null && observedQty < REQUESTED_QTY);
+  const resolveActive =
+    phase === 'replaying' && observedQty !== null && observedQty < REQUESTED_QTY;
+  const doneDone = phase === 'resolved';
+  const doneActive = phase === 'replaying' && resolveDone;
+
+  return (
+    <LiveBox>
+      <DeclarationBox>
+        <span className="text-eidos-muted">conflict</span>: {'{ '}
+        <span className="text-eidos-text-dim">strategy</span>:{' '}
+        <span className="text-eidos-amber">{"'custom'"}</span>,{' '}
+        <span className="text-eidos-text-dim">resolve</span>: (ctx) =&gt; ({'{ '}
+        resolved: [{'{ ...args, quantity: ctx.error.available }'}] {'}'}){' }'}
+      </DeclarationBox>
+
+      <div className="flex items-center gap-1">
+        <ConflictStep
+          icon={PackageSearch}
+          label={`Queue: reserve ${REQUESTED_QTY}× Webcam 4K`}
+          status={queuedDone ? 'done' : 'active'}
+        />
+        <ConflictStep
+          icon={AlertTriangle}
+          label={`Replay → 409 (only ${WEBCAM_STOCK} in stock)`}
+          status={conflictDone ? 'done' : conflictActive ? 'active' : 'pending'}
+        />
+        <ConflictStep
+          icon={Scale}
+          label={`resolve() rewrites quantity → ${WEBCAM_STOCK}`}
+          status={resolveDone ? 'done' : resolveActive ? 'active' : 'pending'}
+        />
+        <ConflictStep
+          icon={PackageCheck}
+          label="Retry succeeds"
+          status={doneDone ? 'done' : doneActive ? 'active' : 'pending'}
+        />
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <RunButton onClick={reserve} loading={loading} variant="accent">
+          <ShoppingCart size={11} className={loading && phase === 'idle' ? 'animate-pulse' : ''} />
+          Reserve {REQUESTED_QTY} (offline)
+        </RunButton>
+        <RunButton
+          onClick={replay}
+          loading={loading}
+          variant={phase === 'queued' ? 'accent' : 'default'}
+        >
+          <RefreshCw size={11} className={phase === 'replaying' ? 'animate-spin' : ''} />
+          Go online &amp; replay
+        </RunButton>
+        {item && (
+          <Stat className="text-eidos-amber">
+            queued quantity: <span className="font-tabular">{observedQty}</span>
+          </Stat>
+        )}
+      </div>
+
+      {phase === 'queued' && (
+        <div className="flex items-center gap-2 rounded-lg border border-eidos-amber/40 bg-eidos-amber-dim px-3 py-2 text-xs text-eidos-amber animate-fade-in">
+          <Clock size={11} />
+          Queued offline — Webcam 4K only has {WEBCAM_STOCK} in stock. Click &ldquo;Go online &amp;
+          replay&rdquo; to trigger the conflict.
+        </div>
+      )}
+      {phase === 'resolved' && (
+        <div className="flex items-center gap-2 rounded-lg border border-eidos-accent/40 bg-eidos-accent-dim px-3 py-2 text-xs text-eidos-accent animate-fade-in">
+          <CheckCircle size={11} />
+          Server returned 409 for {REQUESTED_QTY} units → resolver rewrote the queued args to{' '}
+          {WEBCAM_STOCK} → retry succeeded, no data lost.
+        </div>
+      )}
+    </LiveBox>
+  );
+}
+
+// ── 9. URL patterns / resourcePattern ────────────────────────────────────────
+
+const PATTERN_PRODUCT_IDS = [1, 2, 3] as const;
+
+interface PatternFetchResult {
+  id: number;
+  name: string;
+  elapsed: number;
+  hit: boolean;
+}
+
+export function LivePatternResource() {
+  const [results, setResults] = useState<Record<number, PatternFetchResult>>({});
+  const [loadingId, setLoadingId] = useState<number | null>(null);
+  const [invalidated, setInvalidated] = useState(false);
+
+  async function fetchProduct(id: number) {
+    setLoadingId(id);
+    setInvalidated(false);
+    // eslint-disable-next-line react-hooks/purity -- measuring fetch latency for the demo, runs only in a click handler
+    const t0 = performance.now();
+    try {
+      const res = await fetch(`/api/products/${id}`);
+      const product = (await res.json()) as Product;
+      const elapsed = Math.round(performance.now() - t0);
+      setResults((prev) => ({
+        ...prev,
+        [id]: { id, name: product.name, elapsed, hit: elapsed < 8 && id in prev },
+      }));
+    } finally {
+      setLoadingId(null);
+    }
+  }
+
+  async function invalidateAll() {
+    await productDetailPattern.invalidate();
+    setResults({});
+    setInvalidated(true);
+  }
+
+  return (
+    <LiveBox>
+      <DeclarationBox>
+        <span className="text-eidos-muted">resourcePattern</span>(
+        <span className="text-eidos-accent">{"'/api/products/:id'"}</span>, {'{ '}
+        <span className="text-eidos-text-dim">offline</span>:{' '}
+        <span className="text-eidos-accent">true</span>
+        {' }'})
+      </DeclarationBox>
+
+      <div className="flex flex-wrap items-center gap-2">
+        {PATTERN_PRODUCT_IDS.map((id) => (
+          <RunButton
+            key={id}
+            onClick={() => fetchProduct(id)}
+            loading={loadingId === id}
+            variant="accent"
+          >
+            <RefreshCw size={11} className={loadingId === id ? 'animate-spin' : ''} />
+            GET /api/products/{id}
+          </RunButton>
+        ))}
+        <RunButton onClick={invalidateAll}>
+          <Scale size={11} />
+          invalidate()
+        </RunButton>
+      </div>
+
+      {Object.keys(results).length > 0 && (
+        <div className="overflow-hidden rounded-lg border border-eidos-border divide-y divide-eidos-border">
+          {PATTERN_PRODUCT_IDS.filter((id) => results[id]).map((id) => {
+            const r = results[id];
+            return (
+              <div
+                key={id}
+                className="flex items-center justify-between gap-3 px-3 py-1.5 text-xs animate-fade-in"
+              >
+                <span className="text-eidos-text">
+                  /api/products/{id} → {r.name}
+                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-2xs text-eidos-muted font-tabular">{r.elapsed}ms</span>
+                  <ResultBadge r={r.hit ? 'hit' : 'miss'} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {invalidated && (
+        <Stat className="text-eidos-amber">
+          Cache cleared for every /api/products/* entry — next fetch is a miss again.
+        </Stat>
+      )}
+    </LiveBox>
+  );
+}
+
+// ── 10. Queue management ─────────────────────────────────────────────────────
+
+const QUEUE_STATUS_STYLE: Record<string, string> = {
+  pending: 'border-eidos-amber/40 text-eidos-amber',
+  replaying: 'border-eidos-blue/40 text-eidos-blue',
+  failed: 'border-eidos-red/40 text-eidos-red',
+  succeeded: 'border-eidos-accent/40 text-eidos-accent',
+};
+
+export function LiveQueueManagement() {
+  const queue = useEidosQueue();
+  const reliability = useEidosReliabilityStats();
+  const [loading, setLoading] = useState<string | null>(null);
+
+  const demoItems = queue.filter(
+    (q) => q.actionName === 'flakyAction' || q.actionName === 'createOrder',
+  );
+
+  async function queueActions() {
+    setLoading('queue');
+    setOfflineSimulation(true);
+    try {
+      await flakyAction({ note: 'will fail on replay' });
+      await createOrder({ productId: 5, quantity: 1, customerName: 'Docs Demo' });
+    } finally {
+      setLoading(null);
+    }
+  }
+
+  async function replay() {
+    setLoading('replay');
+    setOfflineSimulation(false);
+    try {
+      await replayQueue();
+    } finally {
+      setLoading(null);
+    }
+  }
+
+  async function retry(id: string) {
+    setLoading(id);
+    try {
+      await requeueItem(id);
+      await replayQueue();
+    } finally {
+      setLoading(null);
+    }
+  }
+
+  async function cancel(idempotencyKey: string) {
+    setLoading(idempotencyKey);
+    try {
+      await cancelByIdempotencyKey(idempotencyKey);
+    } finally {
+      setLoading(null);
+    }
+  }
+
+  async function clear() {
+    setLoading('clear');
+    try {
+      await clearQueue();
+    } finally {
+      setLoading(null);
+    }
+  }
+
+  return (
+    <LiveBox>
+      <DeclarationBox>
+        <span className="text-eidos-muted">requeueItem</span>(id) ·{' '}
+        <span className="text-eidos-muted">cancelByIdempotencyKey</span>(key) ·{' '}
+        <span className="text-eidos-muted">clearQueue</span>() ·{' '}
+        <span className="text-eidos-muted">useEidosReliabilityStats</span>()
+      </DeclarationBox>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <RunButton onClick={queueActions} loading={loading === 'queue'} variant="accent">
+          <ShoppingCart size={11} />
+          Queue 2 actions (offline)
+        </RunButton>
+        <RunButton onClick={replay} loading={loading === 'replay'}>
+          <RefreshCw size={11} className={loading === 'replay' ? 'animate-spin' : ''} />
+          Go online &amp; replay
+        </RunButton>
+        <RunButton onClick={clear} loading={loading === 'clear'}>
+          <X size={11} />
+          Clear queue
+        </RunButton>
+      </div>
+
+      {demoItems.length > 0 && (
+        <div className="overflow-hidden rounded-lg border border-eidos-border divide-y divide-eidos-border">
+          {demoItems.map((item) => (
+            <div
+              key={item.id}
+              className="flex items-center justify-between gap-3 px-3 py-1.5 text-xs animate-fade-in"
+            >
+              <span className="text-eidos-text">{item.actionName}</span>
+              <div className="flex items-center gap-2">
+                <span
+                  className={`rounded-full border px-1.5 py-0.5 text-2xs ${QUEUE_STATUS_STYLE[item.status] ?? 'border-eidos-border text-eidos-muted'}`}
+                >
+                  {item.status}
+                </span>
+                {item.status === 'pending' && (
+                  <RunButton
+                    onClick={() => cancel(item.idempotencyKey)}
+                    loading={loading === item.idempotencyKey}
+                  >
+                    Cancel
+                  </RunButton>
+                )}
+                {item.status === 'failed' && (
+                  <RunButton
+                    onClick={() => retry(item.id)}
+                    loading={loading === item.id}
+                    variant="accent"
+                  >
+                    Retry
+                  </RunButton>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+        {(['queued', 'succeeded', 'failed', 'retried', 'conflicted', 'cancelled'] as const).map(
+          (key) => (
+            <div
+              key={key}
+              className="rounded-lg border border-eidos-border bg-eidos-bg px-2 py-1.5"
+            >
+              <div className="text-2xs text-eidos-muted">{key}</div>
+              <div className="mt-0.5 font-tabular text-xs font-semibold text-eidos-text">
+                {reliability[key]}
+              </div>
+            </div>
+          ),
+        )}
       </div>
     </LiveBox>
   );

@@ -2,7 +2,13 @@ import { Card, CardHeader } from '../../components/Card';
 import { CodeBlock } from '../../components/CodeBlock';
 import { BulletList, OnThisPage, SectionHeading, slugify } from './shared';
 
-const SECTIONS = ['resource(url, config)', 'action(fn, config)', 'EidosProvider', 'replayQueue()'];
+const SECTIONS = [
+  'resource(url, config)',
+  'action(fn, config)',
+  'EidosProvider',
+  'replayQueue()',
+  'conflict (ConflictConfig)',
+];
 
 export function ApiReference() {
   return (
@@ -132,6 +138,44 @@ const data = await products.json<Product[]>()`}
             title="recovery.ts"
             code={`const result = await replayQueue()
 // { attempted, succeeded, failed, retrying, skipped }`}
+          />
+        </Card>
+
+        <Card className="h-full scroll-mt-20" id={slugify(SECTIONS[4])}>
+          <CardHeader
+            title="conflict (ConflictConfig)"
+            description="Decide what happens when a queued write replays against state that has since changed."
+            action={
+              <span className="rounded-full border border-eidos-border px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-eidos-muted">
+                replay
+              </span>
+            }
+          />
+          <BulletList
+            items={[
+              'Only consulted when a replay receives a 4xx response.',
+              '`serverWins` drops the queued item; `clientWins` keeps retrying.',
+              '`merge` / `custom` call `resolve(ctx)` with the error, args, and attempt count.',
+              "Return `{ resolved: args }` to rewrite the queued write and retry, or `'skip'` to drop it.",
+            ]}
+          />
+          <CodeBlock
+            className="mt-4"
+            title="conflict.ts"
+            code={`action(reserveStock, {
+  reliability: 'neverLose',
+  name: 'reserveStock',
+  conflict: {
+    strategy: 'custom',
+    resolve: ({ error, args }) => {
+      if (error instanceof StockConflictError) {
+        const [payload] = args
+        return { resolved: [{ ...payload, quantity: error.available }] }
+      }
+      return 'skip'
+    },
+  },
+})`}
           />
         </Card>
       </div>

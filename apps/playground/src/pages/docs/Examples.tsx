@@ -10,6 +10,9 @@ import {
   LiveConnectionStatus,
   LiveQueueDrain,
   LivePushDemo,
+  LiveConflictResolution,
+  LivePatternResource,
+  LiveQueueManagement,
 } from './ExamplesLive';
 
 const SECTIONS = [
@@ -20,6 +23,9 @@ const SECTIONS = [
   'Connection-aware UI',
   'Queue-drain notifications',
   'Push notifications',
+  'Conflict resolution on replay',
+  'URL patterns, one registration per family',
+  'Queue management & reliability stats',
 ];
 
 interface ExampleProps {
@@ -372,6 +378,176 @@ async function enablePush() {
 
 // Generate keys once: npx @sweidos/eidos generate-vapid-keys`}
           live={<LivePushDemo />}
+        />
+
+        <Example
+          title={SECTIONS[7]}
+          description="A queued write that becomes invalid by the time it replays — resolve the conflict instead of losing the write or retrying forever."
+          withoutTitle="inventory.ts (manual)"
+          withoutCode={`async function reserveStock(payload: { productId: number; quantity: number }) {
+  const res = await fetch('/api/inventory', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+
+  if (res.status === 409) {
+    const { available } = await res.json()
+    // Now what? Retry forever? Drop the write?
+    // You need to re-run this with a smaller quantity yourself,
+    // re-persist it, and re-trigger replay — by hand.
+    throw new Error(\`only \${available} left\`)
+  }
+
+  if (!res.ok) throw new Error('Reservation failed')
+  return res.json()
+}`}
+          withTitle="inventory.ts (eidos)"
+          withCode={`import { action } from '@sweidos/eidos'
+
+class StockConflictError extends Error {
+  status = 409
+  constructor(public available: number) { super('insufficient stock') }
+}
+
+export const reserveStock = action(
+  async (payload: { productId: number; quantity: number }) => {
+    const res = await fetch('/api/inventory', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+    if (res.status === 409) {
+      const { available } = await res.json()
+      throw new StockConflictError(available)
+    }
+    if (!res.ok) throw new Error('Reservation failed')
+    return res.json()
+  },
+  {
+    reliability: 'neverLose',
+    name: 'reserveStock',
+    conflict: {
+      strategy: 'custom',
+      resolve: ({ error, args }) => {
+        if (error instanceof StockConflictError && error.available > 0) {
+          const [payload] = args
+          return { resolved: [{ ...payload, quantity: error.available }] }
+        }
+        return 'skip' // nothing left — drop the write
+      },
+    },
+  },
+)`}
+          live={<LiveConflictResolution />}
+        />
+
+        <Example
+          title={SECTIONS[8]}
+          description="One resourcePattern() registration covers a whole family of detail endpoints — each matched URL is cached and tracked independently, and invalidate() clears them all at once."
+          withoutTitle="product-detail.ts (manual)"
+          withoutCode={`async function getProduct(id: number) {
+  const url = \`/api/products/\${id}\`
+
+  try {
+    const cached = await caches.match(url)
+    if (cached) return cached.json()
+
+    const res = await fetch(url)
+    const cache = await caches.open('app-cache')
+    cache.put(url, res.clone())
+    return res.json()
+  } catch {
+    const cached = await caches.match(url)
+    if (cached) return cached.json()
+    throw new Error('Offline and no cache available')
+  }
+}
+
+// Clearing the cache for every product means tracking
+// every \`url\` you've ever fetched, then looping over them`}
+          withTitle="product-detail.ts (eidos)"
+          withCode={`import { resourcePattern } from '@sweidos/eidos'
+
+// One registration, any /api/products/:id
+export const productDetail = resourcePattern('/api/products/:id', {
+  offline: true,
+})
+
+// Each id is cached independently — eidos matches the
+// pattern and intercepts automatically
+const widget = await fetch('/api/products/4').then((r) => r.json())
+
+// Clear every cached /api/products/:id entry in one call
+await productDetail.invalidate()`}
+          live={<LivePatternResource />}
+        />
+
+        <Example
+          title={SECTIONS[9]}
+          description="Inspect the queue while offline, cancel a pending write, replay on reconnect, retry anything that failed, and watch cumulative reliability counters update live."
+          withoutTitle="queue.ts (manual)"
+          withoutCode={`// Tracking queued writes yourself means owning:
+// - an IndexedDB (or localStorage) table for pending items
+// - a 'pending' | 'failed' | 'succeeded' status field
+// - dedupe keys so a refresh doesn't double-submit
+// - a replay loop that runs on 'online'
+// - retry/backoff bookkeeping per item
+// - counters for a dashboard (queued, failed, retried...)
+
+async function cancelPending(id: string) {
+  const items = await getQueue()
+  await setQueue(items.filter((i) => i.id !== id))
+}
+
+async function retryFailed(id: string) {
+  const items = await getQueue()
+  const item = items.find((i) => i.id === id)
+  if (item) item.status = 'pending'
+  await setQueue(items)
+  await replayQueue()
+}
+
+// ...and the UI has to poll all of this by hand`}
+          withTitle="queue.ts (eidos)"
+          withCode={`import {
+  useEidosQueue,
+  useEidosReliabilityStats,
+  cancelByIdempotencyKey,
+  requeueItem,
+  clearQueue,
+  setOfflineSimulation,
+  replayQueue,
+} from '@sweidos/eidos'
+
+function QueuePanel() {
+  // Live list of pending/replaying/failed items
+  const queue = useEidosQueue()
+
+  // Cumulative counters: queued, succeeded, failed,
+  // retried, conflicted, cancelled
+  const stats = useEidosReliabilityStats()
+
+  return (
+    <>
+      {queue.map((item) => (
+        <li key={item.id}>
+          {item.actionName} — {item.status}
+          {item.status === 'pending' && (
+            <button onClick={() => cancelByIdempotencyKey(item.idempotencyKey)}>
+              Cancel
+            </button>
+          )}
+          {item.status === 'failed' && (
+            <button onClick={() => requeueItem(item.id)}>Retry</button>
+          )}
+        </li>
+      ))}
+      <button onClick={() => replayQueue()}>Go online &amp; replay</button>
+      <button onClick={() => clearQueue()}>Clear queue</button>
+      <p>Failed so far: {stats.failed}</p>
+    </>
+  )
+}`}
+          live={<LiveQueueManagement />}
         />
       </div>
     </section>
