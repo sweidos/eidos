@@ -1,4 +1,4 @@
-//#region ../core/src/internal/url-base64.ts
+//#region src/internal/url-base64.ts
 /** Decodes a base64url string (e.g. a VAPID public key) into raw bytes. */
 function urlBase64ToUint8Array(base64Url) {
 	const base64 = (base64Url + "=".repeat((4 - base64Url.length % 4) % 4)).replace(/-/g, "+").replace(/_/g, "/");

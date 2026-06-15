@@ -44,6 +44,12 @@
     "node": ">=18.0.0",
     "pnpm": ">=8.0.0"
   },
+  "pnpm": {
+    "overrides": {
+      "postcss@<8.5.10": ">=8.5.10",
+      "form-data@>=4.0.0 <4.0.6": ">=4.0.6"
+    }
+  },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": "eslint --fix",
     "*.{ts,tsx,js,jsx,json,md,css}": "prettier --write"
