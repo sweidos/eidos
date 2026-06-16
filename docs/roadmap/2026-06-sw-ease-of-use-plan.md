@@ -57,23 +57,16 @@ without dropping to raw Workbox.
       magic numbers for conceptually the same "how long before falling
       back to cache" knob. New `ResourceConfig.networkTimeoutMs` should
       replace both, threaded through `EIDOS_REGISTER_RESOURCE` to the SW.
-- [ ] **`maxAge` enforcement gap — CONFIRMED, not just "audit"**:
-      `config.maxAge` is checked **only** in the page-side
-      `handle.fetch()` path (`resource.ts:297-302`, via `cachedAt` in the
-      Zustand store). The SW's own `cacheFirst`/`staleWhileRevalidate`
-      (`eidos-sw.js`) serve whatever's in Cache Storage with **no expiry
-      check at all** — so any request that hits the SW directly (browser
-      navigation, `fetch()` not routed through `handle.fetch()`, a
-      `<link>`/`<img>` request) ignores `maxAge` entirely. Two fixes
-      needed: (1) thread `maxAge` into `EIDOS_REGISTER_RESOURCE` so the SW
-      can apply it itself (compare `cache.match()` response's stored
-      timestamp/`Date` header), (2) document clearly that `maxAge`
-      currently only governs the `handle.fetch()`/`handle.json()` path —
-      this is a **P1 bugfix**, should ship as its own `patch` PR _before_
-      Phase 7's additive `maxEntries`/preset work, per the sequencing note
-      below.
-- [ ] **Cache cleanup policy**: `ResourceConfig.maxEntries` (LRU eviction per
-      cache bucket) — useful for image/list endpoints that grow unbounded.
+- [x] **`maxAge` enforcement gap — FIXED (shipped as patch before Phase 7 additive work)**:
+      SW now stamps `X-Eidos-Cached-At` on every `cache.put()` and checks expiry on
+      cache hits across all three strategies. Expired entries deleted and treated as
+      cache misses. `maxAge` is threaded via `EIDOS_REGISTER_RESOURCE`.
+      Entries cached before this patch have no timestamp and are treated as fresh
+      (avoids thundering herd on upgrade; they expire naturally on next cache write).
+- [x] **Cache cleanup policy — FIXED (shipped in same patch)**:
+      `ResourceConfig.maxEntries` added (was documentation-only in `equivalentCode`).
+      After every `cache.put()`, the SW evicts the oldest-inserted entries (FIFO)
+      when the bucket exceeds `maxEntries`. Threaded via `EIDOS_REGISTER_RESOURCE`.
 - [ ] **Clarify the two versioning schemes**: `eidos-sw.js` has a hardcoded
       `CACHE_VERSION = "v1"` (global cache-prefix cache-busting, bumped only
       on an Eidos SW release) separate from `ResourceConfig.version`
