@@ -659,7 +659,11 @@ Eidos emits plain-English `console.warn` messages in development (`import.meta.e
 | `Service worker registration failed: …`             | Unexpected registration error                | Check `eidosDebug().swError` for the full browser error message                                                                 |
 | `Service workers are not supported in this context` | Old browser, or SW API absent                | No fix needed — Eidos degrades gracefully; only SW-side caching is disabled                                                     |
 
+**[→ Getting started guide](docs/guides/getting-started.md)** — zero-jargon walkthrough: install → Vite plugin → wrap app → first resource + action → offline status UI.
+
 **[→ Full troubleshooting guide](docs/guides/troubleshooting.md)** — per-warning copy-pasteable fixes, runtime issues (stuck SW, maxAge, networkTimeoutMs), and `eidosDebug()` field reference.
+
+**[→ Glossary](docs/guides/glossary.md)** — plain-language definitions of service worker, cache strategy, idempotency key, replay queue, and more.
 
 ---
 
