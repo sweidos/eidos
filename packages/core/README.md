@@ -197,6 +197,19 @@ await productPattern.invalidate(); // clear all cached entries matching the patt
 productPattern.unregister();
 ```
 
+| Token    | Matches                                                      |
+| -------- | ------------------------------------------------------------ |
+| `*`      | One path segment — `/api/products/*` ↔ `/api/products/4`     |
+| `**`     | Any number of segments — `https://cdn.example.com/assets/**` |
+| `:param` | A named segment — `/api/users/:id/orders`                    |
+
+Pass the full URL (including origin) for cross-origin resources, e.g.
+`resourcePattern('https://cdn.example.com/assets/**', { offline: true })`.
+
+See it live in the [playground docs → Examples → URL patterns, one
+registration per
+family](https://sweidos.vercel.app/docs/examples#url-patterns-one-registration-per-family).
+
 ### `action(fn, config)`
 
 ```ts
@@ -225,6 +238,62 @@ import { cancelByIdempotencyKey, requeueItem } from '@sweidos/eidos'
 await cancelByIdempotencyKey(idempotencyKey) // true if cancelled/removed
 await requeueItem(queueItemId)               // true if it was 'failed'
 ```
+
+### Conflict resolution
+
+A `neverLose` action can sit in the queue for a while — by the time it
+replays, the world may have moved on (the requested stock sold out, the
+record was deleted, etc.). `conflict` decides what happens when a replay gets
+a 4xx response, instead of retrying forever or silently dropping the write:
+
+```ts
+class StockConflictError extends Error {
+  status = 409;
+  constructor(public available: number) {
+    super('insufficient stock');
+  }
+}
+
+export const reserveStock = action(
+  async (payload: { productId: number; quantity: number }) => {
+    const res = await fetch('/api/inventory', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    if (res.status === 409) {
+      const { available } = await res.json();
+      throw new StockConflictError(available);
+    }
+    if (!res.ok) throw new Error('Reservation failed');
+    return res.json();
+  },
+  {
+    reliability: 'neverLose',
+    name: 'reserveStock',
+    conflict: {
+      strategy: 'custom',
+      resolve: ({ error, args, attempt }) => {
+        if (error instanceof StockConflictError && error.available > 0) {
+          const [payload] = args;
+          // Rewrite the queued args and retry with what's actually available
+          return { resolved: [{ ...payload, quantity: error.available }] };
+        }
+        return 'skip'; // nothing left to reserve — drop the write
+      },
+    },
+  },
+);
+```
+
+| Strategy     | Behavior on 4xx replay                                                |
+| ------------ | --------------------------------------------------------------------- |
+| `serverWins` | Drop the queued item — the server's current state is authoritative.   |
+| `clientWins` | Keep retrying — the write should eventually succeed.                  |
+| `merge`      | Call `resolve(ctx)`; typically used to combine client + server state. |
+| `custom`     | Call `resolve(ctx)`; return `'retry'`, `'skip'`, or `{ resolved }`.   |
+
+See it live in the [playground docs → Examples → Conflict resolution on
+replay](https://sweidos.vercel.app/docs/examples#conflict-resolution-on-replay).
 
 ### React hooks
 
@@ -265,6 +334,52 @@ initEidos({
 
 The same counters are visible live in `<EidosDevtools />` under the
 "Reliability" tab.
+
+### Queue management
+
+Inspect and manage the offline action queue directly — handy for "pending
+changes" panels, manual retry buttons, or a "discard my offline edits" action:
+
+```ts
+import {
+  useEidosQueue,
+  cancelByIdempotencyKey,
+  requeueItem,
+  clearQueue,
+  replayQueue,
+} from '@sweidos/eidos';
+
+function QueuePanel() {
+  const queue = useEidosQueue(); // live list of pending/replaying/failed items
+
+  return queue.map((item) => (
+    <li key={item.id}>
+      {item.actionName} — {item.status}
+
+      {/* Drop a write before it ever reaches the server */}
+      {item.status === 'pending' && (
+        <button onClick={() => cancelByIdempotencyKey(item.idempotencyKey)}>
+          Cancel
+        </button>
+      )}
+
+      {/* Reset a failed item to 'pending' and replay it */}
+      {item.status === 'failed' && (
+        <button onClick={() => requeueItem(item.id)}>Retry</button>
+      )}
+    </li>
+  ));
+}
+
+// Drop every queued write — e.g. on "discard offline changes"
+await clearQueue();
+
+// Force a replay pass — normally triggered automatically on reconnect
+await replayQueue();
+```
+
+See it live in the [playground docs → Examples → Queue management &
+reliability stats](https://sweidos.vercel.app/docs/examples#queue-management-reliability-stats).
 
 ---
 
@@ -365,6 +480,10 @@ for client-side routing; otherwise the SW opens `data.url` directly.
 
 ## Testing
 
+`@sweidos/eidos/testing` runs entirely at the JS layer — no real Service
+Worker needed — and gives Vitest/Jest/Playwright direct control over online
+state, the action queue, and the resource cache.
+
 ```ts
 import {
   mockOffline,
@@ -380,29 +499,82 @@ import {
 beforeEach(() => resetEidos());
 
 it('queues action while offline', async () => {
-  mockOffline();
-  await createOrder({ productId: 1, qty: 2 });
+  mockOffline({ stubFetch: true });
+  await createOrder({ productId: 1, quantity: 2 });
   expect(getEidosState().queue).toHaveLength(1);
+  expect(getEidosState().queue[0].actionName).toBe('createOrder');
 });
 
 it('replays on reconnect', async () => {
   mockOffline();
-  await createOrder({ productId: 1, qty: 2 });
+  await createOrder({ productId: 1, quantity: 2 });
+
+  // Forces isOnline = true and replays immediately
   const result = await drainQueue();
   expect(result.succeeded).toBe(1);
+
+  // ...or for code that replays itself on the 'online' event:
+  await waitForQueueDrain({ timeout: 2000 });
+  expect(getEidosState().queue).toHaveLength(0);
 });
+
+it('caches GET responses for offline use', async () => {
+  await products.json();
+  const cached = await getCachedEntry('/api/products');
+  expect(cached).toBeDefined();
+});
+
+afterEach(() => clearEidosCache());
 ```
 
 ---
 
 ## OpenAPI codegen
 
+`eidos-gen` reads an OpenAPI 3.x spec (JSON or YAML) and writes typed
+`resource()` + `action()` declarations — request/response interfaces from
+`$ref` schemas, `{id}` → `:id` path-param conversion, and DELETE body
+omission.
+
 ```bash
-npx eidos-gen openapi.json
-# → writes eidos.generated.ts with typed resource() + action() declarations
+npx eidos-gen openapi.json --out src/lib/eidos.generated.ts
+
+eidos-gen: reading openapi.json
+eidos-gen: wrote src/lib/eidos.generated.ts
+           2 resource(s), 2 action(s)
+           2 type(s)
 ```
 
-Handles path params, `$ref` resolution, request/response types, DELETE body omission.
+```ts
+// eidos.generated.ts
+import { resource, action } from '@sweidos/eidos';
+
+export interface Product {
+  id: number;
+  name: string;
+  tags?: string[];
+}
+
+export const listProducts = resource('/products', { offline: true });
+
+export const createProduct = action(
+  async (payload: Product): Promise<Product> => {
+    const res = await fetch('/products', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    return res.json();
+  },
+  { reliability: 'neverLose', name: 'createProduct' },
+);
+```
+
+| Flag           | Effect                                                       |
+| -------------- | ------------------------------------------------------------ |
+| `--out, -o`    | Output file path (default: `eidos.generated.ts`)             |
+| `--no-offline` | Set `offline: false` on every generated `resource()`         |
+| `--eidos`      | Import path for `@sweidos/eidos` (default: `@sweidos/eidos`) |
 
 ---
 
