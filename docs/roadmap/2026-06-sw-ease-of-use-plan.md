@@ -51,12 +51,11 @@ analytics) without forking `eidos-sw.js`.
 **Goal**: close gaps between "auto-derived strategy" and what real apps need
 without dropping to raw Workbox.
 
-- [ ] **Per-resource network timeout** — `networkFirst()` in `eidos-sw.js`
-      hardcodes `AbortSignal.timeout(3000)`; the page-side SWR
-      revalidation in `resource.ts` hardcodes `5000`. Two different
-      magic numbers for conceptually the same "how long before falling
-      back to cache" knob. New `ResourceConfig.networkTimeoutMs` should
-      replace both, threaded through `EIDOS_REGISTER_RESOURCE` to the SW.
+- [x] **Per-resource network timeout — FIXED**: `ResourceConfig.networkTimeoutMs`
+      (default 3000) replaces the hardcoded `AbortSignal.timeout(3000)` in
+      `networkFirst()` and the hardcoded `5000` in the SWR background
+      revalidation fetch. Threaded via `EIDOS_REGISTER_RESOURCE`. Single knob
+      for both the SW-side and page-side timeout.
 - [x] **`maxAge` enforcement gap — FIXED (shipped as patch before Phase 7 additive work)**:
       SW now stamps `X-Eidos-Cached-At` on every `cache.put()` and checks expiry on
       cache hits across all three strategies. Expired entries deleted and treated as

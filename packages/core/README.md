@@ -164,6 +164,7 @@ const products = resource('/api/products', {
   cacheName?: string, // custom cache bucket
   maxAge?: number,    // TTL in ms — enforced by the SW on all requests (not just handle.fetch())
   maxEntries?: number, // max cache entries; oldest evicted (FIFO) when exceeded
+  networkTimeoutMs?: number, // ms before falling back to cache (network-first & SWR). Default: 3000
   version?: string | number, // bump when the response shape changes —
                               // appended to cacheName (e.g. 'eidos-resources-v1-v2')
                               // so old-shaped cache entries aren't served.

@@ -29,7 +29,8 @@ self.addEventListener("message", (event) => {
 				cacheName: data.cacheName ?? `${CACHE_PREFIX}-resources-${CACHE_VERSION}`,
 				...patternSrc !== void 0 && { pattern: new RegExp(patternSrc) },
 				...data.maxAge !== void 0 && { maxAge: data.maxAge },
-				...data.maxEntries !== void 0 && { maxEntries: data.maxEntries }
+				...data.maxEntries !== void 0 && { maxEntries: data.maxEntries },
+				...data.networkTimeoutMs !== void 0 && { networkTimeoutMs: data.networkTimeoutMs }
 			});
 			event.source?.postMessage({
 				type: "EIDOS_RESOURCE_REGISTERED",
@@ -203,10 +204,10 @@ async function staleWhileRevalidate(event, request, pathname, reg) {
 	return await revalidatePromise ?? offlineErrorResponse(pathname);
 }
 async function networkFirst(request, pathname, reg) {
-	const { cacheName, maxAge, maxEntries } = reg;
+	const { cacheName, maxAge, maxEntries, networkTimeoutMs = 3e3 } = reg;
 	const cache = await caches.open(cacheName);
 	try {
-		const response = await fetch(request, { signal: AbortSignal.timeout(3e3) });
+		const response = await fetch(request, { signal: AbortSignal.timeout(networkTimeoutMs) });
 		if (response.ok) {
 			await putCached(cache, request, response.clone());
 			await evictIfNeeded(cache, maxEntries);

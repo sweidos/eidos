@@ -163,3 +163,27 @@ describe('maxEntries config', () => {
     expect(h.config.maxEntries).toBeUndefined();
   });
 });
+
+describe('networkTimeoutMs config', () => {
+  it('config.networkTimeoutMs is preserved on handle', () => {
+    const h = resource('/test/timeout-1', { offline: false, networkTimeoutMs: 8000 });
+    expect(h.config.networkTimeoutMs).toBe(8000);
+  });
+
+  it('networkTimeoutMs can be combined with maxAge and maxEntries', () => {
+    const h = resource('/test/timeout-2', {
+      offline: true,
+      maxAge: 60_000,
+      maxEntries: 100,
+      networkTimeoutMs: 5000,
+    });
+    expect(h.config.networkTimeoutMs).toBe(5000);
+    expect(h.config.maxAge).toBe(60_000);
+    expect(h.config.maxEntries).toBe(100);
+  });
+
+  it('omitting networkTimeoutMs leaves it undefined', () => {
+    const h = resource('/test/timeout-absent', { offline: true });
+    expect(h.config.networkTimeoutMs).toBeUndefined();
+  });
+});

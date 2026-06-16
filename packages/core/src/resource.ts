@@ -90,6 +90,7 @@ function _register(
     ...(regexStr !== undefined && { pattern: regexStr }),
     ...(config.maxAge !== undefined && { maxAge: config.maxAge }),
     ...(config.maxEntries !== undefined && { maxEntries: config.maxEntries }),
+    ...(config.networkTimeoutMs !== undefined && { networkTimeoutMs: config.networkTimeoutMs }),
   });
 
   return { strategy, regexStr };
@@ -312,7 +313,7 @@ async function _fetchResource(
 
         // Background revalidation for SWR (stale-while-revalidate)
         if (strategy.swStrategy === 'stale-while-revalidate') {
-          fetch(url, { signal: AbortSignal.timeout(5000) })
+          fetch(url, { signal: AbortSignal.timeout(config.networkTimeoutMs ?? 3000) })
             .then(async (resp) => {
               if (resp.ok && cache) {
                 await cache.put(url, resp.clone());
@@ -444,7 +445,7 @@ new CacheFirst({
     equivalentCode: `// Workbox equivalent
 new NetworkFirst({
   cacheName: 'eidos-resources-v1',
-  networkTimeoutSeconds: 3,
+  networkTimeoutSeconds: 3, // controlled via ResourceConfig.networkTimeoutMs (default 3000)
 })`,
   },
 };

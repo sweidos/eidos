@@ -22,6 +22,8 @@ interface ResourceRegistration {
   maxAge?: number;
   /** Max cache entries (FIFO eviction on cache.put when exceeded). */
   maxEntries?: number;
+  /** How long (ms) to wait for the network before falling back to cache. Default: 3000. */
+  networkTimeoutMs?: number;
 }
 
 const runtimeConfig = {
@@ -72,6 +74,9 @@ self.addEventListener('message', (event) => {
         ...(patternSrc !== undefined && { pattern: new RegExp(patternSrc) }),
         ...(data.maxAge !== undefined && { maxAge: data.maxAge as number }),
         ...(data.maxEntries !== undefined && { maxEntries: data.maxEntries as number }),
+        ...(data.networkTimeoutMs !== undefined && {
+          networkTimeoutMs: data.networkTimeoutMs as number,
+        }),
       });
       event.source?.postMessage({ type: 'EIDOS_RESOURCE_REGISTERED', url });
       break;
@@ -317,13 +322,11 @@ async function networkFirst(
   pathname: string,
   reg: ResourceRegistration,
 ): Promise<Response> {
-  const { cacheName, maxAge, maxEntries } = reg;
+  const { cacheName, maxAge, maxEntries, networkTimeoutMs = 3000 } = reg;
   const cache = await caches.open(cacheName);
 
   try {
-    // 3s timeout matches the networkTimeoutSeconds advertised in the strategy
-    // metadata — slow/stalled requests fall back to cache instead of hanging.
-    const response = await fetch(request, { signal: AbortSignal.timeout(3000) });
+    const response = await fetch(request, { signal: AbortSignal.timeout(networkTimeoutMs) });
     if (response.ok) {
       await putCached(cache, request, response.clone());
       await evictIfNeeded(cache, maxEntries);

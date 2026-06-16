@@ -29,6 +29,12 @@ export interface ResourceConfig {
    * Useful for list/image endpoints that grow unbounded.
    */
   maxEntries?: number;
+  /**
+   * How long (ms) to wait for a network response before falling back to the cache.
+   * Applies to `network-first` SW interception and the SWR background revalidation fetch.
+   * Default: 3000.
+   */
+  networkTimeoutMs?: number;
 }
 
 export interface GeneratedStrategy {
