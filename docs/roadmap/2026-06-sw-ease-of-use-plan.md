@@ -67,14 +67,15 @@ without dropping to raw Workbox.
       `ResourceConfig.maxEntries` added (was documentation-only in `equivalentCode`).
       After every `cache.put()`, the SW evicts the oldest-inserted entries (FIFO)
       when the bucket exceeds `maxEntries`. Threaded via `EIDOS_REGISTER_RESOURCE`.
-- [ ] **Clarify the two versioning schemes**: `eidos-sw.js` has a hardcoded
+- [x] **Clarify the two versioning schemes**: `eidos-sw.js` has a hardcoded
       `CACHE_VERSION = "v1"` (global cache-prefix cache-busting, bumped only
       on an Eidos SW release) separate from `ResourceConfig.version`
       (per-resource shape-versioning suffix, dev-controlled). Both end up
       in the same `cacheName` string but mean different things — add a
       short doc note (README config table, Phase 10 glossary) so devs
       don't conflate "bump my resource version" with "the SW got
-      updated."
+      updated." **DONE**: NOTE comment added inline in the `resource()` config
+      block in README.
 - [ ] **Strategy presets / recipes**: named shorthand configs (e.g.
       `resource(url, { offline: 'images' })` or a `presets` export) for
       common cases — static assets, paginated lists, user-specific data —
@@ -146,9 +147,11 @@ false` calls `onUpdateAvailable` and does not post; first-install no
 **Goal**: when SW caching/replay does something unexpected, devs should be
 able to see _why_ without opening `chrome://inspect`.
 
-- [ ] **`<EidosDevtools />` "Service Worker" tab**: registration state
-      (installing/waiting/active), active cache buckets with entry counts,
-      and a "force update" button (ties into Phase 8's update flow).
+- [x] **`<EidosDevtools />` "Service Worker" tab**: registration state
+      (installing/waiting/active), active cache buckets with resource counts
+      per bucket, and a "Force update" button that calls `triggerSwUpdate()`
+      — only shown when a waiting SW is detected. Polls every 1s while the
+      tab is open. Ties into Phase 8's update flow.
 - [x] **Dev-mode console warnings, plain-English — SHIPPED (partial)**:
       Three silent failure modes now emit plain-English `console.warn` in DEV:
       (1) non-secure context (HTTP/non-localhost) — warns before `register()`

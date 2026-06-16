@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   useEidosStatus,
   useEidosQueue,
@@ -7,7 +7,7 @@ import {
   useEidosReliabilityStats,
 } from './hooks';
 import { replayQueue, clearQueue, cancelByIdempotencyKey, requeueItem } from '../action';
-import { setOfflineSimulation } from '../sw-bridge';
+import { setOfflineSimulation, getSwRegistration, triggerSwUpdate } from '../sw-bridge';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -18,7 +18,7 @@ export interface EidosDevtoolsProps {
   defaultOpen?: boolean;
 }
 
-type Tab = 'queue' | 'cache' | 'reliability';
+type Tab = 'queue' | 'cache' | 'reliability' | 'sw';
 
 // ── Colours ───────────────────────────────────────────────────────────────────
 
@@ -155,6 +155,9 @@ const ICONS = {
   x: 'M18 6 6 18M6 6l12 12',
   rotateCcw: 'M3 12a9 9 0 1 0 2.6-6.4M3 12V5m0 7h7',
   activity: 'M22 12h-4l-3 9L9 3l-3 9H2',
+  shield: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
+  refreshCw:
+    'M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8M21 3v5h-5M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16M3 21v-5h5',
 } as const;
 
 // ── Corner positions ──────────────────────────────────────────────────────────
@@ -375,7 +378,7 @@ export function EidosDevtools({
             background: C.surface,
           }}
         >
-          {(['queue', 'cache', 'reliability'] as Tab[]).map((t) => (
+          {(['queue', 'cache', 'reliability', 'sw'] as Tab[]).map((t) => (
             <button
               key={t}
               role="tab"
@@ -403,7 +406,9 @@ export function EidosDevtools({
                 ? `Queue (${queue.length})`
                 : t === 'cache'
                   ? `Cache (${resourceList.length})`
-                  : 'Reliability'}
+                  : t === 'reliability'
+                    ? 'Reliability'
+                    : 'SW'}
             </button>
           ))}
         </div>
@@ -414,8 +419,10 @@ export function EidosDevtools({
             <QueueTab queue={queue} onReplay={handleReplay} onClear={handleClear} />
           ) : tab === 'cache' ? (
             <CacheTab resources={resourceList} />
-          ) : (
+          ) : tab === 'reliability' ? (
             <ReliabilityTab stats={reliability} />
+          ) : (
+            <SwTab resources={resourceList} />
           )}
         </div>
       </div>
@@ -658,6 +665,179 @@ function ReliabilityTab({ stats }: { stats: ReturnType<typeof useEidosReliabilit
         <code style={{ color: C.cyan }}>onReliabilityReport</code> in{' '}
         <code style={{ color: C.cyan }}>initEidos()</code> to forward these to analytics.
       </div>
+    </div>
+  );
+}
+
+// ── SW tab ────────────────────────────────────────────────────────────────────
+
+interface SwSnapshot {
+  activeUrl: string | null;
+  hasWaiting: boolean;
+  hasInstalling: boolean;
+}
+
+function readSwSnapshot(): SwSnapshot {
+  const reg = getSwRegistration();
+  if (!reg) return { activeUrl: null, hasWaiting: false, hasInstalling: false };
+  return {
+    activeUrl: reg.active?.scriptURL ?? null,
+    hasWaiting: reg.waiting !== null,
+    hasInstalling: reg.installing !== null,
+  };
+}
+
+function SwTab({ resources }: { resources: ReturnType<typeof useEidosResources>[string][] }) {
+  const [snap, setSnap] = useState<SwSnapshot>(readSwSnapshot);
+
+  // Poll every second to detect waiting/installing SWs without a subscription mechanism.
+  useEffect(() => {
+    const id = setInterval(() => setSnap(readSwSnapshot()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Dedupe cache buckets from registered resources so we can show a bucket list.
+  const buckets = resources.reduce<Record<string, number>>((acc, res) => {
+    const name = res.strategy.cacheName;
+    acc[name] = (acc[name] ?? 0) + 1;
+    return acc;
+  }, {});
+  const bucketList = Object.entries(buckets);
+
+  const swState = snap.hasInstalling
+    ? 'installing'
+    : snap.hasWaiting
+      ? 'waiting'
+      : snap.activeUrl
+        ? 'active'
+        : 'none';
+
+  const stateColor =
+    swState === 'active'
+      ? C.green
+      : swState === 'waiting' || swState === 'installing'
+        ? C.yellow
+        : C.muted;
+
+  const shortUrl = snap.activeUrl
+    ? snap.activeUrl.replace(/^https?:\/\/[^/]+/, '') || snap.activeUrl
+    : null;
+
+  return (
+    <div>
+      {/* Registration row */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: '8px 12px',
+          borderBottom: `1px solid ${C.border}`,
+        }}
+      >
+        <span style={{ color: C.muted, display: 'inline-flex' }}>
+          <Icon path={ICONS.shield} size={12} />
+        </span>
+        <span style={pill(stateColor)}>{swState}</span>
+        {shortUrl !== null ? (
+          <span
+            title={snap.activeUrl ?? undefined}
+            style={{
+              flex: 1,
+              color: C.muted,
+              fontSize: 10,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {shortUrl}
+          </span>
+        ) : (
+          <span style={{ flex: 1, color: C.muted, fontSize: 10 }}>No SW registered</span>
+        )}
+        <button
+          onClick={() => setSnap(readSwSnapshot())}
+          title="Refresh SW state"
+          aria-label="Refresh SW state"
+          {...withFocusRing()}
+          style={{ ...btn('ghost'), padding: '2px 6px', minHeight: 20 }}
+        >
+          <Icon path={ICONS.refreshCw} size={10} />
+        </button>
+      </div>
+
+      {/* Update available banner */}
+      {snap.hasWaiting ? (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '8px 12px',
+            borderBottom: `1px solid ${C.border}`,
+            background: `${C.yellow}11`,
+          }}
+        >
+          <span style={{ color: C.yellow, fontSize: 10, flex: 1 }}>
+            Update ready — new SW is waiting to activate.
+          </span>
+          <button
+            onClick={triggerSwUpdate}
+            title="Activate the waiting SW now"
+            {...withFocusRing()}
+            style={{ ...btn('primary'), minHeight: 22, fontSize: 10 }}
+          >
+            Force update
+          </button>
+        </div>
+      ) : null}
+
+      {/* Cache buckets */}
+      <div
+        style={{
+          padding: '6px 12px',
+          color: C.muted,
+          fontSize: 10,
+          borderBottom: `1px solid ${C.border}`,
+        }}
+      >
+        Cache buckets ({bucketList.length})
+      </div>
+      {bucketList.length === 0 ? (
+        <div style={{ padding: '16px 12px', textAlign: 'center', color: C.muted, fontSize: 10 }}>
+          No resources registered
+        </div>
+      ) : (
+        bucketList.map(([name, count]) => (
+          <div
+            key={name}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '7px 12px',
+              borderBottom: `1px solid ${C.border}`,
+            }}
+          >
+            <span
+              style={{
+                color: C.text,
+                fontSize: 10,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                flex: 1,
+              }}
+            >
+              {name}
+            </span>
+            <span style={pill(C.blue)}>
+              {count} resource{count !== 1 ? 's' : ''}
+            </span>
+          </div>
+        ))
+      )}
     </div>
   );
 }
