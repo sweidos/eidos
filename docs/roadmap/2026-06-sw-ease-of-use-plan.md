@@ -143,17 +143,20 @@ able to see _why_ without opening `chrome://inspect`.
 - [ ] **`<EidosDevtools />` "Service Worker" tab**: registration state
       (installing/waiting/active), active cache buckets with entry counts,
       and a "force update" button (ties into Phase 8's update flow).
-- [ ] **Dev-mode console warnings, plain-English**: e.g. resource registered
-      before SW ready, `swPath` 404, HTTP (non-HTTPS/non-localhost) context
-      where SW registration silently no-ops — these currently fail silently
-      and are hard to diagnose for first-time users. Wording must avoid
-      assuming prior SW knowledge — e.g. not "SW registration failed: 404"
-      but "Service worker file not found at /eidos-sw.js — did you add
-      `eidos()` to your vite.config.ts plugins? See <link>." Each warning
-      links to a matching entry in the Phase 10 troubleshooting doc.
-- [ ] **`eidosDebug()` export**: framework-agnostic snapshot (registered
-      resources, queue state, SW status) as a plain object — useful for bug
-      reports and the devtools tab alike.
+- [x] **Dev-mode console warnings, plain-English — SHIPPED (partial)**:
+      Three silent failure modes now emit plain-English `console.warn` in DEV:
+      (1) non-secure context (HTTP/non-localhost) — warns before `register()`
+      with HTTPS/localhost fix instructions;
+      (2) SW file not found (404-like error) — actionable message pointing to
+      the Vite plugin or manual copy step;
+      (3) generic registration failure — logs the raw browser error.
+      Warnings are self-contained (no Phase 10 troubleshooting doc dependency).
+      Remaining: "resource registered before SW ready" warning — deferred
+      because idle vs registering is ambiguous without false-positive risk.
+- [x] **`eidosDebug()` export — SHIPPED**: returns a plain-object JSON-serializable
+      snapshot (`version`, `swStatus`, `isOnline`, `resourceCount`, `resources`,
+      `queue`, `reliability`, `swRegistration`). Exported from `@sweidos/eidos`.
+      README documents usage with Sentry breadcrumb example.
 
 **Docs/tests to update**:
 
