@@ -204,10 +204,11 @@ phase is mostly docs/examples, no new APIs.
       "Hello Eidos" route — one resource, one action, no devtools, no
       conflict config — as the first thing a fresher sees, linked
       prominently from the landing page and root README's quick start.
-- [ ] **Troubleshooting doc** (`docs/guides/troubleshooting.md`): one entry
+- [x] **Troubleshooting doc** (`docs/guides/troubleshooting.md`): one entry
       per Phase 9 console warning, written as "I see this message → here's
-      what's wrong → here's the fix", with copy-pasteable fixes (no
-      "depends on your setup" hand-waving).
+      what's wrong → here's the fix", with copy-pasteable fixes. Also covers
+      runtime issues (stuck SW, maxAge not expiring, networkTimeoutMs timing)
+      and the full `eidosDebug()` field reference. Linked from README.
 
 **Docs/tests to update**:
 
