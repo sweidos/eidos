@@ -1,5 +1,14 @@
 # @sweidos/next
 
+## 2.0.0
+
+### Patch Changes
+
+- Updated dependencies [e223036]
+- Updated dependencies [4d287ef]
+- Updated dependencies [f686ce1]
+  - @sweidos/eidos@2.3.0
+
 ## 1.0.0
 
 ### Patch Changes

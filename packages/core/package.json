@@ -1,6 +1,6 @@
 {
   "name": "@sweidos/eidos",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "Describe intent. The runtime figures out how. An abstraction layer for offline-first web apps.",
   "author": "Aditya Raj",
   "license": "MIT",

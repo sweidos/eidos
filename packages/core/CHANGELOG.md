@@ -1,5 +1,66 @@
 # @sweidos/eidos
 
+## 2.3.0
+
+### Minor Changes
+
+- e223036: Add `eidosDebug()` export and dev-mode console warnings for common SW setup failures.
+
+  **`eidosDebug()`**: new framework-agnostic export that returns a plain-object snapshot of
+  the full Eidos runtime state (`version`, `swStatus`, `isOnline`, `resourceCount`,
+  `resources`, `queue`, `reliability`, `swRegistration`). Safe to `JSON.stringify`.
+  Useful for bug reports and attaching to error-tracking breadcrumbs.
+
+  **Dev-mode console warnings**: `registerServiceWorker()` now emits plain-English
+  `console.warn` messages in development (`import.meta.env.DEV`) for three previously
+  silent failure modes:
+
+  - Non-secure context (HTTP/non-localhost): warns before registration so devs don't
+    wonder why offline support is missing.
+  - SW file not found (404-like error): actionable message directing devs to add the
+    `eidos()` Vite plugin or copy the file manually.
+  - Other registration failures: generic warning with the raw browser error.
+
+  Both additions are additive — no breaking changes, no new required config.
+
+- 4d287ef: Add `skipWaiting` / `onUpdateAvailable` / `triggerSwUpdate()` for controlled SW update UX
+
+  Three related additions that give apps full control over when a new service
+  worker takes over:
+
+  - `EidosConfig.skipWaiting` (default `true`) — set to `false` to opt into a
+    toast-then-reload pattern instead of the previous auto-activate behaviour.
+  - `EidosConfig.onUpdateAvailable` — callback fired when a new SW has installed
+    and is waiting; only fires when `skipWaiting: false`.
+  - `triggerSwUpdate()` export — call from the toast confirm handler to activate
+    the waiting SW immediately.
+
+  The SW `install` handler no longer calls `self.skipWaiting()` unconditionally;
+  instead the page sends `EIDOS_SKIP_WAITING` — immediately for `skipWaiting: true`
+  (matching prior behaviour), or on demand for `skipWaiting: false`. The default
+  is unchanged so existing apps are unaffected.
+
+### Patch Changes
+
+- f686ce1: Fix `maxAge` not enforced by the service worker and add `maxEntries` LRU eviction.
+
+  **`maxAge` SW-side enforcement (bug fix)**: previously `maxAge` was only checked in the
+  page-side `handle.fetch()` path. Any request that bypassed `handle.fetch()` — browser
+  navigation, `<img>`/`<link>` tags, raw `fetch()` calls — received stale cached responses
+  with no expiry check. The SW now stamps a `X-Eidos-Cached-At` header on every `cache.put()`
+  and checks it on cache hits across all three strategies (`cache-first`, `stale-while-revalidate`,
+  `network-first`). Expired entries are deleted and treated as cache misses.
+
+  **`maxEntries` FIFO eviction (new `ResourceConfig` field)**: `maxEntries` was documented in
+  the `equivalentCode` dev metadata as `ExpirationPlugin({ maxEntries: 60 })` but was never
+  wired into the actual SW cache-put path. The SW now enforces it: after every `cache.put()`,
+  if the cache bucket exceeds `maxEntries`, the oldest-inserted entries are evicted. Add
+  `maxEntries` to any `resource()` or `resourcePattern()` config to cap cache size.
+
+  Both fixes apply to all three caching strategies. No breaking changes — `maxAge` behaviour
+  for entries cached before this patch is unchanged (no `X-Eidos-Cached-At` header = treated
+  as fresh, expires naturally on next cache write).
+
 ## 2.2.0
 
 ### Minor Changes

@@ -1,6 +1,6 @@
 {
   "name": "@sweidos/next",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Next.js Server Actions integration for Eidos action() — neverLose wrapper, idempotency context for Server Action bodies.",
   "author": "Aditya Raj",
   "license": "MIT",
@@ -28,7 +28,7 @@
     "vitest": "^4.1.9"
   },
   "peerDependencies": {
-    "@sweidos/eidos": ">=2.2.0",
+    "@sweidos/eidos": ">=2.3.0",
     "next": ">=14"
   },
   "peerDependenciesMeta": {
