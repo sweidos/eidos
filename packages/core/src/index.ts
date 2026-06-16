@@ -39,6 +39,7 @@ export {
   getSwRegistration,
   sendToWorker,
   registerPushCallbacks,
+  triggerSwUpdate,
 } from './sw-bridge';
 export { eidosDebug } from './debug';
 export type { EidosDebugSnapshot } from './debug';

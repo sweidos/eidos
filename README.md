@@ -166,7 +166,10 @@ const products = resource('/api/products', {
   maxEntries?: number, // max cache entries; oldest evicted (FIFO) when exceeded
   version?: string | number, // bump when the response shape changes —
                               // appended to cacheName (e.g. 'eidos-resources-v1-v2')
-                              // so old-shaped cache entries aren't served
+                              // so old-shaped cache entries aren't served.
+                              // NOTE: this is separate from the SW-internal CACHE_VERSION
+                              // (bumped only on Eidos releases to purge old cache buckets).
+                              // Bump `version` for your data shape; Eidos bumps CACHE_VERSION.
 })
 
 await products.fetch()          // Promise<Response>
@@ -335,6 +338,40 @@ initEidos({
 
 The same counters are visible live in `<EidosDevtools />` under the
 "Reliability" tab.
+
+### Handling SW updates
+
+By default, when a new service worker is available it activates immediately
+(`skipWaiting: true`). This matches standard PWA behaviour but can interrupt
+in-flight requests on pages that are mid-navigation.
+
+Opt into the **toast-then-reload** pattern with `skipWaiting: false`:
+
+```ts
+import { initEidos, triggerSwUpdate } from '@sweidos/eidos';
+
+initEidos({
+  skipWaiting: false,
+  onUpdateAvailable: (_registration) => {
+    // Show a toast, banner, or dialog — then call triggerSwUpdate() when the
+    // user confirms they're ready to reload.
+    showToast({
+      message: 'App update ready',
+      action: { label: 'Reload', onClick: triggerSwUpdate },
+    });
+  },
+});
+```
+
+`triggerSwUpdate()` tells the waiting service worker to activate, then the
+browser reloads the page. With `skipWaiting: true` (default) `onUpdateAvailable`
+is never called and `triggerSwUpdate()` is not needed.
+
+> **Tip**: avoid calling `triggerSwUpdate()` while `neverLose` actions are
+> mid-replay. The replay coordination (BroadcastChannel + Web Locks) survives
+> SW activation, but triggering an update during an active replay pass adds
+> unnecessary churn. Wait until the queue drains or use `waitForQueueDrain()`
+> from `@sweidos/eidos/testing` in tests.
 
 ### Queue management
 
@@ -659,7 +696,7 @@ Eidos emits plain-English `console.warn` messages in development (`import.meta.e
 | Offline writes        | IndexedDB queue, auto-replay + backoff via `action()` | Background Sync, you wire it | No built-in mutation queue |
 | Framework support     | React, Svelte, Vue, Next.js, React Native, vanilla JS | Framework-agnostic (SW only) | Per-library                |
 | TanStack Query bridge | `@sweidos/eidos/query` adapter                        | —                            | Native                     |
-| Bundle size (core)    | ~6.6 kB brotli                                        | ~3-6 kB (modular)            | ~13 kB                     |
+| Bundle size (core)    | ~6.7 kB brotli                                        | ~3-6 kB (modular)            | ~13 kB                     |
 
 Not a TanStack Query replacement — `@sweidos/eidos/query` is a thin adapter so
 you keep TQ's cache/devtools while Eidos owns the offline layer. Workbox is a

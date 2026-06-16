@@ -106,32 +106,38 @@ strategy, maxAge, maxEntries }`) feeding into the same
 
 ---
 
-## Phase 8 — Update/Versioning UX
+## Phase 8 — Update/Versioning UX — SHIPPED
 
 **Goal**: SW update lifecycle is the #1 source of "stale app" support
 issues for PWAs in general — make Eidos's story explicit and easy.
 
-- [ ] **`onUpdateAvailable` callback** in `EidosConfig` — fired when a new
+- [x] **`onUpdateAvailable` callback** in `EidosConfig` — fired when a new
       SW is waiting (`updatefound` / `statechange` to `installed`), so apps
       can show a "reload to update" toast instead of silently
       `skipWaiting()`-ing (current behavior, which can yank resources out
       from under an in-flight page).
-- [ ] **`EidosConfig.skipWaiting`** (default `true`, matching current
+- [x] **`EidosConfig.skipWaiting`** (default `true`, matching current
       behavior) — opt-out for apps that want the toast-then-reload pattern
       above.
-- [ ] Document the interaction between `skipWaiting`/`clients.claim` and the
+- [x] **`triggerSwUpdate()`** export — call from toast handler to activate
+      waiting SW immediately; no-op when no waiting SW.
+- [x] **SW install no longer auto-`skipWaiting()`** — page controls timing
+      via `EIDOS_SKIP_WAITING` message (immediately for `skipWaiting: true`,
+      user-triggered for `skipWaiting: false`).
+- [x] Document the interaction between `skipWaiting`/`clients.claim` and the
       cross-tab `BroadcastChannel`/Web-Locks replay coordination (Phase 0/1)
-      — an update mid-replay shouldn't double-execute queued actions.
+      — noted in README "Tip" under "Handling SW updates".
 
-**Docs/tests to update**:
+**Shipped**:
 
-- `packages/core/src/__tests__/runtime.test.ts` — `onUpdateAvailable`
-  fires on mocked `updatefound`; `skipWaiting: false` doesn't call
-  `self.skipWaiting()`.
+- `packages/core/src/__tests__/sw-update.test.ts` — 8 tests: `skipWaiting:
+true` auto-posts message on startup-waiting and `updatefound`; `skipWaiting:
+false` calls `onUpdateAvailable` and does not post; first-install no
+  controller path; `triggerSwUpdate()` posts and is a no-op when no reg.
 - `packages/core/README.md` / root `README.md` — "Handling SW updates"
-  section with a copy-pasteable toast example.
+  section with copy-pasteable toast example and `triggerSwUpdate()` docs.
 - Playground: simulate a new SW version (bump a query-param/version string)
-  and show the update toast end-to-end.
+  and show the update toast end-to-end — deferred to Phase 9 devtools tab.
 
 ---
 

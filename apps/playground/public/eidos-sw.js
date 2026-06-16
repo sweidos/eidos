@@ -13,9 +13,7 @@ var runtimeConfig = {
 	resources: /* @__PURE__ */ new Map(),
 	simulateOffline: false
 };
-self.addEventListener("install", (event) => {
-	event.waitUntil(self.skipWaiting());
-});
+self.addEventListener("install", () => {});
 self.addEventListener("activate", (event) => {
 	event.waitUntil(Promise.all([self.clients.claim(), caches.keys().then((keys) => Promise.all(keys.filter((k) => k.startsWith(CACHE_PREFIX) && !k.endsWith(CACHE_VERSION)).map((k) => caches.delete(k))))]));
 });
@@ -67,6 +65,9 @@ self.addEventListener("message", (event) => {
 			});
 			break;
 		}
+		case "EIDOS_SKIP_WAITING":
+			self.skipWaiting();
+			break;
 		case "EIDOS_PING":
 			event.source?.postMessage({ type: "EIDOS_PONG" });
 			break;

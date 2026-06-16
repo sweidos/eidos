@@ -31,8 +31,11 @@ const runtimeConfig = {
 
 // ── Lifecycle ─────────────────────────────────────────────────────────────────
 
-self.addEventListener('install', (event) => {
-  event.waitUntil(self.skipWaiting());
+self.addEventListener('install', () => {
+  // Do not call self.skipWaiting() here. The page sends EIDOS_SKIP_WAITING when
+  // it is ready to activate the new SW — immediately for the default skipWaiting: true
+  // config, or after the user confirms an "app updated" toast for skipWaiting: false.
+  // This gives the page control over whether in-flight requests/replays are interrupted.
 });
 
 self.addEventListener('activate', (event) => {
@@ -111,6 +114,9 @@ self.addEventListener('message', (event) => {
       });
       break;
     }
+    case 'EIDOS_SKIP_WAITING':
+      self.skipWaiting();
+      break;
     case 'EIDOS_PING':
       event.source?.postMessage({ type: 'EIDOS_PONG' });
       break;

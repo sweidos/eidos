@@ -10,7 +10,15 @@ export function getSwRegistration() {
   return _registration;
 }
 
-export async function registerServiceWorker(swPath: string): Promise<void> {
+interface SwRegistrationOptions {
+  skipWaiting: boolean;
+  onUpdateAvailable?: (registration: ServiceWorkerRegistration) => void;
+}
+
+export async function registerServiceWorker(
+  swPath: string,
+  options: SwRegistrationOptions = { skipWaiting: true },
+): Promise<void> {
   if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
     useEidosStore.getState().setSwStatus('unsupported');
     if (import.meta.env.DEV) {
@@ -52,6 +60,9 @@ export async function registerServiceWorker(swPath: string): Promise<void> {
     window.addEventListener('offline', () => store.setOnline(false));
 
     flushPendingMessages();
+
+    // Handle SW updates — the new SW waits for EIDOS_SKIP_WAITING from the page.
+    _watchForUpdate(_registration, options);
   } catch (err) {
     store.setSwStatus('error', String(err));
     if (import.meta.env.DEV) {
@@ -207,6 +218,41 @@ function flushPendingMessages(): void {
   if (!sw) return;
   for (const msg of _pendingMessages) sw.postMessage(msg);
   _pendingMessages = [];
+}
+
+function _watchForUpdate(reg: ServiceWorkerRegistration, options: SwRegistrationOptions): void {
+  const notify = (r: ServiceWorkerRegistration) => {
+    if (options.skipWaiting) {
+      r.waiting?.postMessage({ type: 'EIDOS_SKIP_WAITING' });
+    } else {
+      options.onUpdateAvailable?.(r);
+    }
+  };
+
+  // A SW may already be waiting on startup (installed across a previous page load
+  // but blocked because another tab held the old SW active).
+  if (reg.waiting && navigator.serviceWorker.controller) {
+    notify(reg);
+  }
+
+  reg.addEventListener('updatefound', () => {
+    const newSw = reg.installing;
+    if (!newSw) return;
+    newSw.addEventListener('statechange', () => {
+      if (newSw.state === 'installed' && navigator.serviceWorker.controller) {
+        notify(reg);
+      }
+    });
+  });
+}
+
+/**
+ * Tells the waiting service worker to activate immediately, then reloads the page.
+ * Only relevant when `skipWaiting: false` — call this after the user confirms
+ * a "reload to update" toast shown via `onUpdateAvailable`.
+ */
+export function triggerSwUpdate(): void {
+  _registration?.waiting?.postMessage({ type: 'EIDOS_SKIP_WAITING' });
 }
 
 /** Test-only: resets module-level state between test cases. */

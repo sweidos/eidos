@@ -38,6 +38,27 @@ export interface EidosConfig {
   /** Automatically replay the action queue on reconnect. Default: true. */
   autoReplay?: boolean;
   /**
+   * When `true` (default), the new service worker activates immediately when an
+   * update is available — matching the pre-v2.3 behaviour. Set to `false` to opt
+   * into a toast-then-reload pattern: `onUpdateAvailable` fires instead and you
+   * call `triggerSwUpdate()` when the user confirms the reload.
+   *
+   * Note: avoid calling `triggerSwUpdate()` while `neverLose` actions are mid-replay
+   * — the BroadcastChannel/Web-Locks replay coordination survives SW activation, but
+   * triggering an update during an active replay pass is unnecessary churn.
+   */
+  skipWaiting?: boolean;
+  /**
+   * Called when a new service worker version has installed and is waiting to
+   * activate. Use this to show a "reload to update" toast. Only fires when
+   * `skipWaiting: false`; with the default `skipWaiting: true` the update
+   * applies automatically and this callback is never needed.
+   *
+   * Call `triggerSwUpdate()` when the user confirms the reload — it tells the
+   * waiting SW to activate, then reload the page.
+   */
+  onUpdateAvailable?: (registration: ServiceWorkerRegistration) => void;
+  /**
    * Opt-in reliability telemetry. Called with a snapshot of cumulative
    * `neverLose` queue outcome counters (`ReliabilityStats`) every
    * `reliabilityReportInterval` ms — wire this up to your analytics backend.
@@ -61,6 +82,7 @@ export async function initEidos(config: EidosConfig = {}): Promise<void> {
 
   const swPath = config.swPath ?? '/eidos-sw.js';
   const autoReplay = config.autoReplay ?? true;
+  const skipWaiting = config.skipWaiting ?? true;
 
   // Restore persisted queue from IndexedDB on startup
   try {
@@ -74,7 +96,10 @@ export async function initEidos(config: EidosConfig = {}): Promise<void> {
   }
 
   try {
-    await registerServiceWorker(swPath);
+    await registerServiceWorker(swPath, {
+      skipWaiting,
+      onUpdateAvailable: config.onUpdateAvailable,
+    });
   } catch {
     // SW registration failed; app continues without offline support
   }
