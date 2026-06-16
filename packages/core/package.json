@@ -1,7 +1,7 @@
 {
   "name": "@sweidos/eidos",
-  "version": "2.3.0",
-  "description": "Describe intent. The runtime figures out how. An abstraction layer for offline-first web apps.",
+  "version": "2.3.1",
+  "description": "Eidos — offline-first abstraction layer. resource() + action() auto-generate Service Workers, cache strategies, and an IndexedDB action queue with idempotency keys and cross-tab replay locks.",
   "author": "Aditya Raj",
   "license": "MIT",
   "type": "module",
@@ -21,7 +21,9 @@
     "react-native",
     "queue",
     "optimistic-ui",
-    "network-resilience"
+    "network-resilience",
+    "sweidos",
+    "eidos"
   ],
   "homepage": "https://sweidos.vercel.app/overview",
   "bugs": {

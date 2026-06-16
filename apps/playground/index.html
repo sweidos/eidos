@@ -11,6 +11,10 @@
     />
     <meta name="theme-color" content="#0F172A" />
     <meta name="google-site-verification" content="eM2svU8p9XvFqeLLYk0a__eoFh452FmBXepRgsVef9g" />
+    <meta
+      name="keywords"
+      content="eidos, sweidos, @sweidos/eidos, offline-first, service-worker, pwa, cache, indexeddb, background-sync, react, next.js, svelte, vue, offline queue, optimistic-ui, network-resilience"
+    />
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
@@ -21,14 +25,16 @@
       content="resource() + action() replace 200 lines of Workbox config, IndexedDB schema, and retry logic — with idempotency keys and cross-tab replay locks built in, so a queued write runs exactly once."
     />
     <meta property="og:site_name" content="Eidos" />
+    <meta property="og:image" content="https://sweidos.vercel.app/og-image.svg" />
 
     <!-- Twitter / X -->
-    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Eidos — Never lose a write" />
     <meta
       name="twitter:description"
       content="resource() + action() replace 200 lines of Workbox config, IndexedDB schema, and retry logic — with idempotency keys and cross-tab replay locks built in, so a queued write runs exactly once."
     />
+    <meta name="twitter:image" content="https://sweidos.vercel.app/og-image.svg" />
 
     <link rel="manifest" href="/manifest.json" />
     <link rel="canonical" href="https://sweidos.vercel.app/" />
@@ -63,6 +69,26 @@
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      <h1>Eidos (@sweidos/eidos) — Never lose a write</h1>
+      <p>
+        Eidos is an offline-first abstraction layer for web apps. Declare what your app needs
+        offline — Eidos picks the cache strategy, registers the Service Worker, and persists your
+        action queue to IndexedDB with idempotency keys and cross-tab replay locks, so a queued
+        write runs exactly once.
+      </p>
+      <p>Install: <code>npm install @sweidos/eidos</code></p>
+      <ul>
+        <li>Works with React, Next.js, SvelteKit, Vue, React Native, Tauri, and Electron</li>
+        <li>Auto-generates Service Worker and cache strategies from resource() declarations</li>
+        <li>Offline action queue with idempotency keys and cross-tab replay locks</li>
+        <li>Zero config — no service worker file to write</li>
+      </ul>
+      <p>
+        <a href="https://www.npmjs.com/package/@sweidos/eidos">npm: @sweidos/eidos</a> ·
+        <a href="https://github.com/sweidos/eidos">GitHub: sweidos/eidos</a>
+      </p>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
