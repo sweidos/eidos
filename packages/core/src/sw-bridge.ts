@@ -13,7 +13,25 @@ export function getSwRegistration() {
 export async function registerServiceWorker(swPath: string): Promise<void> {
   if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
     useEidosStore.getState().setSwStatus('unsupported');
+    if (import.meta.env.DEV) {
+      console.warn(
+        '[eidos] Service workers are not supported in this context. ' +
+          'Offline support and SW-side caching are disabled. ' +
+          'Service workers require a modern browser with a secure context (HTTPS or localhost).',
+      );
+    }
     return;
+  }
+
+  // Warn early when the browser will reject registration regardless — saves a round-trip
+  // and gives a clearer message than the browser's generic SecurityError.
+  if (import.meta.env.DEV && typeof window !== 'undefined' && !window.isSecureContext) {
+    console.warn(
+      `[eidos] Service workers require a secure context (HTTPS or localhost). ` +
+        `initEidos() was called on "${window.location.origin}" — ` +
+        `the browser will silently disable offline support. ` +
+        `Switch to localhost for development or deploy to HTTPS.`,
+    );
   }
 
   const store = useEidosStore.getState();
@@ -36,6 +54,24 @@ export async function registerServiceWorker(swPath: string): Promise<void> {
     flushPendingMessages();
   } catch (err) {
     store.setSwStatus('error', String(err));
+    if (import.meta.env.DEV) {
+      const errMsg = String(err).toLowerCase();
+      const isNotFound =
+        errMsg.includes('404') ||
+        errMsg.includes('bad http response') ||
+        errMsg.includes('not found') ||
+        errMsg.includes('failed to load');
+      if (isNotFound) {
+        console.warn(
+          `[eidos] Service worker file not found at "${swPath}". ` +
+            `Did you add the eidos() plugin to your vite.config.ts? ` +
+            `If you're not using Vite, copy the file manually: ` +
+            `node_modules/@sweidos/eidos/dist/eidos-sw.js → public/eidos-sw.js`,
+        );
+      } else {
+        console.warn(`[eidos] Service worker registration failed: ${err}`);
+      }
+    }
   }
 }
 

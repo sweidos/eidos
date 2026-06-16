@@ -592,6 +592,35 @@ import { EidosDevtools } from '@sweidos/eidos/devtools';
 
 Panel shows: live queue state · cache entries · SW status · offline simulation toggle.
 
+### `eidosDebug()`
+
+Returns a plain-object snapshot of the full Eidos runtime state — safe to `JSON.stringify`, useful for bug reports or attaching to error-tracking breadcrumbs:
+
+```ts
+import { eidosDebug } from '@sweidos/eidos';
+
+// Print for a bug report
+console.log(JSON.stringify(eidosDebug(), null, 2));
+
+// Attach to a Sentry breadcrumb
+Sentry.addBreadcrumb({ data: eidosDebug() });
+```
+
+Snapshot includes: `version`, `swStatus`, `isOnline`, `resourceCount`, `resources` (per-URL status/hits/cachedAt), `queue` (item list with idempotencyKey/retryCount), `reliability` counters, and `swRegistration` state.
+
+---
+
+## Troubleshooting
+
+Eidos emits plain-English `console.warn` messages in development (`import.meta.env.DEV`) for common setup problems:
+
+| Warning                                             | Cause                                        | Fix                                                                                                                             |
+| --------------------------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `Service workers require a secure context`          | `initEidos()` called on HTTP (non-localhost) | Use `localhost` for dev or deploy to HTTPS                                                                                      |
+| `Service worker file not found at "/eidos-sw.js"`   | SW file missing from `public/`               | Add `eidos()` to `vite.config.ts` plugins, or copy `node_modules/@sweidos/eidos/dist/eidos-sw.js → public/eidos-sw.js` manually |
+| `Service worker registration failed: …`             | Unexpected registration error                | Check `eidosDebug().swError` for the full browser error message                                                                 |
+| `Service workers are not supported in this context` | Old browser, or SW API absent                | No fix needed — Eidos degrades gracefully; only SW-side caching is disabled                                                     |
+
 ---
 
 ## SSR adapters
@@ -630,7 +659,7 @@ Panel shows: live queue state · cache entries · SW status · offline simulatio
 | Offline writes        | IndexedDB queue, auto-replay + backoff via `action()` | Background Sync, you wire it | No built-in mutation queue |
 | Framework support     | React, Svelte, Vue, Next.js, React Native, vanilla JS | Framework-agnostic (SW only) | Per-library                |
 | TanStack Query bridge | `@sweidos/eidos/query` adapter                        | —                            | Native                     |
-| Bundle size (core)    | ~6.5 kB brotli                                        | ~3-6 kB (modular)            | ~13 kB                     |
+| Bundle size (core)    | ~6.6 kB brotli                                        | ~3-6 kB (modular)            | ~13 kB                     |
 
 Not a TanStack Query replacement — `@sweidos/eidos/query` is a thin adapter so
 you keep TQ's cache/devtools while Eidos owns the offline layer. Workbox is a
