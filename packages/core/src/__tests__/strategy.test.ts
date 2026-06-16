@@ -141,3 +141,25 @@ describe('maxAge config', () => {
     expect(h.config.maxAge).toBe(60_000);
   });
 });
+
+describe('maxEntries config', () => {
+  it('config.maxEntries is preserved on handle', () => {
+    const h = resource('/test/maxentries', { offline: true, maxEntries: 50 });
+    expect(h.config.maxEntries).toBe(50);
+  });
+
+  it('maxEntries can be combined with maxAge', () => {
+    const h = resource('/test/maxentries-maxage', {
+      offline: true,
+      maxAge: 30_000,
+      maxEntries: 20,
+    });
+    expect(h.config.maxAge).toBe(30_000);
+    expect(h.config.maxEntries).toBe(20);
+  });
+
+  it('omitting maxEntries leaves it undefined', () => {
+    const h = resource('/test/maxentries-absent', { offline: true });
+    expect(h.config.maxEntries).toBeUndefined();
+  });
+});

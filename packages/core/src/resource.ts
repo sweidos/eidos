@@ -88,6 +88,8 @@ function _register(
     strategy: strategy.swStrategy,
     cacheName: strategy.cacheName,
     ...(regexStr !== undefined && { pattern: regexStr }),
+    ...(config.maxAge !== undefined && { maxAge: config.maxAge }),
+    ...(config.maxEntries !== undefined && { maxEntries: config.maxEntries }),
   });
 
   return { strategy, regexStr };
@@ -409,10 +411,10 @@ const _STRATEGY_DEV_META: Record<CacheStrategy, StrategyDevInfo> = {
       'Offline → return cached version if available, 503 if not',
       'Reconnect → next request triggers a background refresh',
     ],
-    equivalentCode: `// Workbox equivalent
+    equivalentCode: `// Workbox equivalent (maxEntries/maxAge are configured via ResourceConfig)
 new StaleWhileRevalidate({
   cacheName: 'eidos-resources-v1',
-  plugins: [new ExpirationPlugin({ maxEntries: 60 })],
+  plugins: [new ExpirationPlugin({ maxEntries: config.maxEntries, maxAgeSeconds: config.maxAge && config.maxAge / 1000 })],
 })`,
   },
   'cache-first': {
@@ -422,12 +424,12 @@ new StaleWhileRevalidate({
       'Cache hit → return immediately, no network request made',
       'Cache miss → fetch from network, cache the response, return it',
       'Offline → return cached version, 503 if cache is empty',
-      'Cache never expires unless explicitly invalidated',
+      'Cache never expires unless maxAge is set or explicitly invalidated',
     ],
-    equivalentCode: `// Workbox equivalent
+    equivalentCode: `// Workbox equivalent (maxEntries/maxAge are configured via ResourceConfig)
 new CacheFirst({
   cacheName: 'eidos-resources-v1',
-  plugins: [new ExpirationPlugin({ maxEntries: 60 })],
+  plugins: [new ExpirationPlugin({ maxEntries: config.maxEntries, maxAgeSeconds: config.maxAge && config.maxAge / 1000 })],
 })`,
   },
   'network-first': {

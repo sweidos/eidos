@@ -23,6 +23,12 @@ export interface ResourceConfig {
   version?: string | number;
   /** Max age of cached response in milliseconds. Expired entries trigger a network fetch. */
   maxAge?: number;
+  /**
+   * Maximum number of entries to keep in this resource's cache bucket.
+   * When the limit is exceeded after a `cache.put()`, the oldest entry is evicted (FIFO).
+   * Useful for list/image endpoints that grow unbounded.
+   */
+  maxEntries?: number;
 }
 
 export interface GeneratedStrategy {

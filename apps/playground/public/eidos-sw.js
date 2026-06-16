@@ -29,7 +29,9 @@ self.addEventListener("message", (event) => {
 			runtimeConfig.resources.set(url, {
 				strategy: data.strategy,
 				cacheName: data.cacheName ?? `${CACHE_PREFIX}-resources-${CACHE_VERSION}`,
-				...patternSrc !== void 0 && { pattern: new RegExp(patternSrc) }
+				...patternSrc !== void 0 && { pattern: new RegExp(patternSrc) },
+				...data.maxAge !== void 0 && { maxAge: data.maxAge },
+				...data.maxEntries !== void 0 && { maxEntries: data.maxEntries }
 			});
 			event.source?.postMessage({
 				type: "EIDOS_RESOURCE_REGISTERED",
@@ -88,7 +90,7 @@ self.addEventListener("fetch", (event) => {
 	}
 	if (!reg) return;
 	if (reg.strategy === "stale-while-revalidate" && !runtimeConfig.simulateOffline) {
-		event.respondWith(staleWhileRevalidate(event, event.request, pathname, reg.cacheName));
+		event.respondWith(staleWhileRevalidate(event, event.request, pathname, reg));
 		return;
 	}
 	event.respondWith(handleFetch(event.request, pathname, reg));
@@ -96,16 +98,45 @@ self.addEventListener("fetch", (event) => {
 async function handleFetch(request, pathname, reg) {
 	if (runtimeConfig.simulateOffline) return serveOffline(request, pathname, reg.cacheName);
 	switch (reg.strategy) {
-		case "cache-first": return cacheFirst(request, pathname, reg.cacheName);
-		case "stale-while-revalidate": return staleWhileRevalidate(null, request, pathname, reg.cacheName);
-		case "network-first": return networkFirst(request, pathname, reg.cacheName);
+		case "cache-first": return cacheFirst(request, pathname, reg);
+		case "stale-while-revalidate": return staleWhileRevalidate(null, request, pathname, reg);
+		case "network-first": return networkFirst(request, pathname, reg);
 		default: return fetch(request);
 	}
 }
-async function cacheFirst(request, pathname, cacheName) {
+var CACHED_AT_HEADER = "X-Eidos-Cached-At";
+/**
+* Puts a response into cache with a `X-Eidos-Cached-At` timestamp header so
+* the SW can enforce `maxAge` on subsequent cache hits.
+* Caller must pass a clone of the response — `response.body` is consumed here.
+*/
+async function putCached(cache, request, response) {
+	const headers = new Headers(response.headers);
+	headers.set(CACHED_AT_HEADER, String(Date.now()));
+	await cache.put(request, new Response(response.body, {
+		status: response.status,
+		statusText: response.statusText,
+		headers
+	}));
+}
+/** Returns true if the cached response has exceeded `maxAge`. */
+function isExpired(cached, maxAge) {
+	if (maxAge === void 0) return false;
+	const cachedAt = Number(cached.headers.get(CACHED_AT_HEADER) ?? "0");
+	return cachedAt > 0 && Date.now() - cachedAt > maxAge;
+}
+/** Evicts the oldest (first-inserted) entries when the cache exceeds `maxEntries`. */
+async function evictIfNeeded(cache, maxEntries) {
+	if (maxEntries === void 0) return;
+	const keys = await cache.keys();
+	const overflow = keys.length - maxEntries;
+	if (overflow > 0) await Promise.all(keys.slice(0, overflow).map((k) => cache.delete(k)));
+}
+async function cacheFirst(request, pathname, reg) {
+	const { cacheName, maxAge, maxEntries } = reg;
 	const cache = await caches.open(cacheName);
 	const cached = await cache.match(request);
-	if (cached) {
+	if (cached && !isExpired(cached, maxAge)) {
 		notifyClients({
 			type: "EIDOS_CACHE_HIT",
 			url: pathname,
@@ -113,10 +144,12 @@ async function cacheFirst(request, pathname, cacheName) {
 		});
 		return cached;
 	}
+	if (cached) await cache.delete(request);
 	try {
 		const response = await fetch(request);
 		if (response.ok) {
-			await cache.put(request, response.clone());
+			await putCached(cache, request, response.clone());
+			await evictIfNeeded(cache, maxEntries);
 			notifyClients({
 				type: "EIDOS_CACHE_UPDATED",
 				url: pathname,
@@ -132,12 +165,17 @@ async function cacheFirst(request, pathname, cacheName) {
 		return offlineErrorResponse(pathname);
 	}
 }
-async function staleWhileRevalidate(event, request, pathname, cacheName) {
+async function staleWhileRevalidate(event, request, pathname, reg) {
+	const { cacheName, maxAge, maxEntries } = reg;
 	const cache = await caches.open(cacheName);
 	const cached = await cache.match(request);
+	const expired = cached ? isExpired(cached, maxAge) : false;
+	if (expired) await cache.delete(request);
+	const effectiveCached = expired ? null : cached;
 	const revalidatePromise = fetch(request).then(async (response) => {
 		if (response.ok) {
-			await cache.put(request, response.clone());
+			await putCached(cache, request, response.clone());
+			await evictIfNeeded(cache, maxEntries);
 			notifyClients({
 				type: "EIDOS_CACHE_UPDATED",
 				url: pathname,
@@ -152,23 +190,25 @@ async function staleWhileRevalidate(event, request, pathname, cacheName) {
 			strategy: "stale-while-revalidate"
 		});
 	});
-	if (cached) {
+	if (effectiveCached) {
 		event?.waitUntil(revalidatePromise);
 		notifyClients({
 			type: "EIDOS_CACHE_HIT",
 			url: pathname,
 			strategy: "stale-while-revalidate"
 		});
-		return cached;
+		return effectiveCached;
 	}
 	return await revalidatePromise ?? offlineErrorResponse(pathname);
 }
-async function networkFirst(request, pathname, cacheName) {
+async function networkFirst(request, pathname, reg) {
+	const { cacheName, maxAge, maxEntries } = reg;
 	const cache = await caches.open(cacheName);
 	try {
 		const response = await fetch(request, { signal: AbortSignal.timeout(3e3) });
 		if (response.ok) {
-			await cache.put(request, response.clone());
+			await putCached(cache, request, response.clone());
+			await evictIfNeeded(cache, maxEntries);
 			notifyClients({
 				type: "EIDOS_CACHE_UPDATED",
 				url: pathname,
@@ -178,7 +218,7 @@ async function networkFirst(request, pathname, cacheName) {
 		return response;
 	} catch {
 		const cached = await cache.match(request);
-		if (cached) {
+		if (cached && !isExpired(cached, maxAge)) {
 			notifyClients({
 				type: "EIDOS_CACHE_HIT",
 				url: pathname,

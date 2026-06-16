@@ -18,6 +18,10 @@ interface ResourceRegistration {
   cacheName: string;
   /** Compiled from the URL pattern sent by the app; undefined for exact-URL registrations. */
   pattern?: RegExp;
+  /** Max age in ms; entries older than this are treated as cache misses. */
+  maxAge?: number;
+  /** Max cache entries (FIFO eviction on cache.put when exceeded). */
+  maxEntries?: number;
 }
 
 const runtimeConfig = {
@@ -63,6 +67,8 @@ self.addEventListener('message', (event) => {
         strategy: data.strategy as ResourceRegistration['strategy'],
         cacheName: (data.cacheName as string) ?? `${CACHE_PREFIX}-resources-${CACHE_VERSION}`,
         ...(patternSrc !== undefined && { pattern: new RegExp(patternSrc) }),
+        ...(data.maxAge !== undefined && { maxAge: data.maxAge as number }),
+        ...(data.maxEntries !== undefined && { maxEntries: data.maxEntries as number }),
       });
       event.source?.postMessage({ type: 'EIDOS_RESOURCE_REGISTERED', url });
       break;
@@ -146,7 +152,7 @@ self.addEventListener('fetch', (event) => {
 
   if (reg.strategy === 'stale-while-revalidate' && !runtimeConfig.simulateOffline) {
     // Pass event so SWR can call event.waitUntil() on background revalidation
-    event.respondWith(staleWhileRevalidate(event, event.request, pathname, reg.cacheName));
+    event.respondWith(staleWhileRevalidate(event, event.request, pathname, reg));
     return;
   }
 
@@ -164,13 +170,54 @@ async function handleFetch(
 
   switch (reg.strategy) {
     case 'cache-first':
-      return cacheFirst(request, pathname, reg.cacheName);
+      return cacheFirst(request, pathname, reg);
     case 'stale-while-revalidate':
-      return staleWhileRevalidate(null, request, pathname, reg.cacheName);
+      return staleWhileRevalidate(null, request, pathname, reg);
     case 'network-first':
-      return networkFirst(request, pathname, reg.cacheName);
+      return networkFirst(request, pathname, reg);
     default:
       return fetch(request);
+  }
+}
+
+// ── Cache helpers ─────────────────────────────────────────────────────────────
+
+const CACHED_AT_HEADER = 'X-Eidos-Cached-At';
+
+/**
+ * Puts a response into cache with a `X-Eidos-Cached-At` timestamp header so
+ * the SW can enforce `maxAge` on subsequent cache hits.
+ * Caller must pass a clone of the response — `response.body` is consumed here.
+ */
+async function putCached(cache: Cache, request: Request, response: Response): Promise<void> {
+  const headers = new Headers(response.headers);
+  headers.set(CACHED_AT_HEADER, String(Date.now()));
+  await cache.put(
+    request,
+    new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    }),
+  );
+}
+
+/** Returns true if the cached response has exceeded `maxAge`. */
+function isExpired(cached: Response, maxAge: number | undefined): boolean {
+  if (maxAge === undefined) return false;
+  const cachedAt = Number(cached.headers.get(CACHED_AT_HEADER) ?? '0');
+  // Entries without a timestamp (pre-patch cache) are treated as fresh to
+  // avoid a thundering herd on upgrade — they expire naturally on next put.
+  return cachedAt > 0 && Date.now() - cachedAt > maxAge;
+}
+
+/** Evicts the oldest (first-inserted) entries when the cache exceeds `maxEntries`. */
+async function evictIfNeeded(cache: Cache, maxEntries: number | undefined): Promise<void> {
+  if (maxEntries === undefined) return;
+  const keys = await cache.keys();
+  const overflow = keys.length - maxEntries;
+  if (overflow > 0) {
+    await Promise.all(keys.slice(0, overflow).map((k) => cache.delete(k)));
   }
 }
 
@@ -179,20 +226,25 @@ async function handleFetch(
 async function cacheFirst(
   request: Request,
   pathname: string,
-  cacheName: string,
+  reg: ResourceRegistration,
 ): Promise<Response> {
+  const { cacheName, maxAge, maxEntries } = reg;
   const cache = await caches.open(cacheName);
   const cached = await cache.match(request);
 
-  if (cached) {
+  if (cached && !isExpired(cached, maxAge)) {
     notifyClients({ type: 'EIDOS_CACHE_HIT', url: pathname, strategy: 'cache-first' });
     return cached;
   }
 
+  // Evict expired entry so the cache doesn't grow stale
+  if (cached) await cache.delete(request);
+
   try {
     const response = await fetch(request);
     if (response.ok) {
-      await cache.put(request, response.clone());
+      await putCached(cache, request, response.clone());
+      await evictIfNeeded(cache, maxEntries);
       notifyClients({ type: 'EIDOS_CACHE_UPDATED', url: pathname, strategy: 'cache-first' });
     }
     return response;
@@ -206,16 +258,23 @@ async function staleWhileRevalidate(
   event: FetchEvent | null,
   request: Request,
   pathname: string,
-  cacheName: string,
+  reg: ResourceRegistration,
 ): Promise<Response> {
+  const { cacheName, maxAge, maxEntries } = reg;
   const cache = await caches.open(cacheName);
   const cached = await cache.match(request);
+
+  // Treat expired entries as cache misses — don't serve stale beyond maxAge
+  const expired = cached ? isExpired(cached, maxAge) : false;
+  if (expired) await cache.delete(request);
+  const effectiveCached = expired ? null : cached;
 
   // Always revalidate in background
   const revalidatePromise = fetch(request)
     .then(async (response) => {
       if (response.ok) {
-        await cache.put(request, response.clone());
+        await putCached(cache, request, response.clone());
+        await evictIfNeeded(cache, maxEntries);
         notifyClients({
           type: 'EIDOS_CACHE_UPDATED',
           url: pathname,
@@ -232,7 +291,7 @@ async function staleWhileRevalidate(
       });
     });
 
-  if (cached) {
+  if (effectiveCached) {
     // Ensure background revalidation completes even if SW is about to terminate
     event?.waitUntil(revalidatePromise);
     notifyClients({
@@ -240,7 +299,7 @@ async function staleWhileRevalidate(
       url: pathname,
       strategy: 'stale-while-revalidate',
     });
-    return cached;
+    return effectiveCached;
   }
 
   const fresh = await revalidatePromise;
@@ -250,8 +309,9 @@ async function staleWhileRevalidate(
 async function networkFirst(
   request: Request,
   pathname: string,
-  cacheName: string,
+  reg: ResourceRegistration,
 ): Promise<Response> {
+  const { cacheName, maxAge, maxEntries } = reg;
   const cache = await caches.open(cacheName);
 
   try {
@@ -259,13 +319,14 @@ async function networkFirst(
     // metadata — slow/stalled requests fall back to cache instead of hanging.
     const response = await fetch(request, { signal: AbortSignal.timeout(3000) });
     if (response.ok) {
-      await cache.put(request, response.clone());
+      await putCached(cache, request, response.clone());
+      await evictIfNeeded(cache, maxEntries);
       notifyClients({ type: 'EIDOS_CACHE_UPDATED', url: pathname, strategy: 'network-first' });
     }
     return response;
   } catch {
     const cached = await cache.match(request);
-    if (cached) {
+    if (cached && !isExpired(cached, maxAge)) {
       notifyClients({ type: 'EIDOS_CACHE_HIT', url: pathname, strategy: 'network-first' });
       return cached;
     }
