@@ -1,7 +1,9 @@
 // Post-build step: copy the SW and root README into dist so both ship with the npm package.
 //   SW:     cp node_modules/@adityaraj/eidos/dist/eidos-sw.js public/eidos-sw.js
 //   README: viewed on npmjs.com
-import { copyFileSync, existsSync } from 'fs';
+// Also syncs src/version.ts from package.json so changeset version bumps are reflected
+// automatically without a manual edit.
+import { copyFileSync, existsSync, readFileSync, writeFileSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -28,3 +30,9 @@ copy(
   resolve(__dirname, '../README.md'),
   'README.md → packages/core/README.md',
 );
+
+// Sync version.ts from package.json so `pnpm changeset version` + `pnpm build` is sufficient.
+const pkg = JSON.parse(readFileSync(resolve(__dirname, '../package.json'), 'utf-8'));
+const versionTsPath = resolve(__dirname, '../src/version.ts');
+writeFileSync(versionTsPath, `export const VERSION = '${pkg.version}';\n`);
+console.log(`[eidos] version.ts → ${pkg.version} ✓`);
