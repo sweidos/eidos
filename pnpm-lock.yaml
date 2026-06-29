@@ -105,8 +105,8 @@ importers:
         specifier: ^2.0.1
         version: 2.0.1(next@16.2.9(@babel/core@7.29.7)(@opentelemetry/api@1.9.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
       lucide-react:
-        specifier: ^1.18.0
-        version: 1.18.0(react@19.2.7)
+        specifier: ^1.22.0
+        version: 1.22.0(react@19.2.7)
       prism-react-renderer:
         specifier: ^2.4.1
         version: 2.4.1(react@19.2.7)
@@ -633,6 +633,9 @@ packages:
 
   '@emnapi/runtime@1.10.0':
     resolution: {integrity: sha512-ewvYlk86xUoGI0zQRNq/mC+16R1QeDlKQy21Ki3oSYXNgLb45GV1P6A0M+/s6nyCuNDqe5VpaY84BzXGwVbwFA==}
+
+  '@emnapi/runtime@1.11.1':
+    resolution: {integrity: sha512-vgj7R3y3Wgx24IQaGPA/R6YFXLHVMOZ0uVEyIQPaWs+rd1AzfEMXlAC22FYwO1XkKR6NPsq7mUandH8oIRdZFw==}
 
   '@emnapi/wasi-threads@1.2.1':
     resolution: {integrity: sha512-uTII7OYF+/Mes/MrcIOYp5yOtSMLBWSIoLPpcgwipoiKbli6k322tcoFsxoIIxPDqW01SQGAgko4EzZi2BNv2w==}
@@ -1954,6 +1957,11 @@ packages:
     engines: {node: '>=6.0.0'}
     hasBin: true
 
+  baseline-browser-mapping@2.10.40:
+    resolution: {integrity: sha512-BSSLZ9/Cjjv7Gtj5B68ZzXcXUg8iOf3fme+FCuh8rC/Go+Kmh8cox7M3A8dolou16s64QjLPOSdngh7GxXvkSw==}
+    engines: {node: '>=6.0.0'}
+    hasBin: true
+
   better-path-resolve@1.0.0:
     resolution: {integrity: sha512-pbnl5XzGBdrFU/wT4jqmJVPn2B6UHPBOhzMQkY/SPUPB6QtUXtmBHBIwCbXJol93mOpGMnQyP/+BB19q04xj7g==}
     engines: {node: '>=4'}
@@ -2017,6 +2025,9 @@ packages:
 
   caniuse-lite@1.0.30001793:
     resolution: {integrity: sha512-iwSsYWaCOoh26cV8NwNRViHlrfUvYsHDfRVcbtmw0Kg6PJIZZXwMkj1442FYLBGkeUf1juAsU3DTfxW579mrPA==}
+
+  caniuse-lite@1.0.30001799:
+    resolution: {integrity: sha512-hG1bReV+OUU+MOqK4t/ZWI0tZOyz3rqS9XuhOUz1cIcbwBKjOyJEJuw9ER5JuNyqxNk8u/JUVbGibBOL1yrjFw==}
 
   chai@6.2.2:
     resolution: {integrity: sha512-NUPRluOfOiTKBKvWPtSD4PhFvWCqOi0BGStNWs57X9js7XGTprSmFoz5F0tWhR4WPjNeR9jXqdC7/UpSJTnlRg==}
@@ -3092,8 +3103,8 @@ packages:
     resolution: {integrity: sha512-Jo6dJ04CmSjuznwJSS3pUeWmd/H0ffTlkXXgwZi+eq1UCmqQwCh+eLsYOYCwY991i2Fah4h1BEMCx4qThGbsiA==}
     engines: {node: '>=10'}
 
-  lucide-react@1.18.0:
-    resolution: {integrity: sha512-LZDb7H/0YfM+RJncD0hDQRCAu+vSGODqpe35TuVI8EuXaRjkczbsx7p8dY4J87F/MUSj6bpYqeI8nw8qXaAdmA==}
+  lucide-react@1.22.0:
+    resolution: {integrity: sha512-c9o3l0PiNcgOQDW4F31BEYHudE7kgxVt3o30qMl36ZPwTxXlGB4QnLilhERvVM4uh/pl5MDyY1/gzZSYcHDtBg==}
     peerDependencies:
       react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
@@ -3178,6 +3189,11 @@ packages:
 
   nanoid@3.3.12:
     resolution: {integrity: sha512-ZB9RH/39qpq5Vu6Y+NmUaFhQR6pp+M2Xt76XBnEwDaGcVAqhlvxrl3B2bKS5D3NH3QR76v3aSrKaF/Kiy7lEtQ==}
+    engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
+    hasBin: true
+
+  nanoid@3.3.15:
+    resolution: {integrity: sha512-y7Wygv/7mEOvxTuEQDB8StXdMRBWf1kR/tlhAzBRUFkB2jfcLOAxO/SHmOO2zgz1pVgK29/kyupn059/bCHdjA==}
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
 
@@ -3451,6 +3467,10 @@ packages:
     resolution: {integrity: sha512-FfR8sjd4em2T6fb3I2MwAJU7HWVMr9zba+enmQeeWFfCbm+UOC/0X4DS8XtpUTMwWMGbjKYP7xjfNekzyGmB3A==}
     engines: {node: ^10 || ^12 || >=14}
 
+  postcss@8.5.16:
+    resolution: {integrity: sha512-vuwillviilfKZsg0VGj5R/YwwcHx4SLsIOI/7K6mQkWx+l5cUHTjj5g0AasTBcyXsbfTgrwsUNmVUb5xVwyPwg==}
+    engines: {node: ^10 || ^12 || >=14}
+
   prelude-ls@1.2.1:
     resolution: {integrity: sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g==}
     engines: {node: '>= 0.8.0'}
@@ -3670,6 +3690,11 @@ packages:
 
   semver@7.8.4:
     resolution: {integrity: sha512-rUCObTnP32Q08R2uuIrt7r9PlEonuTmtuXYcW6s5kjdlj3xbnwe+21yXptAUYcMAABLkYYTtnmzb3w3EDZfueA==}
+    engines: {node: '>=10'}
+    hasBin: true
+
+  semver@7.8.5:
+    resolution: {integrity: sha512-Y7/KDsb8LjooZpwaqGyulO6DQlksgCncchHGk+sZIY4SBvUocMBEFH5Ur1fI4dV+Jvl0w6cjvucaIi40puRioA==}
     engines: {node: '>=10'}
     hasBin: true
 
@@ -4817,6 +4842,11 @@ snapshots:
       tslib: 2.8.1
     optional: true
 
+  '@emnapi/runtime@1.11.1':
+    dependencies:
+      tslib: 2.8.1
+    optional: true
+
   '@emnapi/wasi-threads@1.2.1':
     dependencies:
       tslib: 2.8.1
@@ -5066,7 +5096,7 @@ snapshots:
 
   '@img/sharp-wasm32@0.34.5':
     dependencies:
-      '@emnapi/runtime': 1.10.0
+      '@emnapi/runtime': 1.11.1
     optional: true
 
   '@img/sharp-win32-arm64@0.34.5':
@@ -5992,6 +6022,8 @@ snapshots:
 
   baseline-browser-mapping@2.10.33: {}
 
+  baseline-browser-mapping@2.10.40: {}
+
   better-path-resolve@1.0.0:
     dependencies:
       is-windows: 1.0.2
@@ -6068,6 +6100,8 @@ snapshots:
   callsites@3.1.0: {}
 
   caniuse-lite@1.0.30001793: {}
+
+  caniuse-lite@1.0.30001799: {}
 
   chai@6.2.2: {}
 
@@ -7278,7 +7312,7 @@ snapshots:
       yallist: 4.0.0
     optional: true
 
-  lucide-react@1.18.0(react@19.2.7):
+  lucide-react@1.22.0(react@19.2.7):
     dependencies:
       react: 19.2.7
 
@@ -7356,6 +7390,8 @@ snapshots:
 
   nanoid@3.3.12: {}
 
+  nanoid@3.3.15: {}
+
   nanoid@5.1.11: {}
 
   nanospinner@1.2.2:
@@ -7370,9 +7406,9 @@ snapshots:
     dependencies:
       '@next/env': 16.2.9
       '@swc/helpers': 0.5.15
-      baseline-browser-mapping: 2.10.33
-      caniuse-lite: 1.0.30001793
-      postcss: 8.5.15
+      baseline-browser-mapping: 2.10.40
+      caniuse-lite: 1.0.30001799
+      postcss: 8.5.16
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
       styled-jsx: 5.1.6(@babel/core@7.29.7)(react@19.2.7)
@@ -7635,6 +7671,12 @@ snapshots:
   postcss@8.5.15:
     dependencies:
       nanoid: 3.3.12
+      picocolors: 1.1.1
+      source-map-js: 1.2.1
+
+  postcss@8.5.16:
+    dependencies:
+      nanoid: 3.3.15
       picocolors: 1.1.1
       source-map-js: 1.2.1
 
@@ -7917,6 +7959,9 @@ snapshots:
 
   semver@7.8.4: {}
 
+  semver@7.8.5:
+    optional: true
+
   send@1.2.1:
     dependencies:
       debug: 4.4.3
@@ -7972,7 +8017,7 @@ snapshots:
     dependencies:
       '@img/colour': 1.1.0
       detect-libc: 2.1.2
-      semver: 7.8.1
+      semver: 7.8.5
     optionalDependencies:
       '@img/sharp-darwin-arm64': 0.34.5
       '@img/sharp-darwin-x64': 0.34.5
