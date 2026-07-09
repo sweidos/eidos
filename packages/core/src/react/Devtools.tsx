@@ -33,6 +33,7 @@ const C = {
   yellow: '#f59e0b',
   blue: '#3b82f6',
   purple: '#a855f7',
+  orange: '#f97316',
   cyan: '#06b6d4',
 } as const;
 
@@ -620,6 +621,7 @@ function ReliabilityTab({ stats }: { stats: ReturnType<typeof useEidosReliabilit
     { label: 'Failed', key: 'failed', color: C.red },
     { label: 'Conflicted', key: 'conflicted', color: C.purple },
     { label: 'Cancelled', key: 'cancelled', color: C.muted },
+    { label: 'Orphaned', key: 'orphaned', color: C.orange },
   ];
 
   const total = stats.queued;
@@ -645,6 +647,22 @@ function ReliabilityTab({ stats }: { stats: ReturnType<typeof useEidosReliabilit
             : `${successRate}% succeeded`}
         </span>
       </div>
+      {stats.orphaned > 0 && (
+        <div
+          style={{
+            padding: '8px 12px',
+            borderBottom: `1px solid ${C.border}`,
+            background: `${C.orange}1a`,
+            color: C.orange,
+            fontSize: 10,
+            lineHeight: 1.5,
+          }}
+        >
+          {stats.orphaned} orphaned {stats.orphaned === 1 ? 'action' : 'actions'} skipped at replay
+          — no registered function for their <code>actionId</code>. These stay queued and never
+          drain (silent write loss). Declare <code>action()</code> at module scope.
+        </div>
+      )}
       {rows.map(({ label, key, color }) => (
         <div
           key={key}

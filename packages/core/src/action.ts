@@ -29,6 +29,30 @@ const _configRegistry = new Map<string, ActionConfig>();
 // Populated for direct calls and replays alike; removed once the call settles.
 const _inflightControllers = new Map<string, AbortController>();
 
+// actionIds already warned about as orphaned this session — warn once per id so
+// a queue full of the same orphaned action doesn't spam the console.
+const _warnedOrphans = /* @__PURE__ */ new Set<string>();
+
+// An orphaned item is a queued action whose actionId has no registered function
+// at replay time — it silently stays 'pending' and never drains, the worst
+// failure mode for a "never lose a write" queue. Surface it: record a
+// reliability counter (visible in devtools / onReliabilityReport) and warn once
+// per actionId in DEV pointing at the usual cause (action() not at module scope).
+function reportOrphaned(
+  item: ActionQueueItem,
+  store: ReturnType<typeof useEidosStore.getState>,
+): void {
+  store.recordReliabilityEvent('orphaned');
+  if (import.meta.env.DEV && !_warnedOrphans.has(item.actionId)) {
+    _warnedOrphans.add(item.actionId);
+    console.warn(
+      `[eidos] queued action "${item.actionName}" (id "${item.actionId}") has no registered function at replay time, so it was skipped and left in the queue — this is silent write loss. ` +
+        `Declare action() at module scope (not inside a component/effect) so it re-registers before replay runs, and avoid renaming/removing an action while items referencing its old id may still be queued.`,
+      item,
+    );
+  }
+}
+
 function qs(): QueueStorage {
   // idbQueueStorage is the default browser fallback when no custom storage is set.
   return _getQueueStorage() ?? idbQueueStorage;
@@ -469,8 +493,15 @@ async function _replayTier(
 
   // Batch 'replaying' status update — N items → 1 store notify.
   // IDB write is fire-and-forget: on reload items stay 'pending', safe to re-replay.
-  const replayable = items.filter((item) => _actionRegistry.has(item.actionId));
-  result.skipped += items.length - replayable.length;
+  const replayable: ActionQueueItem[] = [];
+  for (const item of items) {
+    if (_actionRegistry.has(item.actionId)) {
+      replayable.push(item);
+    } else {
+      result.skipped++;
+      reportOrphaned(item, store);
+    }
+  }
 
   if (replayable.length > 0) {
     const updates = replayable.map((item) => ({

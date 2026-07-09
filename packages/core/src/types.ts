@@ -333,10 +333,26 @@ export interface ReliabilityStats {
   conflicted: number;
   /** Queue items removed via `handle.cancel(idempotencyKey)` before replay completed. */
   cancelled: number;
+  /**
+   * Queue items whose `actionId` had no registered function at replay time, so
+   * they were skipped and left `'pending'` in the queue. A non-zero count means
+   * silent write loss risk — usually an `action()` declared inside a component
+   * (not at module scope, so it never re-registers after reload) or an action
+   * renamed/removed while items referencing the old id were still queued.
+   */
+  orphaned: number;
 }
 
 export function emptyReliabilityStats(): ReliabilityStats {
-  return { queued: 0, succeeded: 0, failed: 0, retried: 0, conflicted: 0, cancelled: 0 };
+  return {
+    queued: 0,
+    succeeded: 0,
+    failed: 0,
+    retried: 0,
+    conflicted: 0,
+    cancelled: 0,
+    orphaned: 0,
+  };
 }
 
 export interface QueueStatusCounts {

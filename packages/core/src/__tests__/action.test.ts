@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { action, replayQueue, requeueItem } from '../action';
 import { useEidosStore } from '../store';
 import { idbClearQueue, idbGetQueue } from '../idb';
-import { emptyReliabilityStats } from '../types';
+import { emptyReliabilityStats, CURRENT_QUEUE_SCHEMA_VERSION } from '../types';
 
 beforeEach(async () => {
   useEidosStore.setState({
@@ -368,6 +368,36 @@ describe('reliability stats', () => {
     await replayQueue(); // retryCount 1 >= maxRetries 1 → failed
     expect(useEidosStore.getState().reliability.failed).toBe(1);
     expect(useEidosStore.getState().reliability.queued).toBe(1);
+  });
+
+  it('counts an item with no registered function as orphaned and leaves it queued', async () => {
+    // Seed a queue item whose actionId was never registered via action() — the
+    // module-scope footgun (or a renamed/removed action). It must not silently
+    // vanish: replay skips it, records `orphaned`, and it stays 'pending'.
+    const { idbAddToQueue } = await import('../idb');
+    await idbAddToQueue({
+      schemaVersion: CURRENT_QUEUE_SCHEMA_VERSION,
+      id: 'orphan-1',
+      actionId: 'never-registered',
+      actionName: 'ghost-action',
+      idempotencyKey: 'ik-orphan',
+      args: ['x'],
+      queuedAt: Date.now(),
+      retryCount: 0,
+      maxRetries: 3,
+      status: 'pending',
+      priority: 'normal',
+    });
+
+    const result = await replayQueue();
+
+    expect(result.skipped).toBe(1);
+    expect(result.attempted).toBe(0);
+    expect(useEidosStore.getState().reliability.orphaned).toBe(1);
+
+    // Item is still in the queue — not lost, not drained.
+    const queue = await idbGetQueue();
+    expect(queue.find((q) => q.id === 'orphan-1')?.status).toBe('pending');
   });
 });
 

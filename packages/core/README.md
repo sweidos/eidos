@@ -340,6 +340,16 @@ initEidos({
 The same counters are visible live in `<EidosDevtools />` under the
 "Reliability" tab.
 
+A non-zero **`orphaned`** counter is a warning sign: it counts queued items
+whose `action()` had no registered function at replay time, so they were
+skipped and left in the queue instead of draining. That's silent write loss —
+almost always caused by declaring `action()` inside a component/effect (so it
+never re-registers after a reload) instead of at module scope, or by
+renaming/removing an action while items referencing its old id were still
+queued. In development, the first skip of each such action also logs a
+`console.warn` naming the action; the Devtools "Reliability" tab shows a
+callout when the count is above zero.
+
 ### Handling SW updates
 
 By default, when a new service worker is available it activates immediately
@@ -685,12 +695,12 @@ Eidos emits plain-English `console.warn` messages in development (`import.meta.e
 
 ## Known limitations
 
-| Limitation             | Detail                                                                                          |
-| ---------------------- | ----------------------------------------------------------------------------------------------- |
-| GET-only caching       | SW intercepts `GET` only. Mutations go through `action()`.                                      |
-| Module-scope actions   | `action()` must be at module scope so functions are registered before a reload triggers replay. |
-| Single SW              | Assumes one SW at the configured `swPath`.                                                      |
-| React Native resources | In-memory only — no Cache API or SW in RN. Action queue fully persists.                         |
+| Limitation             | Detail                                                                                                                                                                                                                                                              |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET-only caching       | SW intercepts `GET` only. Mutations go through `action()`.                                                                                                                                                                                                          |
+| Module-scope actions   | `action()` must be at module scope so functions are registered before a reload triggers replay. A queued item whose function isn't registered at replay time is skipped (not lost) and surfaced via the `orphaned` reliability counter + a dev-mode `console.warn`. |
+| Single SW              | Assumes one SW at the configured `swPath`.                                                                                                                                                                                                                          |
+| React Native resources | In-memory only — no Cache API or SW in RN. Action queue fully persists.                                                                                                                                                                                             |
 
 ---
 
