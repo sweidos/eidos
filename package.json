@@ -23,7 +23,7 @@
     "test:e2e": "pnpm --filter @sweidos/e2e test",
     "test:e2e:watch": "pnpm --filter @sweidos/e2e test:watch",
     "changeset": "changeset",
-    "version-packages": "changeset version",
+    "version-packages": "changeset version && node packages/core/scripts/sync-version.mjs",
     "release": "pnpm build:core && changeset publish"
   },
   "devDependencies": {

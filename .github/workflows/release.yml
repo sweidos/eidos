@@ -1,0 +1,43 @@
+name: Release PR
+
+# Opens/updates a "Version Packages" PR whenever unreleased changesets land on
+# main. Merging that PR bumps versions (via `pnpm version-packages`, which also
+# syncs src/version.ts) and lands the CHANGELOG. The actual npm publish is
+# handled by the `npm-release` job in deploy.yml, which fires on the resulting
+# package.json change — so this workflow intentionally does NOT publish.
+
+on:
+  push:
+    branches: [main]
+
+# Never run two release-PR updates concurrently; cancel the older one.
+concurrency: release-pr-${{ github.ref }}
+
+env:
+  # Skip husky git hooks for the bot's version commit (hooks are for local dev).
+  HUSKY: 0
+
+jobs:
+  release-pr:
+    name: Version Packages PR
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Create or update the Version Packages PR
+        uses: changesets/action@v1
+        with:
+          version: pnpm version-packages
+          title: 'chore: version packages'
+          commit: 'chore: version packages'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
