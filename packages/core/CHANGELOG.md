@@ -1,5 +1,43 @@
 # @sweidos/eidos
 
+## 2.4.0
+
+### Minor Changes
+
+- 1c87108: Surface orphaned queue items instead of silently skipping them
+
+  A queued `neverLose` action whose `actionId` had no registered function at
+  replay time was silently marked `skipped` and left `'pending'` in the queue
+  forever — never draining, never surfaced anywhere. For a "never lose a write"
+  queue this is the worst failure mode: silent write loss. It happens when
+  `action()` is declared inside a component/effect (so it never re-registers
+  after a reload) instead of at module scope, or when an action is renamed or
+  removed while items referencing its old id are still queued.
+
+  These skips are now visible:
+
+  - New `orphaned` counter on `ReliabilityStats` — reported via
+    `eidosReliabilityStats`, `useEidosReliabilityStats()`, and
+    `EidosConfig.onReliabilityReport`.
+  - A one-time (per `actionId`) dev-mode `console.warn` naming the action and
+    its likely cause. Stripped from production builds (`import.meta.env.DEV`).
+  - `<EidosDevtools />` "Reliability" tab shows an "Orphaned" row and a callout
+    when the count is above zero.
+
+  The items themselves are unchanged — still skipped, still left queued (no data
+  is dropped); they are now just observable.
+
+### Patch Changes
+
+- 2b45e50: Add `ResourceConfig.networkTimeoutMs` to replace hardcoded magic numbers
+
+  Two different hardcoded timeouts existed for the same conceptual knob:
+  `AbortSignal.timeout(3000)` in the SW's `networkFirst()` handler and
+  `AbortSignal.timeout(5000)` in the page-side SWR background revalidation.
+
+  `networkTimeoutMs` (default 3000) now controls both. Pass it to `resource()`
+  and it is threaded via `EIDOS_REGISTER_RESOURCE` to the SW.
+
 ## 2.3.0
 
 ### Minor Changes
