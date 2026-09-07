@@ -26,7 +26,7 @@
     "@types/node": "^25.9.3",
     "typescript": "^6.0.3",
     "vitest": "^4.1.9",
-    "yjs": "^13.6.0"
+    "yjs": "^13.6.32"
   },
   "peerDependencies": {
     "@sweidos/eidos": ">=2.3.0",
