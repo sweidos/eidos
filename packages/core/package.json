@@ -1,7 +1,7 @@
 {
   "name": "@sweidos/eidos",
   "version": "2.4.0",
-  "description": "Eidos — offline-first abstraction layer. resource() + action() auto-generate Service Workers, cache strategies, and an IndexedDB action queue with idempotency keys and cross-tab replay locks.",
+  "description": "Durable client mutations for unreliable networks — resource() + neverLose action() queue with SW caching, IndexedDB replay leases, and idempotency keys.",
   "author": "Aditya Raj",
   "license": "MIT",
   "type": "module",

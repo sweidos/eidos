@@ -119,14 +119,15 @@ You'll see this term in the context of `swStatus: 'idle'` → `'registering'` �
 
 The reliability mode for actions that must not be silently dropped. When `reliability: 'neverLose'` is set:
 
-1. Eidos saves the call arguments and idempotency key to IndexedDB before the network request completes.
-2. If the request fails (network error, offline), the item stays in IndexedDB.
-3. On reconnect, Eidos replays the item with exponential backoff up to `maxRetries` times.
-4. If all retries fail, the item moves to `failed` state — it's still in IndexedDB and can be requeued manually.
+1. Eidos saves the call arguments and idempotency key to IndexedDB **before** the network request (online or offline).
+2. If the request fails or the outcome is uncertain, the item stays in IndexedDB for replay.
+3. On reconnect, Eidos replays with exponential backoff up to `maxRetries` times.
+4. If all retries fail, the item moves to `failed` — still inspectable and requeueable.
 
-Nothing is ever silently dropped. The worst case is a `failed` item that you inspect and decide what to do with.
+Requires a stable `name`. Guarantees at-least-once delivery; exactly-once business execution needs server-side idempotency.
 
-→ Config: `reliability: 'neverLose'` on `action()`
+→ Config: `reliability: 'neverLose', name: '...'` on `action()`
+→ Docs: [Reliability guarantees](./guarantees.md)
 → Hook: `useEidosQueueStats()` returns `{ pending, failed }`
 
 ---
