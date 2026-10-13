@@ -1,5 +1,5 @@
 import { Wifi, WifiOff, Cpu, GitBranch, ExternalLink } from 'lucide-react';
-import { NavLink, Link } from 'react-router-dom';
+import { NavLink, Link } from 'react-router';
 import { useEidosStatus, useEidosQueueStats, setOfflineSimulation, VERSION } from '@sweidos/eidos';
 import { useState } from 'react';
 import { SearchPalette } from './SearchPalette';

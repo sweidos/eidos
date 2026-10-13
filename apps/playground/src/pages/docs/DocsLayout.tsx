@@ -1,5 +1,5 @@
 import { ExternalLink } from 'lucide-react';
-import { NavLink, Outlet, Link, useLocation } from 'react-router-dom';
+import { NavLink, Outlet, Link, useLocation } from 'react-router';
 import { DOC_PAGES, DOCS_GITHUB_BASE } from './shared';
 
 export function DocsLayout() {
