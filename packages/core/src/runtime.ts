@@ -1,7 +1,7 @@
 import { registerServiceWorker, registerBgSyncHandler } from './sw-bridge';
 import { replayQueue } from './action';
 import { useEidosStore } from './store';
-import { idbGetQueue, idbQueueStorage } from './idb';
+import { idbGetQueue, idbQueueStorage, recoverStaleReplaying } from './idb';
 import { _getQueueStorage } from './queue-storage';
 import { subscribeReplayOnReconnect } from './replay';
 import { subscribeQueueSync } from './queue-sync';
@@ -89,18 +89,23 @@ export async function initEidos(config: EidosConfig = {}): Promise<void> {
     const persisted = await idbGetQueue();
     if (persisted.length > 0) {
       const migrated = await Promise.all(persisted.map(migrateQueueItem));
-      // Recover items stuck in 'replaying' state (e.g. browser crashed mid-replay).
-      // Reset them to 'pending' so they can be retried.
+      // Recover only stale replay leases (crash / abandoned owner). Items with a
+      // live lease may still be owned by another tab holding the Web Lock — leave them.
       const storage = _getQueueStorage() ?? idbQueueStorage;
+      const now = Date.now();
       const recovered: ActionQueueItem[] = [];
       for (const item of migrated) {
-        if (item.status === 'replaying') {
-          const fixed = { ...item, status: 'pending' as const };
-          recovered.push(fixed);
-          storage.update(item.id, { status: 'pending' }).catch(() => {});
-        } else {
-          recovered.push(item);
+        const next = recoverStaleReplaying(item, now);
+        if (next !== item && next.status === 'pending') {
+          storage
+            .update(item.id, {
+              status: 'pending',
+              replayOwnerId: undefined,
+              replayLeaseUntil: undefined,
+            })
+            .catch(() => {});
         }
+        recovered.push(next);
       }
       useEidosStore.getState().hydrateQueue(recovered);
     }

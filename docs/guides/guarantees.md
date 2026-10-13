@@ -10,7 +10,7 @@ This document explains what Eidos actually guarantees vs what requires server-si
 
 When you set `reliability: 'neverLose'` on an action:
 
-1. **Persistence**: The call arguments are saved to IndexedDB _before_ the network request.
+1. **Persistence**: The call arguments and idempotency key are saved to IndexedDB **before** the network request — online and offline.
 2. **Survival**: The queued item survives page reloads, browser restarts, and crashes.
 3. **Replay**: When connectivity returns, Eidos replays the item with exponential backoff.
 4. **Retry**: Network errors trigger automatic retries up to `maxRetries` times.
@@ -23,13 +23,13 @@ Every `neverLose` action invocation gets a unique, stable `idempotencyKey`:
 
 - The same key is used on every retry of the same invocation.
 - Keys survive page reloads (tied to the persisted queue item, not session state).
-- Keys are UUIDs prefixed with the action's `name` for debuggability.
+- You must pass `config.name` so the action can re-register and match queued items after reload.
 
 ### Cross-tab coordination
 
 - **Web Locks**: Only one tab replays the queue at a time — prevents duplicate sends.
 - **BroadcastChannel**: Non-leader tabs see live status updates without polling IndexedDB.
-- **Recovery**: If a tab crashes mid-replay, items stuck in `replaying` status are reset to `pending` on the next `initEidos()` call.
+- **Replay leases**: While replaying, items carry `replayOwnerId` + `replayLeaseUntil`. Crash recovery resets only **expired** (or legacy leaseless) leases to `pending` — a live owner is not stolen.
 
 ---
 

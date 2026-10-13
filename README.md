@@ -9,13 +9,16 @@
 
 > **Never lose a write.**
 
-Declare what your app needs offline. Eidos picks the cache strategy, registers the Service Worker, and persists your action queue to IndexedDB — with idempotency keys and cross-tab replay locks built in for at-least-once delivery with server-side deduplication.
+Durable client mutations for unreliable networks. Declare `resource()` reads and `action({ reliability: 'neverLose' })` writes — Eidos persists intent to IndexedDB before the network call, coordinates multi-tab replay with Web Locks and leases, and gives you stable idempotency keys for server-side deduplication (at-least-once delivery, not magical exactly-once execution).
 
 ```ts
 import { resource, action } from '@sweidos/eidos';
 
 const products = resource('/api/products', { offline: true });
-const createOrder = action(orderApi.create, { reliability: 'neverLose' });
+const createOrder = action(orderApi.create, {
+  reliability: 'neverLose',
+  name: 'createOrder',
+});
 ```
 
 No service worker file to write. No cache strategy to configure. No retry logic to implement.
