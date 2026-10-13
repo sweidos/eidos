@@ -1,6 +1,6 @@
 {
   "name": "@sweidos/eidos",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "description": "Durable client mutations for unreliable networks — resource() + neverLose action() queue with SW caching, IndexedDB replay leases, and idempotency keys.",
   "author": "Aditya Raj",
   "license": "MIT",
