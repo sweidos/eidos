@@ -1,13 +1,10 @@
 import { useEidosStore } from './store';
 import { getSwRegistration } from './sw-bridge';
-import { idbQueueStorage, REPLAY_LEASE_MS } from './idb';
+import { idbQueueStorage } from './idb';
 import { _getQueueStorage } from './queue-storage';
 import { broadcastQueueSync } from './queue-sync';
 import type { QueueStorage } from './queue-storage';
 import { CURRENT_QUEUE_SCHEMA_VERSION } from './types';
-
-/** Stable per-tab owner id for replay leases (regenerated each page load). */
-const _replayOwnerId = crypto.randomUUID();
 import type {
   ActionConfig,
   ActionContext,
@@ -32,15 +29,8 @@ const _configRegistry = new Map<string, ActionConfig>();
 // Populated for direct calls and replays alike; removed once the call settles.
 const _inflightControllers = new Map<string, AbortController>();
 
-// actionIds already warned about as orphaned this session — warn once per id so
-// a queue full of the same orphaned action doesn't spam the console.
 const _warnedOrphans = /* @__PURE__ */ new Set<string>();
 
-// An orphaned item is a queued action whose actionId has no registered function
-// at replay time — it silently stays 'pending' and never drains, the worst
-// failure mode for a "never lose a write" queue. Surface it: record a
-// reliability counter (visible in devtools / onReliabilityReport) and warn once
-// per actionId in DEV pointing at the usual cause (action() not at module scope).
 function reportOrphaned(
   item: ActionQueueItem,
   store: ReturnType<typeof useEidosStore.getState>,
@@ -49,15 +39,13 @@ function reportOrphaned(
   if (import.meta.env.DEV && !_warnedOrphans.has(item.actionId)) {
     _warnedOrphans.add(item.actionId);
     console.warn(
-      `[eidos] queued action "${item.actionName}" (id "${item.actionId}") has no registered function at replay time, so it was skipped and left in the queue — this is silent write loss. ` +
-        `Declare action() at module scope (not inside a component/effect) so it re-registers before replay runs, and avoid renaming/removing an action while items referencing its old id may still be queued.`,
+      `[eidos] queued "${item.actionName}" (${item.actionId}) missing at replay — declare action() at module scope.`,
       item,
     );
   }
 }
 
 function qs(): QueueStorage {
-  // idbQueueStorage is the default browser fallback when no custom storage is set.
   return _getQueueStorage() ?? idbQueueStorage;
 }
 
@@ -79,12 +67,6 @@ export function action<TArgs extends any[], TReturn>(
   fn: ActionFn<TArgs, TReturn>,
   config: ActionConfig<TArgs>,
 ): ActionHandle<TArgs, TReturn> {
-  if (config.reliability === 'neverLose' && !config.name) {
-    throw new Error(
-      '[eidos] action({ reliability: "neverLose" }) requires config.name — a stable name is required so queued items can be matched and replayed after reload.',
-    );
-  }
-
   // || not ?? — fn.name can be '' (anonymous arrow fn) which ?? treats as a
   // valid value, causing all anonymous actions to share actionId ''.
   const baseId = config.name || fn.name || uid();
@@ -138,62 +120,14 @@ export function action<TArgs extends any[], TReturn>(
 
     try {
       if (config.reliability === 'neverLose') {
-        // Persist before execute so a tab crash / dropped response cannot lose intent.
-        // Same idempotencyKey is reused on every retry — servers must dedupe.
-        const item = await persistQueueItem(actionId, actionId, args, config, idempotencyKey);
-        if (signal?.aborted) {
-          useEidosStore.getState().removeQueueItem(item.id);
-          broadcastQueueSync({ type: 'remove', id: item.id });
-          await qs().remove(item.id);
-          throw new DOMException('aborted', 'AbortError');
-        }
         if (!isOnline) {
-          return {
-            queued: true,
-            id: item.id,
-            message: `"${actionId}" queued — will execute when online`,
-          } satisfies QueuedResult;
+          return persistAndQueue(actionId, actionId, args, config, idempotencyKey);
         }
-
-        // Claim a live replay lease before execute so another tab's replayQueue
-        // cannot pick up this pending item and double-send while we are in flight.
-        const store = useEidosStore.getState();
-        const leaseUntil = Date.now() + REPLAY_LEASE_MS;
-        const claim: Partial<ActionQueueItem> = {
-          status: 'replaying',
-          replayOwnerId: _replayOwnerId,
-          replayLeaseUntil: leaseUntil,
-        };
-        store.updateQueueItem(item.id, claim);
-        broadcastQueueSync({ type: 'update', id: item.id, update: claim });
-        await qs().update(item.id, claim);
-        const inflight: ActionQueueItem = { ...item, ...claim, status: 'replaying' };
-
         try {
-          const result = await callWithContext(fn, args, ctx);
-          await _markSucceeded(inflight, useEidosStore.getState());
-          return result;
+          return await callWithContext(fn, args, ctx);
         } catch (err) {
-          if (isAbortError(err)) {
-            useEidosStore.getState().removeQueueItem(item.id);
-            broadcastQueueSync({ type: 'remove', id: item.id });
-            await qs().remove(item.id);
-            throw err;
-          }
-          // Release the lease and leave pending for reconnect / replayQueue.
-          const release: Partial<ActionQueueItem> = {
-            status: 'pending',
-            replayOwnerId: undefined,
-            replayLeaseUntil: undefined,
-          };
-          useEidosStore.getState().updateQueueItem(item.id, release);
-          broadcastQueueSync({ type: 'update', id: item.id, update: release });
-          await qs().update(item.id, release);
-          return {
-            queued: true,
-            id: item.id,
-            message: `"${actionId}" queued — will retry when online`,
-          } satisfies QueuedResult;
+          if (isAbortError(err)) throw err;
+          return persistAndQueue(actionId, actionId, args, config, idempotencyKey);
         }
       }
 
@@ -232,12 +166,9 @@ export async function cancelByIdempotencyKey(idempotencyKey: string): Promise<bo
     return true;
   }
 
-  // Not in flight — check for a not-yet-finished queued item with this key.
+  // Not in flight — remove a not-yet-replayed queued item with this key.
   const items = await qs().getAll();
-  const item = items.find(
-    (i) =>
-      i.idempotencyKey === idempotencyKey && (i.status === 'pending' || i.status === 'replaying'),
-  );
+  const item = items.find((i) => i.idempotencyKey === idempotencyKey && i.status === 'pending');
   if (!item) return false;
 
   useEidosStore.getState().removeQueueItem(item.id);
@@ -279,16 +210,16 @@ function isJsonSerializable(value: unknown): boolean {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function persistQueueItem<TArgs extends any[]>(
+async function persistAndQueue<TArgs extends any[]>(
   actionId: string,
   actionName: string,
   args: TArgs,
   config: ActionConfig<TArgs>,
   idempotencyKey: string,
-): Promise<ActionQueueItem> {
+): Promise<QueuedResult> {
   if (import.meta.env.DEV && !isJsonSerializable(args)) {
     console.warn(
-      `[eidos] action "${actionName}" queued with non-JSON-serializable args. These args will be lost after a page reload. Use plain JSON values for neverLose actions.`,
+      `[eidos] action "${actionName}" queued with non-JSON-serializable args — use plain JSON for neverLose.`,
       args,
     );
   }
@@ -312,9 +243,6 @@ async function persistQueueItem<TArgs extends any[]>(
   useEidosStore.getState().addQueueItem(item);
   useEidosStore.getState().recordReliabilityEvent('queued');
 
-  // Register Background Sync tag so the browser can wake up open clients
-  // when connectivity returns, even if the user navigated away briefly.
-  // Graceful no-op when Background Sync is unsupported.
   try {
     const reg = getSwRegistration();
     if (reg && 'sync' in reg) {
@@ -323,10 +251,10 @@ async function persistQueueItem<TArgs extends any[]>(
       );
     }
   } catch {
-    // Background Sync not available — online-event replay remains the fallback
+    /* Background Sync unavailable — online-event replay remains */
   }
 
-  return item;
+  return { queued: true, id, message: `"${actionName}" queued` };
 }
 
 function isAbortError(err: unknown): boolean {
@@ -553,24 +481,10 @@ async function _replayTier(
   }
 
   if (replayable.length > 0) {
-    const leaseUntil = Date.now() + REPLAY_LEASE_MS;
-    const updates = replayable.map((item) => ({
-      id: item.id,
-      update: {
-        status: 'replaying' as const,
-        replayOwnerId: _replayOwnerId,
-        replayLeaseUntil: leaseUntil,
-      },
-    }));
+    // Don't persist `replaying` — crash leaves IDB as pending (safe under Web Lock).
+    const updates = replayable.map((i) => ({ id: i.id, update: { status: 'replaying' as const } }));
     store.batchUpdateQueueItems(updates);
     broadcastQueueSync({ type: 'batchUpdate', updates });
-    for (const item of replayable) {
-      qs().update(item.id, {
-        status: 'replaying',
-        replayOwnerId: _replayOwnerId,
-        replayLeaseUntil: leaseUntil,
-      });
-    }
   }
 
   const outcomes = await Promise.allSettled(replayable.map((item) => _replayItem(item, store)));

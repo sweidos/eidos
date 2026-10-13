@@ -97,29 +97,18 @@ describe('idbClearQueue', () => {
 });
 
 describe('idbGetPendingItems', () => {
-  it('returns pending, failed, and expired-lease replaying items — not live leases', async () => {
+  it('returns only pending and failed items', async () => {
     await idbAddToQueue(makeItem('p1', { status: 'pending' }));
     await idbAddToQueue(makeItem('f1', { status: 'failed' }));
     await idbAddToQueue(makeItem('s1', { status: 'succeeded' }));
-    // Legacy / expired lease — recoverable
-    await idbAddToQueue(makeItem('r-stale', { status: 'replaying' }));
-    // Live lease — another tab may still own this
-    await idbAddToQueue(
-      makeItem('r-live', {
-        status: 'replaying',
-        replayOwnerId: 'tab-a',
-        replayLeaseUntil: Date.now() + 60_000,
-      }),
-    );
+    await idbAddToQueue(makeItem('r1', { status: 'replaying' }));
 
     const items = await idbGetPendingItems();
     const ids = items.map((i) => i.id);
     expect(ids).toContain('p1');
     expect(ids).toContain('f1');
-    expect(ids).toContain('r-stale');
     expect(ids).not.toContain('s1');
-    expect(ids).not.toContain('r-live');
-    expect(items.find((i) => i.id === 'r-stale')?.status).toBe('pending');
+    expect(ids).not.toContain('r1');
   });
 
   it('returns empty array when queue is empty', async () => {

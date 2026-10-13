@@ -9,7 +9,7 @@
 
 > **Never lose a write.**
 
-Durable client mutations for unreliable networks. Declare `resource()` reads and `action({ reliability: 'neverLose' })` writes — Eidos persists intent to IndexedDB before the network call, coordinates multi-tab replay with Web Locks and leases, and gives you stable idempotency keys for server-side deduplication (at-least-once delivery, not magical exactly-once execution).
+Durable client mutations for unreliable networks. Declare `resource()` reads and `action({ reliability: 'neverLose' })` writes — Eidos queues offline writes in IndexedDB, coordinates multi-tab replay with Web Locks, and gives you stable idempotency keys for server-side deduplication (at-least-once delivery, not magical exactly-once execution).
 
 ```ts
 import { resource, action } from '@sweidos/eidos';
@@ -716,7 +716,7 @@ Eidos emits plain-English `console.warn` messages in development (`import.meta.e
 | Offline writes        | IndexedDB queue, auto-replay + backoff via `action()` | Background Sync, you wire it | No built-in mutation queue |
 | Framework support     | React, Svelte, Vue, Next.js, React Native, vanilla JS | Framework-agnostic (SW only) | Per-library                |
 | TanStack Query bridge | `@sweidos/eidos/query` adapter                        | —                            | Native                     |
-| Bundle size (core)    | ~7.3 kB brotli                                        | ~3-6 kB (modular)            | ~13 kB                     |
+| Bundle size (core)    | ~6.9 kB brotli                                        | ~3-6 kB (modular)            | ~13 kB                     |
 
 Not a TanStack Query replacement — `@sweidos/eidos/query` is a thin adapter so
 you keep TQ's cache/devtools while Eidos owns the offline layer. Workbox is a

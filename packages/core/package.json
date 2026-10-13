@@ -1,7 +1,7 @@
 {
   "name": "@sweidos/eidos",
   "version": "2.5.0",
-  "description": "Durable client mutations for unreliable networks — resource() + neverLose action() queue with SW caching, IndexedDB replay leases, and idempotency keys.",
+  "description": "Durable client mutations for unreliable networks — resource() + neverLose action() queue with SW caching, IndexedDB replay, and idempotency keys.",
   "author": "Aditya Raj",
   "license": "MIT",
   "type": "module",
@@ -113,7 +113,7 @@
     {
       "name": "core (resource + action + store)",
       "path": "dist/index.js",
-      "limit": "8 KB"
+      "limit": "7 KB"
     },
     {
       "name": "react hooks",

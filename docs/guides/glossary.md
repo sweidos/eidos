@@ -119,8 +119,8 @@ You'll see this term in the context of `swStatus: 'idle'` → `'registering'` �
 
 The reliability mode for actions that must not be silently dropped. When `reliability: 'neverLose'` is set:
 
-1. Eidos saves the call arguments and idempotency key to IndexedDB **before** the network request (online or offline).
-2. If the request fails or the outcome is uncertain, the item stays in IndexedDB for replay.
+1. Offline, Eidos saves args + idempotency key to IndexedDB before any network attempt; online, it executes and persists on failure.
+2. Queued items stay in IndexedDB for replay across reloads and reconnects.
 3. On reconnect, Eidos replays with exponential backoff up to `maxRetries` times.
 4. If all retries fail, the item moves to `failed` — still inspectable and requeueable.
 

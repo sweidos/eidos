@@ -240,13 +240,6 @@ export interface ActionQueueItem {
   completedAt?: number;
   /** Earliest timestamp at which this item should be retried (exponential backoff). */
   nextRetryAt?: number;
-  /**
-   * Tab/session that currently owns replay of this item. Used with
-   * `replayLeaseUntil` so crash recovery does not steal work from a live owner.
-   */
-  replayOwnerId?: string;
-  /** Epoch ms when the current replay lease expires. Expired leases may be recovered. */
-  replayLeaseUntil?: number;
 }
 
 export interface QueuedResult {
