@@ -1,20 +1,20 @@
 # Architecture Decisions
 
-## ADR-001: Lease-based replaying recovery (supersedes naive #68 reset)
+## ADR-001: Do not persist `replaying` to IndexedDB (supersedes #68 + leases)
 
-**Context:** PR #68 resets all `replaying` → `pending` on hydrate. That recovers crash cases but can steal work from a live tab that still holds the Web Lock mid-replay.
+**Context:** Persisting `status: 'replaying'` caused stranded work after crash (`getPending` skips replaying). Lease fields fixed ownership but blew the **7 kB** core budget. PR #68’s blanket hydrate reset could race a live tab.
 
-**Decision:** Persist `replayOwnerId` + `replayLeaseUntil` when entering `replaying`. Recover to `pending` only when the lease is missing (legacy) or expired. `idbGetPendingItems` also returns expired-lease `replaying` items so a lock holder after another tab dies can resume without waiting for hydrate.
+**Decision:** Keep `replaying` in the in-memory store + BroadcastChannel for UI only. Do **not** write it to IDB. Crash/reload therefore still sees `pending`. Web Locks remain the cross-tab replay mutex. Hydrate only remediates legacy IDB rows that still say `replaying`.
 
-**Trade-off:** Brief window (lease TTL) where crashed work waits before recovery. Choose TTL ≈ 60s — long enough for a replay pass, short enough for crash recovery UX.
+**Trade-off:** Non-leader tabs that read IDB directly (not BroadcastChannel) won’t see mid-replay status — acceptable; hooks use the store.
 
-## ADR-002: Persist-before-execute for neverLose (online)
+## ADR-002: Defer online persist-before-execute (7 kB budget)
 
-**Context:** Docs claim args are saved before the network request. Implementation only persisted when offline or after online failure — losing durability if the tab dies during an in-flight online request (uncertain outcome).
+**Context:** Online persist-before-execute + in-flight lease claim is the correct durability model for uncertain outcomes, but pushed the core brotli size well past the enforced **7 kB** limit (~7.3 kB).
 
-**Decision:** For `reliability: 'neverLose'`, always write the queue item before invoking `fn` when online; immediately claim a live `replaying` lease for the in-flight attempt (prevents concurrent `replayQueue` double-send); on success mark succeeded; on failure release lease → `pending` for replay (same idempotency key).
+**Decision:** Keep offline persist-first. Crash safety via not persisting `replaying` (ADR-001). Defer online persist-before-execute until it can land without raising the size budget (or via a tree-shakeable subpath). Document the online/offline persistence difference honestly.
 
-**Trade-off:** Extra IndexedDB write + lease update on every online neverLose call. Acceptable for the reliability mode’s contract.
+**Trade-off:** Online in-flight tab crash can lose an unqueued attempt; server idempotency still required when clients retry. Size constraint wins for this release.
 
 ## ADR-003: Positioning without breaking public API surface
 

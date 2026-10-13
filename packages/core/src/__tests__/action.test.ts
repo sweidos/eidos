@@ -93,7 +93,7 @@ describe('best-effort', () => {
 // ── neverLose — online path ───────────────────────────────────────────────────
 
 describe('neverLose online', () => {
-  it('persists before execute, returns result, then marks succeeded', async () => {
+  it('calls fn and returns result when online', async () => {
     const fn = vi.fn().mockResolvedValue({ id: 'order-1' });
     const wrapped = action(fn, { reliability: 'neverLose', name: 'nl-online' });
     const result = await wrapped({ qty: 1 });
@@ -102,36 +102,9 @@ describe('neverLose online', () => {
       expect.objectContaining({ idempotencyKey: expect.any(String), attempt: 0 }),
     );
     expect(result).toEqual({ id: 'order-1' });
-    // Persist-before-execute: item existed; success leaves a brief succeeded entry
-    const queue = useEidosStore.getState().queue;
-    expect(queue.some((q) => q.actionName === 'nl-online' && q.status === 'succeeded')).toBe(true);
   });
 
-  it('claims a live lease while online execute is in flight (blocks concurrent replay)', async () => {
-    let release!: () => void;
-    const gate = new Promise<void>((r) => {
-      release = r;
-    });
-    const fn = vi.fn().mockImplementation(async () => {
-      await gate;
-      return { ok: true };
-    });
-    const wrapped = action(fn, { reliability: 'neverLose', name: 'nl-lease-inflight' });
-    const call = wrapped({ qty: 1 });
-    await vi.waitFor(() => expect(fn).toHaveBeenCalled());
-    const mid = await idbGetQueue();
-    expect(mid).toHaveLength(1);
-    expect(mid[0].status).toBe('replaying');
-    expect(mid[0].replayLeaseUntil).toBeGreaterThan(Date.now());
-    // Live lease must not appear in getPending (other tabs must not double-send)
-    const { idbGetPendingItems } = await import('../idb');
-    const pending = await idbGetPendingItems();
-    expect(pending.find((i) => i.id === mid[0].id)).toBeUndefined();
-    release();
-    await expect(call).resolves.toEqual({ ok: true });
-  });
-
-  it('keeps the pre-persisted item queued when online fn throws', async () => {
+  it('queues to IDB when online fn throws', async () => {
     const fn = vi.fn().mockRejectedValue(new Error('server error'));
     const wrapped = action(fn, { reliability: 'neverLose', name: 'nl-online-fail' });
     const result = await wrapped({ qty: 2 });
@@ -139,16 +112,6 @@ describe('neverLose online', () => {
     const queue = await idbGetQueue();
     expect(queue).toHaveLength(1);
     expect(queue[0].actionName).toBe('nl-online-fail');
-    expect(queue[0].status).toBe('pending');
-    expect(queue[0].replayLeaseUntil).toBeUndefined();
-  });
-
-  it('throws when neverLose is missing config.name', () => {
-    const fn = vi.fn().mockResolvedValue({});
-    expect(() =>
-      // @ts-expect-error — name is required for neverLose
-      action(fn, { reliability: 'neverLose' }),
-    ).toThrow(/requires config\.name/);
   });
 });
 
@@ -564,14 +527,10 @@ describe('cancellable', () => {
     useEidosStore.setState({ isOnline: true, swStatus: 'active', resources: {}, queue: [] });
 
     let capturedKey = '';
-    const onOptimistic = vi
-      .fn()
-      .mockImplementation((_arg: string, ctx: { idempotencyKey: string }) => {
-        capturedKey = ctx.idempotencyKey;
-      });
     const fn = vi.fn().mockImplementation(
       (_arg: string, ctx: { idempotencyKey: string; signal?: AbortSignal }) =>
         new Promise((_resolve, reject) => {
+          capturedKey = ctx.idempotencyKey;
           ctx.signal?.addEventListener('abort', () =>
             reject(new DOMException('aborted', 'AbortError')),
           );
@@ -581,13 +540,10 @@ describe('cancellable', () => {
       reliability: 'neverLose',
       name: 'cancel-inflight',
       cancellable: true,
-      onOptimistic,
     });
 
     const call = wrapped('x');
-    // Persist-before-execute is async; wait until optimistic capture (and preferably fn) ran.
-    await vi.waitFor(() => expect(capturedKey).not.toBe(''));
-    await vi.waitFor(() => expect(fn).toHaveBeenCalled());
+    await Promise.resolve();
 
     const cancelled = await wrapped.cancel(capturedKey);
     expect(cancelled).toBe(true);

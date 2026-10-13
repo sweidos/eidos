@@ -84,29 +84,7 @@ export async function idbRemoveFromQueue(id: string): Promise<void> {
   });
 }
 
-/** Default lease length for in-flight replay ownership (see recoverStaleReplaying). */
-export const REPLAY_LEASE_MS = 60_000;
-
-/**
- * Recover items whose replay lease expired (or never had one — pre-lease data).
- * Live leases are left alone so another tab mid-replay is not stolen.
- */
-export function recoverStaleReplaying(
-  item: ActionQueueItem,
-  now: number = Date.now(),
-): ActionQueueItem {
-  if (item.status !== 'replaying') return item;
-  if (item.replayLeaseUntil != null && item.replayLeaseUntil > now) return item;
-  return {
-    ...item,
-    status: 'pending',
-    replayOwnerId: undefined,
-    replayLeaseUntil: undefined,
-  };
-}
-
-// Uses the status index to fetch pending/failed items, plus replaying items
-// whose lease expired (crash recovery without stealing a live owner).
+// Status index: pending + failed only (`replaying` is not persisted to IDB).
 export async function idbGetPendingItems(): Promise<ActionQueueItem[]> {
   const db = await openDB();
 
@@ -127,16 +105,8 @@ export async function idbGetPendingItems(): Promise<ActionQueueItem[]> {
     });
   }
 
-  const now = Date.now();
-  const [pending, failed, replaying] = await Promise.all([
-    cursorToArray('pending'),
-    cursorToArray('failed'),
-    cursorToArray('replaying'),
-  ]);
-  const recovered = replaying
-    .map((item) => recoverStaleReplaying(item, now))
-    .filter((item) => item.status === 'pending');
-  return [...pending, ...failed, ...recovered];
+  const [pending, failed] = await Promise.all([cursorToArray('pending'), cursorToArray('failed')]);
+  return [...pending, ...failed];
 }
 
 export async function idbClearQueue(): Promise<void> {

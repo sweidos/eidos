@@ -130,9 +130,9 @@ export function Landing() {
           A reliability core, not just a cache
         </h2>
         <p className="mx-auto mt-3 max-w-xl text-center text-sm text-eidos-muted">
-          Built for durable mutations under flaky networks — persist-before-execute, replay leases,
-          and idempotency keys your server can dedupe. Use TanStack Query or Workbox alone when you
-          only need cache/retry UI.
+          Built for durable mutations under flaky networks — IndexedDB queue, Web Lock replay, and
+          idempotency keys your server can dedupe. Use TanStack Query or Workbox alone when you only
+          need cache/retry UI.
         </p>
 
         <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
