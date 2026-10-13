@@ -17,7 +17,7 @@ const FEATURES = [
     icon: ShieldCheck,
     title: 'neverLose reliability',
     description:
-      'Idempotency keys on every retry, Web Locks-coordinated replay across tabs, and queue schema migration — a queued write executes exactly once.',
+      'Idempotency keys on every retry, Web Locks-coordinated replay across tabs, and queue schema migration — at-least-once delivery with server-side deduplication.',
   },
   {
     icon: RefreshCw,
@@ -98,8 +98,8 @@ export function Landing() {
           <code className="font-mono text-eidos-blue">resource()</code> and{' '}
           <code className="font-mono text-eidos-blue">action()</code> replace 200 lines of Workbox
           config, IndexedDB schema, and retry logic — with idempotency keys and cross-tab replay
-          locks built in, so a queued mutation runs exactly once. Works with React, Next.js Server
-          Actions, SvelteKit, Vue, React Native, and Tauri/Electron.
+          locks built in for at-least-once delivery with server-side deduplication. Works with
+          React, Next.js Server Actions, SvelteKit, Vue, React Native, and Tauri/Electron.
         </p>
 
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">

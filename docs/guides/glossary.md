@@ -100,7 +100,10 @@ const createOrder = action(
 
 **Why you'd care**: without idempotency, a queued write that retries three times could create three orders. With it, the server sees the same key each time and only processes it once.
 
+**Important**: Eidos provides the idempotency key automatically, but your server must implement deduplication logic using that key. Eidos guarantees at-least-once delivery; achieving exactly-once execution requires server-side support.
+
 → Config: `name` on `action()` (used to generate stable keys across reloads)
+→ Docs: [Reliability guarantees](./guarantees.md)
 
 ---
 

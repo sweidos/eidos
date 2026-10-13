@@ -14,9 +14,24 @@ interface EidosProviderProps extends EidosConfig {
  *   <App />
  * </EidosProvider>
  */
-export function EidosProvider({ children, swPath, autoReplay }: EidosProviderProps) {
+export function EidosProvider({
+  children,
+  swPath,
+  autoReplay,
+  skipWaiting,
+  onUpdateAvailable,
+  onReliabilityReport,
+  reliabilityReportInterval,
+}: EidosProviderProps) {
   useEffect(() => {
-    initEidos({ swPath, autoReplay });
+    initEidos({
+      swPath,
+      autoReplay,
+      skipWaiting,
+      onUpdateAvailable,
+      onReliabilityReport,
+      reliabilityReportInterval,
+    });
     // Run once on mount only
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

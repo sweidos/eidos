@@ -89,7 +89,20 @@ export async function initEidos(config: EidosConfig = {}): Promise<void> {
     const persisted = await idbGetQueue();
     if (persisted.length > 0) {
       const migrated = await Promise.all(persisted.map(migrateQueueItem));
-      useEidosStore.getState().hydrateQueue(migrated);
+      // Recover items stuck in 'replaying' state (e.g. browser crashed mid-replay).
+      // Reset them to 'pending' so they can be retried.
+      const storage = _getQueueStorage() ?? idbQueueStorage;
+      const recovered: ActionQueueItem[] = [];
+      for (const item of migrated) {
+        if (item.status === 'replaying') {
+          const fixed = { ...item, status: 'pending' as const };
+          recovered.push(fixed);
+          storage.update(item.id, { status: 'pending' }).catch(() => {});
+        } else {
+          recovered.push(item);
+        }
+      }
+      useEidosStore.getState().hydrateQueue(recovered);
     }
   } catch {
     // IndexedDB unavailable (Firefox private browsing) — silent fallback
