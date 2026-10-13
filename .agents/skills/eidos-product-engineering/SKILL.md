@@ -3,8 +3,10 @@ name: eidos-product-engineering
 description: >-
   Autonomous product engineering for sweidos/eidos: research, strategy,
   architecture, implementation, tests, docs, review, PR, merge, and release.
-  Use when revamping Eidos, shipping reliability/DX improvements, or running
-  a full SDLC on the @sweidos/eidos library. Complexity inside, simplicity outside.
+  Use when revamping Eidos, shipping reliability/DX improvements, running a
+  full SDLC on @sweidos/eidos, or bare /eidos-product-engineering re-invoke.
+  Complexity inside, simplicity outside.
+version: 1.1.0
 environments: [cloud]
 ---
 
@@ -16,62 +18,70 @@ Autonomous SDLC for [sweidos/eidos](https://github.com/sweidos/eidos) (`@sweidos
 
 ## Modes
 
-### Normal invocation
-Run the complete workflow for the task in scope. Use phases as needed; skip irrelevant ones. Persist state. Finish with evidence.
+| Mode | When | Behavior |
+| --- | --- | --- |
+| **Scoped** | User names a concrete task | Run only needed phases; finish with evidence |
+| **Full-mission** | User asks revamp / master mission / full SDLC | Own inspection → research → strategy → architecture → impl → tests → docs → review → PR → merge → release without phase confirmation |
+| **Bare / re-invoke** | `/eidos-product-engineering` with no new scope | Read ledger → verify → resume gaps **or** run [Maintenance sweep](#maintenance-sweep) — never reply only “already complete” |
 
-### Full-mission invocation
-When the user asks for a complete Eidos revamp / master mission / full SDLC: **own the entire lifecycle in one continuous run** — inspection → research → strategy → architecture → implementation → tests → docs → review → PR → merge → release (where authorized). Do **not** stop for phase confirmation. Do **not** ask the user to type continue / implement / PR / release.
+Do **not** ask the user to type continue / implement / PR / release.
 
 ## Before anything else
 
-1. Confirm the checkout is actually Eidos (`packages/core` → `@sweidos/eidos`). Prefer `/tmp/eidos` or a dedicated clone; never assume `/workspace` is Eidos.
-2. Inspect git status, branch, uncommitted work. Preserve user changes. Isolate mission work on `cursor/<topic>-<suffix>`.
+1. Confirm checkout is Eidos (`packages/core` → `@sweidos/eidos`). Prefer `/tmp/eidos`; never assume `/workspace` is Eidos.
+2. Inspect git status/branch; preserve user changes. Mission work on `cursor/<topic>-<suffix>` (lowercase).
 3. Verify auth: `gh api user`, `gh api repos/sweidos/eidos --jq .permissions`.
-4. Read `research/eidos-revamp/EXECUTION.md` if present — **resume** rather than restart.
-5. Record baseline commit and existing test results before changing code.
+4. Find active ledger: newest `research/*/EXECUTION.md` with status ≠ abandoned. **Resume** — do not start a conflicting parallel mission.
+5. Record baseline commit + existing test results before changing code.
+6. State mission **freeze line** (API/semver/modules that must not thrash) in the ledger.
 
-## Persistent state (required)
-
-Maintain under the Eidos repo:
+## Persistent state
 
 | File | Purpose |
 | --- | --- |
-| `research/eidos-revamp/EXECUTION.md` | Ledger: objective, branch, decisions, tasks, next action |
-| `research/eidos-revamp/PRODUCT_STRATEGY.md` | Target user, problem, differentiation, criteria |
-| `research/eidos-revamp/ARCHITECTURE.md` | Decisions, boundaries, trade-offs |
-| `research/eidos-revamp/VALIDATION.md` | Commands + actual outcomes |
-| `research/eidos-revamp/RELEASE.md` | Merge/release evidence |
+| `research/<mission-id>/EXECUTION.md` | Ledger: objective, freeze line, branch, tasks, **Next action** (always agent-executable or a named human blocker) |
+| `research/<mission-id>/PRODUCT_STRATEGY.md` | Target user, problem, differentiation, criteria |
+| `research/<mission-id>/ARCHITECTURE.md` | Decisions, boundaries, trade-offs |
+| `research/<mission-id>/VALIDATION.md` | Commands + actual outcomes |
+| `research/<mission-id>/RELEASE.md` | Merge/release evidence |
 
-Update the ledger at phase boundaries and before any interruption. Exact next action must always be recoverable.
+Use `eidos-revamp` only when resuming that mission. New work gets a new `<mission-id>` (e.g. `ci-hygiene-20261013`). Update the ledger at phase boundaries, after fan-in, and before any interruption.
+
+Human-only steps go under `## Blockers (human)`. `## Next action` must stay agent-executable while agent-safe work remains. **Forbidden:** `Status: complete` + `Next action: None` while any mission PR is still OPEN.
+
+## Maintenance sweep
+
+When bare re-invoke finds a **verified** `complete` ledger (or no active mission), run this bounded sweep once — do **not** invent a full product revamp:
+
+1. Re-verify claims: open mission PRs, `npm view @sweidos/eidos version` vs repo, tip CI on default branch.
+2. If verification fails → set `in_progress` / `complete_with_blocker` and resume **only** the gap.
+3. Else pick **one** highest-value safe item, in order: unfinished agent PRs → red main CI → publish/verify lag after authorized path → skill self-fix if this run stalled on skill ambiguity → one Dependabot/group bump that passes local tests.
+4. Open a **new** mission ledger for that item and execute through merge (and release if in scope).
+5. If nothing actionable: report idle with evidence and **stop**.
+
+## Anti-stall
+
+- Never ask the user to continue, implement, open a PR, or release.
+- If blocked >1 attempt on the same external dependency (secrets, permissions): finish Blocker playbook prep, record `## Blockers (human)` once with exact secret/permission + verification command, and **keep working** the parallel stream (PRs, CI, size, docs, skill).
+- Core **bundle size budget** (7 kB gzip for `@sweidos/eidos` when enforced): overage is an implementation task — cut payload until under budget; do not wait for humans. See [testing.md](references/testing.md).
+- Publish/secret stalls: [release.md](references/release.md) Blocker playbook.
 
 ## Orchestration
 
-Act as one coherent product/engineering org (PM, Staff Eng, EM, SDE, QA, Security, DX, Release). Roles produce **working software**, not theater.
+Act as one product/engineering org that ships **working software**. Details: [orchestration.md](references/orchestration.md).
 
-- Parallelize independent research/review when safe.
-- Serialize shared architecture and critical queue/runtime modules.
-- Use subagents only for genuinely independent work; never pretend a subagent ran.
-- Orchestrator resolves disagreements with evidence, simplicity, correctness, user value.
+- **Orchestrator** owns plan, fan-in, ledger, git write, PR/merge/publish.
+- **Workers** (subagents) are bounded, default read-only, return structured artifacts under `research/<mission-id>/workers/`.
+- Cap ≤3 concurrent workers; no nested fan-out; never claim parallel work without on-disk artifacts.
+- Spawn for independent research, adversarial review, docs/API audit — **not** for shared queue/runtime edits.
+- Advance SDLC phases only after fan-in. Serialize `packages/core` queue/runtime modules.
 
-Detailed procedures:
-
-| Topic | Reference |
-| --- | --- |
-| Product principles | [references/principles.md](references/principles.md) |
-| SDLC phases | [references/sdlc.md](references/sdlc.md) |
-| Research method | [references/research.md](references/research.md) |
-| API simplicity review | [references/api-review.md](references/api-review.md) |
-| Test strategy | [references/testing.md](references/testing.md) |
-| Security & reliability | [references/security.md](references/security.md) |
-| PR / merge / release | [references/release.md](references/release.md) |
-| Recovery & handoff | [references/recovery.md](references/recovery.md) |
-
-## Quality gates (all required for merge)
+## Quality gates (required for merge)
 
 1. **Product** — clear primary user/problem; honest guarantees; no unjustified complexity.
-2. **API** — short primary example; lifecycle constraints discoverable; migration assessed.
+2. **API** — short primary example; lifecycle discoverable; migration assessed.
 3. **Reliability** — crash/interrupted-replay and multi-tab covered; no known critical data-loss/dupe defects.
-4. **Engineering** — tests, typecheck, build, package checks, CI; no critical regressions.
+4. **Engineering** — tests, typecheck, build, package checks, CI; size budget if enforced; no critical regressions.
 5. **Docs** — quick start matches exports; guarantees match implementation.
 6. **Release** — semver + changelog accurate; publish only via authorized process.
 
@@ -80,11 +90,14 @@ Do not weaken or delete tests to go green. Do not fabricate evidence.
 ## Autonomy
 
 - Decide routine naming, refactoring, test design, docs organization independently.
-- Continue independent safe work when one action is blocked (missing credential, human review, protected branch).
-- Never: force-push shared history, bypass security controls, invent customers/benchmarks, claim merge/publish without verification, or expand scope for theater.
+- Continue independent safe work when one stream is blocked.
+- Irreversible public API break / major semver / security bypass / publish credentials: AskQuestion once (recommended option first) or hard-blocker in ledger — then keep non-blocked work moving.
+- Never: force-push shared history, bypass security controls, invent customers/benchmarks, claim merge/publish without verification, expand scope for theater.
 
 ## Definition of done
 
-Report separately: skill created/invoked · local implementation · PR opened · PR merged · package published · remaining blockers.
+Report separately: skill invoked · local implementation · PR opened · PR merged · package published · remaining blockers · open PR count · npm version match · tip CI.
 
-Mission complete only when applicable gates pass and the ledger accurately reflects outcome.
+Mission **complete** only when gates pass, **all mission PRs are merged** (or abandoned in ledger with reason), publish verified if in scope, ledger matches reality (`gh pr list`, `npm view`, CI), and Next action is empty **only** after Maintenance sweep found nothing actionable.
+
+Skill shipping: [skill-release.md](references/skill-release.md). Procedures: [sdlc.md](references/sdlc.md), [recovery.md](references/recovery.md), [release.md](references/release.md), [principles.md](references/principles.md), [research.md](references/research.md), [api-review.md](references/api-review.md), [testing.md](references/testing.md), [security.md](references/security.md).
