@@ -25,7 +25,8 @@
     "@sweidos/eidos": "workspace:*",
     "@types/node": "^26.1.1",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.9"
+    "vitest": "^4.1.9",
+    "next": "^16.3.8"
   },
   "peerDependencies": {
     "@sweidos/eidos": ">=2.3.0",
