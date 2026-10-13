@@ -4,6 +4,6 @@ Supersedes Dependabot #61 (CONFLICTING on main).
 
 ## Checklist
 
-- [ ] PR opened
-- [ ] PR merged
-- [ ] Close #61 as superseded
+- [x] PR opened — https://github.com/sweidos/eidos/pull/77
+- [x] PR merged — `39a4a25` (2026-10-13T20:23:32Z)
+- [x] Close #61 as superseded
