@@ -1,26 +1,25 @@
 # Next.js security patch — Execution Ledger
 
 **Mission:** Maintenance sweep — clear critical/high Dependabot alerts for next, proxy-addr, undici, sharp, source-map-js
-**Status:** `in_progress`
+**Status:** `complete`
 **Freeze line:** Do not change `@sweidos/eidos` core runtime API or raise 7 kB budget
-**Branch tip:** `cursor/next-security-patch-34f7` (from `main` @ `a119398`)
+**Branch tip:** `main` @ `912b196` (#87)
 **Skill:** eidos-product-engineering v1.1.0 bare re-invoke
 
-## Objective
+## Outcome
 
-Bump `@sweidos/next` / lockfile `next` to a patched release (`>=16.3.8`, resolved **16.4.0**) and add root `pnpm.overrides` so transitive advisories for `proxy-addr`, `undici` (stay on v7 line), `source-map-js`, and `sharp` resolve to patched versions.
-
-## Tasks
-
-| Task                                                           | Status  |
-| -------------------------------------------------------------- | ------- |
-| Root overrides: next, proxy-addr, undici, source-map-js, sharp | done    |
-| `packages/next` devDependency `next: ^16.3.8`                  | done    |
-| Pin undici `>=7.29.1 <8` (v8 breaks jsdom/core tests)          | done    |
-| Validate core + next tests, playground build, size budget      | done    |
-| PR + squash merge                                              | pending |
-| Confirm Dependabot alert reduction                             | pending |
+| Gate                                                                          | Status  |
+| ----------------------------------------------------------------------------- | ------- |
+| PR #87 merged                                                                 | done    |
+| `next` resolved **16.4.0** (`>=16.3.8`)                                       | done    |
+| Overrides: proxy-addr 2.0.8, undici 7.30.0, source-map-js 1.2.2, sharp 0.35.5 | done    |
+| undici pinned `>=7.29.1 <8` (jsdom/core tests)                                | done    |
+| Core 222 + next 12 tests; size **6.98 kB / 7 kB**                             | done    |
+| Open alerts for next / proxy-addr / undici / sharp / source-map-js            | **0**   |
+| Critical + high open alerts (repo)                                            | **0**   |
+| Tip CI (`Release PR` on 912b196)                                              | success |
+| Open Dependabot PRs                                                           | none    |
 
 ## Next action
 
-Commit package + lock + ledger → push → open PR → squash merge → re-check open alerts for next/proxy-addr/undici/sharp/source-map-js.
+None for this mission. Remaining open Dependabot alerts are medium-only (7).
