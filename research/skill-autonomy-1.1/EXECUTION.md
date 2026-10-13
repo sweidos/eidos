@@ -1,10 +1,10 @@
 # Skill autonomy 1.1 — Execution Ledger
 
 **Mission:** Fix `eidos-product-engineering` autonomy gaps; release skill v1.1.0
-**Status:** `in_progress`
+**Status:** `complete`
 **Freeze line:** Do not change `@sweidos/eidos` runtime/package code in this mission
-**Branch:** `cursor/skill-autonomy-34f7`
-**Skill version:** 1.1.0 (shipping)
+**Branch tip:** `main` @ `9dbe5ff` (#75)
+**Skill version:** **1.1.0** (canonical + runtime synced)
 
 ## Audits (subagents)
 
@@ -12,6 +12,14 @@
 - Orchestration → contracts, fan-in, orchestrator-only side effects
 - Blocker/release → NPM_TOKEN playbook, complete hygiene, skill-release path
 
+## Outcome
+
+| Gate                                         | Status                   |
+| -------------------------------------------- | ------------------------ |
+| Skill v1.1.0 on main                         | done (#75)               |
+| Runtime `~/.cursor/skills-cursor/...` synced | done (`version: 1.1.0`)  |
+| Package publish                              | N/A (skill-only mission) |
+
 ## Next action
 
-PR → CI → merge → sync `~/.cursor/skills-cursor/eidos-product-engineering/` → verify version 1.1.0
+None for this mission.

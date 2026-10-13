@@ -10,7 +10,7 @@
 
 ## Ship checklist
 
-- [ ] PR opened
-- [ ] PR merged
-- [ ] Runtime synced to `~/.cursor/skills-cursor/eidos-product-engineering/`
-- [ ] Runtime `version: 1.1.0` matches canonical
+- [x] PR opened — https://github.com/sweidos/eidos/pull/75
+- [x] PR merged — `9dbe5ff` (2026-10-13)
+- [x] Runtime synced to `~/.cursor/skills-cursor/eidos-product-engineering/`
+- [x] Runtime `version: 1.1.0` matches canonical
