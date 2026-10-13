@@ -1,7 +1,7 @@
 {
   "name": "@sweidos/next",
   "version": "2.0.0",
-  "description": "Next.js Server Actions integration for Eidos action() — neverLose wrapper, idempotency context for Server Action bodies.",
+  "description": "Next.js Server Actions integration for Eidos action() \u2014 neverLose wrapper, idempotency context for Server Action bodies.",
   "author": "Aditya Raj",
   "license": "MIT",
   "type": "module",
@@ -23,7 +23,7 @@
   },
   "devDependencies": {
     "@sweidos/eidos": "workspace:*",
-    "@types/node": "^25.9.3",
+    "@types/node": "^26.1.1",
     "typescript": "^6.0.3",
     "vitest": "^4.1.9"
   },
