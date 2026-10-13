@@ -7,7 +7,7 @@
     <title>Eidos — Never lose a write</title>
     <meta
       name="description"
-      content="resource() + action() generate the Service Worker, cache strategies, and an offline action queue with idempotency keys and cross-tab replay locks — so a queued write runs exactly once. Works with React, Next.js, Svelte, Vue, React Native, and Tauri/Electron."
+      content="resource() + action() generate the Service Worker, cache strategies, and an offline action queue with idempotency keys and cross-tab replay locks for at-least-once delivery. Works with React, Next.js, Svelte, Vue, React Native, and Tauri/Electron."
     />
     <meta name="theme-color" content="#0F172A" />
     <meta name="google-site-verification" content="eM2svU8p9XvFqeLLYk0a__eoFh452FmBXepRgsVef9g" />
@@ -22,7 +22,7 @@
     <meta property="og:title" content="Eidos — Never lose a write" />
     <meta
       property="og:description"
-      content="resource() + action() replace 200 lines of Workbox config, IndexedDB schema, and retry logic — with idempotency keys and cross-tab replay locks built in, so a queued write runs exactly once."
+      content="resource() + action() replace 200 lines of Workbox config, IndexedDB schema, and retry logic — with idempotency keys and cross-tab replay locks for at-least-once delivery."
     />
     <meta property="og:site_name" content="Eidos" />
     <meta property="og:image" content="https://sweidos.vercel.app/og-image.svg" />
@@ -32,7 +32,7 @@
     <meta name="twitter:title" content="Eidos — Never lose a write" />
     <meta
       name="twitter:description"
-      content="resource() + action() replace 200 lines of Workbox config, IndexedDB schema, and retry logic — with idempotency keys and cross-tab replay locks built in, so a queued write runs exactly once."
+      content="resource() + action() replace 200 lines of Workbox config, IndexedDB schema, and retry logic — with idempotency keys and cross-tab replay locks for at-least-once delivery."
     />
     <meta name="twitter:image" content="https://sweidos.vercel.app/og-image.svg" />
 
@@ -59,7 +59,7 @@
         "@context": "https://schema.org",
         "@type": "SoftwareApplication",
         "name": "Eidos",
-        "description": "resource() + action() generate the Service Worker, cache strategies, and an offline action queue with idempotency keys and cross-tab replay locks — so a queued write runs exactly once. Works with React, Next.js, Svelte, Vue, React Native, and Tauri/Electron.",
+        "description": "resource() + action() generate the Service Worker, cache strategies, and an offline action queue with idempotency keys and cross-tab replay locks for at-least-once delivery. Works with React, Next.js, Svelte, Vue, React Native, and Tauri/Electron.",
         "applicationCategory": "DeveloperApplication",
         "operatingSystem": "Any",
         "url": "https://sweidos.vercel.app/",
@@ -74,8 +74,8 @@
       <p>
         Eidos is an offline-first abstraction layer for web apps. Declare what your app needs
         offline — Eidos picks the cache strategy, registers the Service Worker, and persists your
-        action queue to IndexedDB with idempotency keys and cross-tab replay locks, so a queued
-        write runs exactly once.
+        action queue to IndexedDB with idempotency keys and cross-tab replay locks for at-least-once
+        delivery with server-side deduplication.
       </p>
       <p>Install: <code>npm install @sweidos/eidos</code></p>
       <ul>

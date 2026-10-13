@@ -9,7 +9,7 @@
 
 > **Never lose a write.**
 
-Declare what your app needs offline. Eidos picks the cache strategy, registers the Service Worker, and persists your action queue to IndexedDB — with idempotency keys and cross-tab replay locks built in, so a queued mutation runs exactly once.
+Declare what your app needs offline. Eidos picks the cache strategy, registers the Service Worker, and persists your action queue to IndexedDB — with idempotency keys and cross-tab replay locks built in for at-least-once delivery with server-side deduplication.
 
 ```ts
 import { resource, action } from '@sweidos/eidos';
