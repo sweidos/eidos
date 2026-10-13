@@ -6,6 +6,7 @@
 | ----------------------------------------------- | ---------------------------------------------------- | ------------ | -------------------- |
 | [#69](https://github.com/sweidos/eidos/pull/69) | feat: durable neverLose mutations with replay leases | `3ee491f`    | 2026-10-13T19:02:18Z |
 | [#70](https://github.com/sweidos/eidos/pull/70) | chore: version packages (2.5.0)                      | `3d29b47`    | 2026-10-13T19:06:17Z |
+| [#72](https://github.com/sweidos/eidos/pull/72) | restore 7 kB budget / stop persisting replaying      | (see main)   | 2026-10-13           |
 
 ## CI (Deploy & Release on #70) — run `38452172547`
 
@@ -16,29 +17,28 @@
 | npm Release (next)           | success (likely already published / skip) |
 | npm Release (sqlite-storage) | success                                   |
 | npm Release (crdt-yjs)       | success                                   |
-| npm Release (core)           | **failure**                               |
+| npm Release (core)           | **failure** (stale `NPM_TOKEN`)           |
 
-### npm publish blocker (core)
+## CI (Deploy & Release on #72) — run `38454704190` (after token update)
 
-```
-npm error 404 Not Found - PUT https://registry.npmjs.org/@sweidos%2feidos
-The requested resource '@sweidos/eidos@2.5.0' could not be found or you do not have permission to access it.
-```
+| Job                | Result                   |
+| ------------------ | ------------------------ |
+| npm Release (core) | success                  |
+| Log                | `+ @sweidos/eidos@2.5.0` |
 
-**Interpretation:** `NPM_TOKEN` in GitHub Actions cannot publish `@sweidos/eidos` (missing org/package permission or revoked token). This is outside agent control; do not fake a publish.
+### npm publish — verified
 
-**Verified:** `npm view @sweidos/eidos version` still reports **2.4.0**.
-**Repo main:** `packages/core` version / `version.ts` are **2.5.0**.
+After updating GitHub secret `NPM_TOKEN` and re-running Deploy:
+
+- `npm view @sweidos/eidos version` → **2.5.0**
+- `dist-tags.latest` → **2.5.0**
+- Registry time for `2.5.0`: **2026-10-13T19:51:36.485Z**
+
+Earlier 404 on PUT was the old token; new granular token has write access.
 
 ## GitHub release
 
-No `@sweidos/eidos-v2.5.0` GitHub Release created (workflow creates it only after successful npm publish).
-
-## Remaining release action for humans
-
-1. Fix `NPM_TOKEN` / npm org access for `@sweidos`.
-2. Re-run the failed `npm Release (core)` job, or `pnpm --filter @sweidos/eidos publish --access public` from the `3d29b47` (or current main) tree with a valid token.
-3. Confirm `npm view @sweidos/eidos version` → `2.5.0` and create GitHub release if the workflow does not.
+[@sweidos/eidos-v2.5.0](https://github.com/sweidos/eidos/releases/tag/%40sweidos/eidos-v2.5.0) — published 2026-10-13T19:49:30Z
 
 ## Skill
 
