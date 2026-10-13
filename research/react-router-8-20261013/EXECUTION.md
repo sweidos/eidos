@@ -1,16 +1,22 @@
 # React Router 8 — Execution Ledger
 
 **Mission:** Maintenance sweep — migrate playground to react-router v8 (supersede Dependabot #57)
-**Status:** `in_progress`
+**Status:** `complete`
 **Freeze line:** Do not change `@sweidos/eidos` core runtime or raise 7 kB budget
-**Branch:** `cursor/react-router-8-34f7`
+**Branch tip:** `main` @ `16ac849` (#85)
 **Skill:** eidos-product-engineering v1.1.0 bare re-invoke
 
-## Decisions
+## Outcome
 
-- v8 removes `react-router-dom` — imports moved to `react-router`; drop `react-router-dom` dep
-- Spec `^8.3.0` (Dependabot target); resolved 8.4.0
+| Gate                                                 | Status   |
+| ---------------------------------------------------- | -------- |
+| PR #85 merged                                        | done     |
+| Dependabot #57 closed                                | done     |
+| Playground on `react-router` ^8.3.0 (resolved 8.4.0) | done     |
+| `react-router-dom` removed                           | done     |
+| Tip CI                                               | verified |
+| Open Dependabot PRs                                  | none     |
 
 ## Next action
 
-PR → merge → close #57 → mark complete after tip CI green
+None for this mission. Maintenance backlog of open Dependabot PRs is clear.

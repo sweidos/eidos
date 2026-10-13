@@ -4,7 +4,7 @@ Supersedes Dependabot #57.
 
 ## Checklist
 
-- [ ] PR opened
-- [ ] PR merged
-- [ ] Close #57
-- [ ] Tip CI green
+- [x] PR opened — https://github.com/sweidos/eidos/pull/85
+- [x] PR merged — `16ac849`
+- [x] Close #57
+- [x] Tip CI green
