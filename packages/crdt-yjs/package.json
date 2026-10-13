@@ -1,7 +1,7 @@
 {
   "name": "@sweidos/crdt-yjs",
   "version": "2.0.0",
-  "description": "Yjs-backed merge conflict resolver for Eidos action() — automatic CRDT merge for 'merge'/'custom' conflict strategies.",
+  "description": "Yjs-backed merge conflict resolver for Eidos action() \u2014 automatic CRDT merge for 'merge'/'custom' conflict strategies.",
   "author": "Aditya Raj",
   "license": "MIT",
   "type": "module",
@@ -26,11 +26,11 @@
     "@types/node": "^25.9.3",
     "typescript": "^6.0.3",
     "vitest": "^4.1.9",
-    "yjs": "^13.6.0"
+    "yjs": "^13.6.32"
   },
   "peerDependencies": {
     "@sweidos/eidos": ">=2.3.0",
-    "yjs": ">=13.6.0"
+    "yjs": "^13.6.32"
   },
   "keywords": [
     "eidos",
