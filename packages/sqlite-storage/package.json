@@ -1,7 +1,7 @@
 {
   "name": "@sweidos/sqlite-storage",
   "version": "2.0.0",
-  "description": "SQLite-backed QueueStorage adapter for Eidos action() queues — Tauri (@tauri-apps/plugin-sql), better-sqlite3, or any compatible driver.",
+  "description": "SQLite-backed QueueStorage adapter for Eidos action() queues \u2014 Tauri (@tauri-apps/plugin-sql), better-sqlite3, or any compatible driver.",
   "author": "Aditya Raj",
   "license": "MIT",
   "type": "module",
@@ -23,7 +23,7 @@
   },
   "devDependencies": {
     "@sweidos/eidos": "workspace:*",
-    "@types/node": "^25.9.3",
+    "@types/node": "^26.1.1",
     "typescript": "^6.0.3",
     "vitest": "^4.1.9"
   },
