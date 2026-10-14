@@ -1,24 +1,18 @@
 # Product ease — first-touch Save — Execution Ledger
 
 **Mission:** Improve product ease: first-touch Save must teach a correct, copy-pasteable neverLose path (idempotency key + honest queue shape + Try snippets).
-**Status:** `in_progress`
+**Status:** `complete`
 **Skill:** eidos-product-engineering v1.1.0 (scoped: product improvement / easiness)
-**Branch:** `cursor/product-ease-first-touch-34f7`
-**Baseline:** `main` @ `ca56f55` (`@sweidos/eidos@2.5.1`)
-**Freeze line:** neverLose queue/runtime semantics unchanged; no major API break; stay ≤7 kB gzip. Docs/playground + additive types only if needed.
+**PRs:** #121 (feature, merged) · #123 (version 2.5.2, merged) · #122 (ledger)
+**Baseline → tip:** `ca56f55` → `a60d06d` (+ ledger)
+**Freeze line:** neverLose queue/runtime semantics unchanged beyond additive `QueuedResult.idempotencyKey`; no major API break.
 
-## Strategy (summary)
+## Done
 
-Target: FE eng who has never configured Workbox. Remaining pain after DX revamp is **incorrect first copy-paste** (Save without ticket header) and **Try/lab density**.
-
-## Done this turn
-
-- Additive `QueuedResult.idempotencyKey` + test
-- Playground `createOrder` + demo `/api/orders` Idempotency-Key path
-- Happy-path docs (Start, Save, getting-started, READMEs, glossary name≠key)
-- Try hero + Demo/Recipes/Examples snippets
-- Patch changeset + VALIDATION.md
+- First-touch Save pack: happy-path docs + playground forward `Idempotency-Key`
+- Glossary: `name` ≠ ticket; `QueuedResult.idempotencyKey` additive
+- Live Start/Save smoke: 200 + ticket header copy
+- Deploy #121 / #123 success; `@sweidos/eidos@2.5.2` on npm
+- Version PR opened manually after changesets/action PR-create denial
 
 ## Next action
-
-Commit, push, open PR, merge, deploy; verify Start/Save/Try on production.
