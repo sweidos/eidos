@@ -1,8 +1,8 @@
 {
   "name": "Eidos — Never lose a write",
   "short_name": "Eidos",
-  "description": "resource() + action() generate the Service Worker, cache strategies, and an offline action queue with idempotency keys and cross-tab replay locks.",
-  "start_url": "/overview",
+  "description": "Never lose a write. Durable client Saves for unreliable networks — action() + resource().",
+  "start_url": "/try",
   "display": "standalone",
   "background_color": "#0F172A",
   "theme_color": "#22C55E",

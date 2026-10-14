@@ -54,9 +54,9 @@ function now() {
 // ── Module-scope constants (not recreated on every render) ────────────────────
 
 const HERO_STEPS = [
-  'Fetch the product list while online, then turn offline simulation on.',
-  'Submit an order and watch it move into the queue.',
-  'Open docs for a shorter explanation of each API surface.',
+  'Fetch products while online, then tap sim offline in the header.',
+  'Submit an order — watch it land in the pocket (queue).',
+  'Turn the network back on — the Save sends itself. Docs if you want the why.',
 ] as const;
 
 const EXAMPLES = [
@@ -92,10 +92,12 @@ const data = await products.json<Product[]>()`,
 )`,
   },
   {
-    badge: 'query()',
+    badge: '@sweidos/eidos/query',
     title: 'Bridge into TanStack Query',
     description: 'Keep the cache in sync with an existing query layer instead of replacing it.',
-    code: `const { data } = useQuery(productsResource.query<Product[]>())
+    code: `import { useEidosQuery, useEidosMutation } from '@sweidos/eidos/query'
+
+const { data } = useEidosQuery(productsResource)
 
 const mutation = useEidosMutation(createOrder, {
   invalidates: [productsResource],

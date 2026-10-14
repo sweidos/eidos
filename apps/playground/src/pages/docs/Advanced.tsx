@@ -372,7 +372,7 @@ afterEach(() => clearEidosCache())`}
               ]}
             />
             <a
-              href="https://github.com/iamadi11/eidos/blob/main/README.md"
+              href="https://github.com/sweidos/eidos/blob/main/README.md"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-between rounded-lg border border-eidos-border px-3 py-2 text-sm text-eidos-text-dim transition-colors hover:border-eidos-accent hover:text-eidos-text"

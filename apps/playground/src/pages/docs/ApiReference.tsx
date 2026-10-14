@@ -1,6 +1,6 @@
 import { Card, CardHeader } from '../../components/Card';
 import { CodeBlock } from '../../components/CodeBlock';
-import { BulletList, OnThisPage, SectionHeading, slugify } from './shared';
+import { BulletList, OnThisPage, PageIntro, slugify } from './shared';
 
 const SECTIONS = [
   'resource(url, config)',
@@ -8,16 +8,17 @@ const SECTIONS = [
   'EidosProvider',
   'replayQueue()',
   'conflict (ConflictConfig)',
+  'React hooks',
+  'Framework-agnostic stores',
 ];
 
 export function ApiReference() {
   return (
-    <section id="core" className="space-y-3">
-      <SectionHeading
-        id="core"
-        eyebrow="core api"
-        title="The small set of primitives you use most"
-        description="These cards keep one idea per surface so the mental model stays lightweight."
+    <div className="space-y-5 animate-fade-in">
+      <PageIntro
+        title="API cheat sheet"
+        lead="The small set you actually need. Prefer Start here if you have not installed yet."
+        next={{ to: '/docs/advanced', label: 'Advanced' }}
       />
 
       <OnThisPage items={SECTIONS} />
@@ -26,17 +27,12 @@ export function ApiReference() {
         <Card className="h-full scroll-mt-20" id={slugify(SECTIONS[0])}>
           <CardHeader
             title="resource(url, config)"
-            description="Register a GET endpoint as offline-capable and let Eidos pick the cache strategy."
-            action={
-              <span className="rounded-full border border-eidos-border px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-eidos-muted">
-                cache
-              </span>
-            }
+            description="Register a GET as offline-capable and let Eidos pick a cache strategy."
           />
           <BulletList
             items={[
               'Use `offline: true` to enable fetch interception and cache persistence.',
-              'Override `strategy` only when you want to force a specific cache policy.',
+              'Override `strategy` only when you want a specific cache policy.',
               'Add `maxAge` when the data should refresh after a short TTL.',
             ]}
           />
@@ -54,63 +50,43 @@ const data = await products.json<Product[]>()`}
         <Card className="h-full scroll-mt-20" id={slugify(SECTIONS[1])}>
           <CardHeader
             title="action(fn, config)"
-            description="Wrap async mutations so offline writes are persisted and replayed later."
-            action={
-              <span className="rounded-full border border-eidos-border px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-eidos-muted">
-                queue
-              </span>
-            }
+            description="Wrap a mutation so neverLose keeps the click across offline and reload."
           />
           <BulletList
             items={[
-              'Use `reliability: "neverLose"` when dropping a write would be painful.',
-              'Give anonymous functions a `name` so replay can find them after refresh.',
-              'Tune `maxRetries` when you need a shorter or longer retry window.',
-              '`onOptimistic` updates the UI instantly; `onRollback` reverts if the action permanently fails.',
+              "Set `reliability: 'neverLose'` for durable queueing.",
+              'Stable `name` is required so replay works after reload.',
+              'Read `idempotencyKey` from `ActionContext` for server dedupe.',
             ]}
           />
           <CodeBlock
             className="mt-4"
             title="action.ts"
-            code={`const createOrder = action(
-  async (payload: OrderPayload) => {
-    const res = await fetch('/api/orders', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    })
-    return res.json()
-  },
-  {
-    reliability: 'neverLose',
-    name: 'createOrder',
-    onOptimistic: (payload) => addOptimisticOrder(payload),
-    onRollback:   (payload) => removeOptimisticOrder(payload),
-  },
-)`}
+            code={`const createOrder = action(submitOrder, {
+  reliability: 'neverLose',
+  name: 'createOrder',
+})
+
+const result = await createOrder(payload)`}
           />
         </Card>
 
         <Card className="h-full scroll-mt-20" id={slugify(SECTIONS[2])}>
           <CardHeader
             title="EidosProvider"
-            description="Register the SW and hydrate the runtime once near the root of the app."
-            action={
-              <span className="rounded-full border border-eidos-border px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-eidos-muted">
-                root
-              </span>
-            }
+            description="Mount once at the root — registers the service worker and hydrates the runtime."
           />
           <BulletList
             items={[
-              'Set `swPath` if the worker lives somewhere other than `/eidos-sw.js`.',
-              'Leave `autoReplay` on unless you want full manual control of queue replay.',
-              'Keep the provider near the root so status hooks stay available everywhere.',
+              'Pass `swPath="/eidos-sw.js"` (or your copied path).',
+              'Children get hooks: status, queue, resources.',
+              'Auto-replay on reconnect is on by default.',
             ]}
           />
           <CodeBlock
             className="mt-4"
             title="main.tsx"
-            code={`<EidosProvider swPath="/eidos-sw.js" autoReplay>
+            code={`<EidosProvider swPath="/eidos-sw.js">
   <App />
 </EidosProvider>`}
           />
@@ -119,44 +95,34 @@ const data = await products.json<Product[]>()`}
         <Card className="h-full scroll-mt-20" id={slugify(SECTIONS[3])}>
           <CardHeader
             title="replayQueue()"
-            description="Trigger queue replay yourself when you want a manual recovery action."
-            action={
-              <span className="rounded-full border border-eidos-border px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-eidos-muted">
-                replay
-              </span>
-            }
+            description="Manually drain the pocket when you want control."
           />
           <BulletList
             items={[
-              'Usually runs automatically when connectivity returns.',
-              'Useful for a "Retry now" button or a manual sync control.',
-              'Returns a result summary so you can surface what happened.',
+              'Usually automatic on reconnect / Background Sync.',
+              'Useful after fixing a failed item or leaving airplane mode.',
+              'Also: `clearQueue()`, `requeueItem()`, `cancelByIdempotencyKey()`.',
             ]}
           />
           <CodeBlock
             className="mt-4"
-            title="recovery.ts"
-            code={`const result = await replayQueue()
-// { attempted, succeeded, failed, retrying, skipped }`}
+            title="replay.ts"
+            code={`import { replayQueue } from '@sweidos/eidos'
+
+await replayQueue()`}
           />
         </Card>
 
-        <Card className="h-full scroll-mt-20" id={slugify(SECTIONS[4])}>
+        <Card className="h-full scroll-mt-20 lg:col-span-2" id={slugify(SECTIONS[4])}>
           <CardHeader
             title="conflict (ConflictConfig)"
-            description="Decide what happens when a queued write replays against state that has since changed."
-            action={
-              <span className="rounded-full border border-eidos-border px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-eidos-muted">
-                replay
-              </span>
-            }
+            description="Only consulted when a replay receives a 4xx — decide skip, retry, or rewrite."
           />
           <BulletList
             items={[
-              'Only consulted when a replay receives a 4xx response.',
               '`serverWins` drops the queued item; `clientWins` keeps retrying.',
-              '`merge` / `custom` call `resolve(ctx)` with the error, args, and attempt count.',
-              "Return `{ resolved: args }` to rewrite the queued write and retry, or `'skip'` to drop it.",
+              '`merge` / `custom` call `resolve(ctx)` with error, args, and attempt count.',
+              "Return `{ resolved: args }` to rewrite and retry, or `'skip'` to drop it.",
             ]}
           />
           <CodeBlock
@@ -178,7 +144,52 @@ const data = await products.json<Product[]>()`}
 })`}
           />
         </Card>
+
+        <Card className="h-full scroll-mt-20" id={slugify(SECTIONS[5])}>
+          <CardHeader
+            title="React hooks"
+            description="Live UI for online state, queue counters, and drain events."
+          />
+          <BulletList
+            items={[
+              '`useEidosStatus()` — online / service-worker state.',
+              '`useEidosQueueStats()` — pending / failed / replaying.',
+              '`useEidosOnDrain()` — toast when the pocket empties.',
+              '`useEidosResource(url)` / `useEidosAction(id)` for single items.',
+            ]}
+          />
+          <CodeBlock
+            className="mt-4"
+            title="hooks.tsx"
+            code={`const { isOnline, swStatus } = useEidosStatus()
+const { pending, failed } = useEidosQueueStats()
+
+useEidosOnDrain(() => toast.success('All offline actions synced'))`}
+          />
+        </Card>
+
+        <Card className="h-full scroll-mt-20" id={slugify(SECTIONS[6])}>
+          <CardHeader
+            title="Framework-agnostic stores"
+            description="Svelte, Vue, and vanilla JS subscribe to the same primitives."
+          />
+          <BulletList
+            items={[
+              'Stores follow the Svelte `subscribe(run)` contract.',
+              '`eidosStatus`, `eidosQueue`, `eidosQueueStats`, `eidosResource`, `eidosAction`.',
+              'No React required for the store layer.',
+            ]}
+          />
+          <CodeBlock
+            className="mt-4"
+            title="store.ts"
+            code={`const unsub = eidosStatus.subscribe(({ isOnline }) => {
+  document.title = isOnline ? 'App' : 'App (offline)'
+})
+unsub()`}
+          />
+        </Card>
       </div>
-    </section>
+    </div>
   );
 }

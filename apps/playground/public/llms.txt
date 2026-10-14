@@ -1,30 +1,24 @@
-# Eidos
+# Eidos (@sweidos/eidos)
 
-> Eidos is a declarative offline-first toolkit for the web. `resource()` and `action()` replace
-> hand-written Service Worker registration, Workbox cache configs, IndexedDB schemas, and retry
-> queue logic. Works with React, Next.js, Svelte, Vue, and React Native.
+> Never lose a write. Durable client mutations for unreliable networks.
 
-Eidos generates a Service Worker, sets up cache strategies (cache-first, network-first,
-stale-while-revalidate), and queues failed mutations for replay when the network returns —
-all from a small declarative config.
+## Start
 
-## Docs
+- [Start here](https://sweidos.vercel.app/docs/start): install, wrap, first Save
+- [Never lose a save](https://sweidos.vercel.app/docs/save): neverLose actions + idempotency
+- [Read offline](https://sweidos.vercel.app/docs/read): resource() caching
+- [When things break](https://sweidos.vercel.app/docs/safety): offline, reload, crash, server duties
+- [Recipes](https://sweidos.vercel.app/docs/recipes): copy-paste patterns
+- [API cheat sheet](https://sweidos.vercel.app/docs/api): compact reference
+- [Advanced](https://sweidos.vercel.app/docs/advanced): SW, conflict, codegen, testing
 
-- [Quickstart](https://sweidos.vercel.app/docs/quickstart): install, setup, and first resource
-- [API Reference](https://sweidos.vercel.app/docs/api): full `resource()` / `action()` API
-- [Hooks](https://sweidos.vercel.app/docs/hooks): React hooks (`useResource`, `useAction`, `useEidosStatus`, etc.)
-- [Examples](https://sweidos.vercel.app/docs/examples): common patterns and recipes
-- [Advanced](https://sweidos.vercel.app/docs/advanced): conflict resolution, cancellation, replay locks
-- [References](https://sweidos.vercel.app/docs/references): related concepts and further reading
+## Try
 
-## Playground
+- [Try it](https://sweidos.vercel.app/try): live offline-first demo
+- [Actions lab](https://sweidos.vercel.app/actions): queue inspector
+- [Resources lab](https://sweidos.vercel.app/resources): cache inspector
 
-- [Overview](https://sweidos.vercel.app/overview): live offline-first demo
-- [Resources](https://sweidos.vercel.app/resources): inspect cached resources
-- [Actions](https://sweidos.vercel.app/actions): inspect the offline action queue
-- [Inspector](https://sweidos.vercel.app/inspector): Service Worker / cache inspector
+## Package
 
-## Source
-
-- [GitHub](https://github.com/iamadi11/eidos)
-- [npm package](https://www.npmjs.com/package/@sweidos/eidos)
+- [npm: @sweidos/eidos](https://www.npmjs.com/package/@sweidos/eidos)
+- [GitHub](https://github.com/sweidos/eidos)

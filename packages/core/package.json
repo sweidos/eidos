@@ -1,7 +1,7 @@
 {
   "name": "@sweidos/eidos",
   "version": "2.5.0",
-  "description": "Durable client mutations for unreliable networks — resource() + neverLose action() queue with SW caching, IndexedDB replay, and idempotency keys.",
+  "description": "Never lose a write. Durable client Saves for unreliable networks \u2014 action({ reliability: 'neverLose' }) + resource() offline reads.",
   "author": "Aditya Raj",
   "license": "MIT",
   "type": "module",
@@ -25,7 +25,7 @@
     "sweidos",
     "eidos"
   ],
-  "homepage": "https://sweidos.vercel.app/overview",
+  "homepage": "https://sweidos.vercel.app/docs/start",
   "bugs": {
     "url": "https://github.com/sweidos/eidos/issues"
   },

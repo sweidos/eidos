@@ -7,11 +7,12 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router';
 import { Landing } from '../src/pages/Landing.tsx';
-import { QuickStart } from '../src/pages/docs/QuickStart.tsx';
+import { Start } from '../src/pages/docs/Start.tsx';
+import { Save } from '../src/pages/docs/Save.tsx';
+import { Read } from '../src/pages/docs/Read.tsx';
+import { Safety } from '../src/pages/docs/Safety.tsx';
 import { ApiReference } from '../src/pages/docs/ApiReference.tsx';
-import { Hooks } from '../src/pages/docs/Hooks.tsx';
 import { Advanced } from '../src/pages/docs/Advanced.tsx';
-import { References } from '../src/pages/docs/References.tsx';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const distDir = resolve(__dirname, '../dist');
@@ -56,27 +57,12 @@ async function prerender({ path, component, title }) {
 
 const routes = [
   { path: '/', component: Landing, title: 'Eidos — Never lose a write' },
-  {
-    path: '/docs/quickstart',
-    component: QuickStart,
-    title: 'Quick Start — Eidos (@sweidos/eidos)',
-  },
-  {
-    path: '/docs/api',
-    component: ApiReference,
-    title: 'API Reference — Eidos (@sweidos/eidos)',
-  },
-  {
-    path: '/docs/hooks',
-    component: Hooks,
-    title: 'React Hooks — Eidos (@sweidos/eidos)',
-  },
-  { path: '/docs/advanced', component: Advanced, title: 'Advanced — Eidos (@sweidos/eidos)' },
-  {
-    path: '/docs/references',
-    component: References,
-    title: 'References — Eidos (@sweidos/eidos)',
-  },
+  { path: '/docs/start', component: Start, title: 'Start here — Eidos' },
+  { path: '/docs/save', component: Save, title: 'Never lose a save — Eidos' },
+  { path: '/docs/read', component: Read, title: 'Read offline — Eidos' },
+  { path: '/docs/safety', component: Safety, title: 'When things break — Eidos' },
+  { path: '/docs/api', component: ApiReference, title: 'API cheat sheet — Eidos' },
+  { path: '/docs/advanced', component: Advanced, title: 'Advanced — Eidos' },
 ];
 
 for (const route of routes) {
