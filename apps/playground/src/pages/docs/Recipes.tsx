@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { Card, CardHeader } from '../../components/Card';
 import { CodeBlock } from '../../components/CodeBlock';
-import { OnThisPage, PageIntro, SectionHeading, slugify } from './shared';
+import { OnThisPage, PageIntro, slugify } from './shared';
 import {
   LiveCachedFetch,
   LiveOfflineMutation,
