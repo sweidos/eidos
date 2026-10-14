@@ -158,7 +158,7 @@
     "jsdom": "^30.1.2",
     "size-limit": "^14.2.0",
     "typescript": "^6.0.3",
-    "vite": "^8.2.2",
+    "vite": "^8.3.4",
     "vite-plugin-dts": "^5.1.0",
     "vitest": "^5.0.4"
   }
