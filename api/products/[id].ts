@@ -1,4 +1,4 @@
-import { PRODUCTS } from '../_data/products';
+import { PRODUCTS } from '../shared/products.js';
 
 // Demo endpoint for the "URL patterns" docs example — registered with
 // resourcePattern('/api/products/:id', ...) so the SW intercepts and caches

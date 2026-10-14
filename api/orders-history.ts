@@ -1,4 +1,4 @@
-import { generateOrderHistory } from './_data/orders';
+import { generateOrderHistory } from './shared/orders.js';
 
 export function GET() {
   return Response.json(generateOrderHistory(), {

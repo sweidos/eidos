@@ -1,4 +1,4 @@
-import { PRODUCTS } from './_data/products';
+import { PRODUCTS } from './shared/products.js';
 
 export function GET() {
   return Response.json(PRODUCTS, {
