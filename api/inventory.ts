@@ -1,4 +1,4 @@
-import { PRODUCTS } from './_data/products';
+import { PRODUCTS } from './shared/products.js';
 
 // Demo endpoint for the "conflict resolution" docs example. Reserving more
 // units than are in stock returns 409 with the actual `available` count, so

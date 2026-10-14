@@ -3,8 +3,8 @@ import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 import type { Plugin } from 'vite';
 import type { ServerResponse, IncomingMessage } from 'http';
-import { PRODUCTS } from '../../api/_data/products';
-import { generateOrderHistory } from '../../api/_data/orders';
+import { PRODUCTS } from '../../api/shared/products.js';
+import { generateOrderHistory } from '../../api/shared/orders.js';
 
 // ── Mock API plugin ────────────────────────────────────────────────────────────
 // Serves fake endpoints so the demo works without a real backend.
