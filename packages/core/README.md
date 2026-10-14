@@ -36,6 +36,12 @@ if ('queued' in result) {
 
 Honest guarantee: **at-least-once delivery**. Deduplicate on the server with the stable `idempotencyKey` (also on `ActionContext`). Not magical exactly-once.
 
+|                    |                                  |
+| ------------------ | -------------------------------- |
+| Bundle size (core) | ~6.82 kB                         |
+| Delivery           | at-least-once + idempotency keys |
+| Queue              | IndexedDB + Web Locks            |
+
 ---
 
 ## Install
