@@ -78,7 +78,7 @@ const result = await createOrder(payload)`}
           />
           <BulletList
             items={[
-              'Pass `swPath="/eidos-sw.js"` (or your copied path).',
+              'Defaults to `/eidos-sw.js` — pass `swPath` only if you renamed the file.',
               'Children get hooks: status, queue, resources.',
               'Auto-replay on reconnect is on by default.',
             ]}
@@ -86,7 +86,7 @@ const result = await createOrder(payload)`}
           <CodeBlock
             className="mt-4"
             title="main.tsx"
-            code={`<EidosProvider swPath="/eidos-sw.js">
+            code={`<EidosProvider>
   <App />
 </EidosProvider>`}
           />

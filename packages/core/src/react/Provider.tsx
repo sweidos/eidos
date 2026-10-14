@@ -8,9 +8,10 @@ interface EidosProviderProps extends EidosConfig {
 /**
  * Mount once at the root of your application.
  * Registers the service worker and initialises the Eidos runtime.
+ * Defaults `swPath` to `/eidos-sw.js` (what the Vite plugin emits).
  *
  * @example
- * <EidosProvider swPath="/eidos-sw.js">
+ * <EidosProvider>
  *   <App />
  * </EidosProvider>
  */
