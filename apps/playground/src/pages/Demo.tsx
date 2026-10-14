@@ -199,124 +199,106 @@ export function Demo() {
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-6 lg:px-6 animate-fade-in">
       <Card glow className="overflow-hidden">
-        <div className="grid gap-6 p-5 lg:grid-cols-[minmax(0,1fr)_360px] lg:p-6">
+        <div className="grid gap-6 p-5 lg:grid-cols-[minmax(0,1fr)_320px] lg:p-6">
           <div className="space-y-5">
-            <div className="inline-flex items-center gap-2 rounded-full border border-eidos-border bg-eidos-elevated/70 px-3 py-1 text-[10px] uppercase tracking-[0.24em] text-eidos-muted">
-              overview
-            </div>
-            <div className="space-y-4">
+            <p className="font-mono text-sm font-semibold tracking-[0.35em] text-eidos-accent">
+              EIDOS
+            </p>
+            <div className="space-y-3">
               <h1 className="max-w-2xl text-2xl font-semibold text-eidos-text text-balance md:text-3xl lg:text-4xl">
-                Stop wiring service-worker details by hand.
+                Try a Save that survives offline.
               </h1>
-              <p className="max-w-2xl text-sm leading-relaxed text-eidos-text-dim md:text-[15px]">
-                Eidos turns offline behavior into explicit, readable declarations. The homepage
-                shows the patterns, the docs explain the API, and the live panels below prove that
-                the runtime is actually doing the work.
+              <p className="max-w-xl text-sm leading-relaxed text-eidos-text-dim md:text-[15px]">
+                One path: pocket an order with sim offline, then watch the same ticket replay when
+                you go back online.
               </p>
             </div>
 
-            {/* Install strip */}
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-eidos-border bg-eidos-bg px-3 py-2 text-xs">
-              <span className="shrink-0 text-eidos-muted">install</span>
-              <code className="font-mono text-eidos-accent">npm install @sweidos/eidos</code>
-              <span className="text-eidos-border">·</span>
-              <code className="font-mono text-eidos-text-dim">pnpm add @sweidos/eidos</code>
-            </div>
-
-            {/* Framework support */}
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-2xs text-eidos-muted">works with</span>
-              {['React', 'Next.js', 'Svelte', 'Vue', 'React Native', 'Vanilla JS'].map((f) => (
-                <span
-                  key={f}
-                  className="rounded-full border border-eidos-border px-2 py-0.5 text-2xs text-eidos-text-dim"
-                >
-                  {f}
-                </span>
+            <ul className="space-y-2.5 text-sm leading-relaxed text-eidos-text-dim">
+              {HERO_STEPS.map((step, index) => (
+                <li key={step} className="flex gap-2.5">
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-eidos-border text-[10px] font-semibold text-eidos-muted">
+                    {index + 1}
+                  </span>
+                  <span>{step}</span>
+                </li>
               ))}
-            </div>
+            </ul>
 
             <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => navigate('/docs')}
-                className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-eidos-accent bg-eidos-accent px-4 py-2 text-xs font-semibold text-eidos-bg transition-colors hover:bg-green-400 cursor-pointer"
+              <a
+                href="#try-live"
+                className="inline-flex min-h-10 items-center gap-1.5 rounded-md bg-eidos-accent px-4 py-2 text-xs font-semibold text-eidos-bg transition-colors hover:bg-green-400"
               >
-                Open docs <ArrowRight size={11} />
-              </button>
+                Jump to live Save <ArrowRight size={11} />
+              </a>
               <button
-                onClick={() => navigate('/actions')}
-                className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-eidos-border px-4 py-2 text-xs font-medium text-eidos-text-dim transition-colors hover:border-eidos-elevated hover:text-eidos-text cursor-pointer"
+                type="button"
+                onClick={() => navigate('/docs/save')}
+                className="inline-flex min-h-10 items-center gap-1.5 rounded-md border border-eidos-border px-4 py-2 text-xs font-medium text-eidos-text-dim transition-colors hover:border-eidos-accent hover:text-eidos-text cursor-pointer"
               >
-                View action queue
+                How Save works
               </button>
             </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-            <div className="rounded-xl border border-eidos-border bg-eidos-surface p-4">
-              <div className="text-[10px] uppercase tracking-[0.24em] text-eidos-muted">
-                live state
+          <div className="rounded-xl border border-eidos-border bg-eidos-surface p-4">
+            <div className="text-[10px] uppercase tracking-[0.24em] text-eidos-muted">
+              live state
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
+              <div>
+                <div className="text-eidos-muted">network</div>
+                <div
+                  className={`mt-1 font-semibold ${isOnline ? 'text-eidos-accent' : 'text-eidos-amber'}`}
+                >
+                  {isOnline ? 'online' : 'offline'}
+                </div>
               </div>
-              <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
-                <div>
-                  <div className="text-eidos-muted">network</div>
-                  <div
-                    className={`mt-1 font-semibold ${isOnline ? 'text-eidos-accent' : 'text-eidos-amber'}`}
-                  >
-                    {isOnline ? 'online' : 'offline'}
-                  </div>
+              <div>
+                <div className="text-eidos-muted">service worker</div>
+                <div
+                  className={`mt-1 font-semibold ${
+                    swStatus === 'error' || swStatus === 'unsupported'
+                      ? 'text-eidos-red'
+                      : 'text-eidos-text'
+                  }`}
+                >
+                  {swStatus}
                 </div>
-                <div>
-                  <div className="text-eidos-muted">service worker</div>
-                  <div className="mt-1 font-semibold text-eidos-text">{swStatus}</div>
+              </div>
+              <div>
+                <div className="text-eidos-muted">cache hits</div>
+                <div className="mt-1 font-tabular font-semibold text-eidos-accent">
+                  {resourceEntry?.cacheHits ?? 0}
                 </div>
-                <div>
-                  <div className="text-eidos-muted">cache hits</div>
-                  <div className="mt-1 font-tabular font-semibold text-eidos-accent">
-                    {resourceEntry?.cacheHits ?? 0}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-eidos-muted">queued</div>
-                  <div className="mt-1 font-tabular font-semibold text-eidos-amber">
-                    {pendingCount}
-                  </div>
+              </div>
+              <div>
+                <div className="text-eidos-muted">queued</div>
+                <div className="mt-1 font-tabular font-semibold text-eidos-amber">
+                  {pendingCount}
                 </div>
               </div>
             </div>
-
-            <div className="rounded-xl border border-eidos-border bg-eidos-surface p-4">
-              <div className="text-[10px] uppercase tracking-[0.24em] text-eidos-muted">
-                what to try
-              </div>
-              <ul className="mt-3 space-y-3 text-xs leading-relaxed text-eidos-text-dim">
-                {HERO_STEPS.map((step, index) => (
-                  <li key={step} className="flex gap-2">
-                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-eidos-border text-[10px] font-semibold text-eidos-muted">
-                      {index + 1}
-                    </span>
-                    <span>{step}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            {(swStatus === 'error' || swStatus === 'unsupported') && (
+              <p className="mt-3 text-xs leading-relaxed text-eidos-red">
+                Service worker did not activate — offline Save/Read demos will not behave correctly.
+                Check the header for the error detail.
+              </p>
+            )}
           </div>
         </div>
       </Card>
 
-      <ExamplesGrid />
-
-      <EliminatesCard />
-
-      <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
+      <section id="try-live" className="grid scroll-mt-24 gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div className="space-y-4">
           <Card className="p-0 overflow-hidden">
             <div className="border-b border-eidos-border bg-eidos-elevated/30 px-5 py-4">
               <div className="text-[10px] uppercase tracking-[0.24em] text-eidos-muted">
-                interactive demo
+                1 · read offline
               </div>
               <h3 className="mt-1 text-sm font-semibold text-eidos-text">
-                Cache a resource and compare online vs offline behavior
+                Cache products, then sim offline and fetch again
               </h3>
             </div>
             <ProductsDemo onEmit={emit} resourceEntry={resourceEntry} isOnline={isOnline} />
@@ -325,10 +307,10 @@ export function Demo() {
           <Card className="p-0 overflow-hidden">
             <div className="border-b border-eidos-border bg-eidos-elevated/30 px-5 py-4">
               <div className="text-[10px] uppercase tracking-[0.24em] text-eidos-muted">
-                interactive demo
+                2 · never lose a save
               </div>
               <h3 className="mt-1 text-sm font-semibold text-eidos-text">
-                Submit actions, queue them offline, and replay on reconnect
+                Submit an order offline — same Idempotency-Key on replay
               </h3>
             </div>
             <OrdersDemo onEmit={emit} isOnline={isOnline} />
@@ -345,6 +327,10 @@ export function Demo() {
           swStatus={swStatus}
         />
       </section>
+
+      <ExamplesGrid />
+
+      <EliminatesCard />
     </div>
   );
 }
