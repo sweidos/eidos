@@ -1,7 +1,7 @@
 # DX + Docs Revamp — Execution Ledger
 
 **Mission:** Make Eidos trivially understandable and the docs/playground useful; redesign site + README.
-**Status:** `in_progress`
+**Status:** `in_progress` — code merged (#103); awaiting Deploy + Version Packages publish
 **Skill:** eidos-product-engineering v1.1.0 (full-mission)
 **Branch:** `cursor/dx-docs-revamp-34f7`
 **Baseline commit:** `0e5f4ca` (main)
