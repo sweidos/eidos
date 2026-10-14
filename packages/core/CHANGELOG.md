@@ -1,5 +1,11 @@
 # @sweidos/eidos
 
+## 2.5.1
+
+### Patch Changes
+
+- 2a49014: Clarify package description and homepage for the DX/docs revamp (neverLose positioning, docs/start URL).
+
 ## 2.5.0
 
 ### Minor Changes
