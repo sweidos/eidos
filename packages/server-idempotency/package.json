@@ -29,7 +29,7 @@
     "express": "^5.3.0",
     "hono": "^4.13.5",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.9"
+    "vitest": "^5.0.4"
   },
   "peerDependencies": {
     "express": ">=4",
