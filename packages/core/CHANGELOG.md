@@ -1,5 +1,11 @@
 # @sweidos/eidos
 
+## 2.5.2
+
+### Patch Changes
+
+- cb070e3: `QueuedResult` now includes `idempotencyKey` (same ticket as `ActionContext`) so offline UI and cancel paths can use the key without digging into the queue. Happy-path docs and the playground `createOrder` forward `Idempotency-Key`.
+
 ## 2.5.1
 
 ### Patch Changes
