@@ -26,4 +26,4 @@ A new developer can answer in under a minute: what Eidos does, how to install it
 
 ## Next action
 
-Commit + push branch; run playground type-check/build; open PR; merge when green.
+Wait for CI on PR #103; merge when green; let changesets publish patch for metadata.
