@@ -22,16 +22,31 @@ export function Save() {
         <CodeBlock
           title="createOrder.ts"
           code={`import { action } from '@sweidos/eidos'
+import type { ActionContext } from '@sweidos/eidos'
 
-export const createOrder = action(submitOrder, {
-  reliability: 'neverLose', // ← keep the click
-  name: 'createOrder',      // ← stable name after reload
-})`}
+export const createOrder = action(
+  async (payload, ctx: ActionContext) => {
+    const res = await fetch('/api/orders', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Idempotency-Key': ctx.idempotencyKey, // ← same ticket on every retry
+      },
+      body: JSON.stringify(payload),
+    })
+    return res.json()
+  },
+  {
+    reliability: 'neverLose', // ← keep the click
+    name: 'createOrder',      // ← registration id after reload (not the ticket)
+  },
+)`}
         />
         <BulletList
           items={[
             'Set reliability to neverLose — persist to IndexedDB before / around the network call.',
             'Give every action a stable `name` so replay works after a full page reload.',
+            'Forward `ctx.idempotencyKey` as `Idempotency-Key` (or in the body) so retries do not double-charge.',
             'Optional later: `priority`, `maxRetries`, `conflict`, optimistic callbacks.',
           ]}
         />
@@ -44,7 +59,7 @@ export const createOrder = action(submitOrder, {
           code={`const result = await createOrder(payload)
 
 // Online + success → your function's return value
-// Offline / flaky → { queued: true, message, idempotencyKey, ... }`}
+// Offline / flaky → { queued: true, id, message, idempotencyKey }`}
         />
         <p className="text-sm text-eidos-text-dim">
           Show a calm “Saved — syncing when online” toast when{' '}
@@ -58,8 +73,9 @@ export const createOrder = action(submitOrder, {
         <p className="text-sm leading-relaxed text-eidos-text-dim">
           Eidos delivers <strong className="font-medium text-eidos-text">at least once</strong>. A
           retry after a dropped response may hit your API twice. Deduplicate with the stable{' '}
-          <code className="font-mono text-eidos-blue">idempotencyKey</code> (also available on{' '}
-          <code className="font-mono text-eidos-blue">ActionContext</code>).
+          <code className="font-mono text-eidos-blue">idempotencyKey</code> from{' '}
+          <code className="font-mono text-eidos-blue">ActionContext</code> (also on{' '}
+          <code className="font-mono text-eidos-blue">QueuedResult</code> when offline).
         </p>
         <CodeBlock
           title="server sketch"

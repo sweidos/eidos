@@ -118,7 +118,7 @@ const createOrder = action(fn, { reliability: 'neverLose', name: 'createOrder' }
 // 2. Call normally — offline detection is automatic
 const result = await createOrder(payload)
 if ('queued' in result) {
-  // { queued: true, id: '...', message: '...' }
+  // { queued: true, id: '...', message: '...', idempotencyKey: '...' }
   // → args persisted to IndexedDB
   // → Background Sync tag registered (Chrome/Edge/Safari 16+)
 }

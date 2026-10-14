@@ -68,14 +68,18 @@ createRoot(document.getElementById('root')!).render(
 ```ts
 // src/lib/eidos.ts
 import { resource, action } from '@sweidos/eidos';
+import type { ActionContext } from '@sweidos/eidos';
 
 export const products = resource('/api/products', { offline: true });
 
 export const createOrder = action(
-  async (payload) => {
+  async (payload, ctx: ActionContext) => {
     const res = await fetch('/api/orders', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Idempotency-Key': ctx.idempotencyKey,
+      },
       body: JSON.stringify(payload),
     });
     return res.json();
@@ -84,7 +88,7 @@ export const createOrder = action(
 );
 ```
 
-Module scope matters: after a reload, replay must find the same `name`.
+Module scope matters: after a reload, replay must find the same `name`. That `name` is the registration id — not the per-click ticket (`ctx.idempotencyKey`).
 
 ---
 
@@ -94,8 +98,8 @@ Module scope matters: after a reload, replay must find the same `name`.
 const result = await createOrder({ productId: 1, qty: 2 });
 
 if ('queued' in result) {
-  // Offline / flaky — already pocketed. Will retry.
-  showToast(result.message);
+  // Offline / flaky — already pocketed. Will retry with the same ticket.
+  showToast(result.message); // result.idempotencyKey is available too
 }
 ```
 
@@ -103,7 +107,7 @@ if ('queued' in result) {
 
 ## Your server’s one job
 
-Eidos delivers **at least once**. Deduplicate with the stable `idempotencyKey` (also available on `ActionContext`). See [guarantees.md](./guarantees.md).
+Eidos delivers **at least once**. Deduplicate with the stable `idempotencyKey` from `ActionContext` (forward it as `Idempotency-Key`). See [guarantees.md](./guarantees.md).
 
 ---
 

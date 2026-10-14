@@ -81,16 +81,20 @@ createRoot(document.getElementById('root')!).render(
                     <CodeBlock
                       title="src/lib/eidos.ts"
                       code={`import { resource, action } from '@sweidos/eidos'
+import type { ActionContext } from '@sweidos/eidos'
 
 // Read — cache this GET when offline
 export const products = resource('/api/products', { offline: true })
 
-// Save — never lose this write
+// Save — never lose this write; forward the ticket to your API
 export const createOrder = action(
-  async (payload) => {
+  async (payload, ctx: ActionContext) => {
     const res = await fetch('/api/orders', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Idempotency-Key': ctx.idempotencyKey,
+      },
       body: JSON.stringify(payload),
     })
     return res.json()

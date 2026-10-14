@@ -20,13 +20,24 @@ When someone hits **Save**, Eidos keeps that click until the server accepts it â
 
 ```ts
 import { resource, action } from '@sweidos/eidos';
+import type { ActionContext } from '@sweidos/eidos';
 
 export const products = resource('/api/products', { offline: true });
 
-export const createOrder = action(submitOrder, {
-  reliability: 'neverLose',
-  name: 'createOrder',
-});
+export const createOrder = action(
+  async (payload, ctx: ActionContext) => {
+    const res = await fetch('/api/orders', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Idempotency-Key': ctx.idempotencyKey,
+      },
+      body: JSON.stringify(payload),
+    });
+    return res.json();
+  },
+  { reliability: 'neverLose', name: 'createOrder' },
+);
 
 const result = await createOrder({ productId: 1, qty: 2 });
 if ('queued' in result) {
@@ -34,7 +45,7 @@ if ('queued' in result) {
 }
 ```
 
-Honest guarantee: **at-least-once delivery**. Deduplicate on the server with the stable `idempotencyKey` (also on `ActionContext`). Not magical exactly-once.
+Honest guarantee: **at-least-once delivery**. Deduplicate on the server with the stable `idempotencyKey` (on `ActionContext` and on `QueuedResult`). Not magical exactly-once.
 
 |                    |                                  |
 | ------------------ | -------------------------------- |

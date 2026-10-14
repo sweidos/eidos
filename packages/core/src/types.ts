@@ -246,6 +246,8 @@ export interface QueuedResult {
   readonly queued: true;
   readonly id: string;
   readonly message: string;
+  /** Same key reused on every retry of this logical invocation — also on `ActionContext`. */
+  readonly idempotencyKey: string;
 }
 
 /** Summary returned by replayQueue(). */

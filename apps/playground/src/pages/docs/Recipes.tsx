@@ -173,11 +173,16 @@ const data = await products.json()`}
 // dedupe on reload, and retry/backoff you still need to write`}
           withTitle="orders.ts (eidos)"
           withCode={`import { action } from '@sweidos/eidos'
+import type { ActionContext } from '@sweidos/eidos'
 
 export const createOrder = action(
-  async (payload: OrderPayload) => {
+  async (payload: OrderPayload, ctx: ActionContext) => {
     const res = await fetch('/api/orders', {
       method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Idempotency-Key': ctx.idempotencyKey,
+      },
       body: JSON.stringify(payload),
     })
     return res.json()

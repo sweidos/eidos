@@ -127,7 +127,12 @@ describe('neverLose offline', () => {
     const wrapped = action(fn, { reliability: 'neverLose', name: 'nl-offline' });
     const result = await wrapped({ qty: 3 });
     expect(fn).not.toHaveBeenCalled();
-    expect(result).toMatchObject({ queued: true, id: expect.any(String) });
+    expect(result).toMatchObject({
+      queued: true,
+      id: expect.any(String),
+      idempotencyKey: expect.any(String),
+      message: expect.stringContaining('nl-offline'),
+    });
   });
 
   it('persists args to IDB', async () => {

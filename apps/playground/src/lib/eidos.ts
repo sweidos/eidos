@@ -27,10 +27,13 @@ export const ordersHistoryResource = resource<Order[]>('/api/orders-history', {
 // ── Actions ───────────────────────────────────────────────────────────────────
 
 export const createOrder = action(
-  async (payload: OrderPayload, _ctx: ActionContext): Promise<Order> => {
+  async (payload: OrderPayload, ctx: ActionContext): Promise<Order> => {
     const res = await fetch('/api/orders', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Idempotency-Key': ctx.idempotencyKey,
+      },
       body: JSON.stringify(payload),
     });
     if (!res.ok) throw new Error(`Order failed: ${res.status}`);
