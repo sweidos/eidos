@@ -57,7 +57,16 @@
       "brace-expansion@>=4": "5.0.12",
       "fast-copy": ">=4.1.0",
       "fast-uri": ">=3.1.8 <4",
-      "ip-address": ">=10.7.1"
+      "ip-address": ">=10.7.1",
+      "minimatch@<4": ">=3.1.4",
+      "lodash": ">=4.18.0",
+      "js-yaml@>=4 <5": ">=4.3.2",
+      "browserslist": ">=4.28.7",
+      "protobufjs": ">=7.6.5",
+      "@hono/node-server": ">=1.19.15",
+      "ajv@<7": ">=6.14.0",
+      "esbuild@>=0.27.3 <0.28.1": ">=0.28.1",
+      "@ai-sdk/provider-utils": ">=3.0.28"
     }
   },
   "lint-staged": {
