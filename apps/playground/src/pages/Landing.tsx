@@ -1,182 +1,117 @@
 import { Link } from 'react-router';
-import {
-  ArrowRight,
-  Wifi,
-  RefreshCw,
-  Database,
-  ShieldCheck,
-  Layers,
-  Zap,
-  BellRing,
-  Gauge,
-} from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { CodeBlock } from '../components/CodeBlock';
 
-const FEATURES = [
-  {
-    icon: ShieldCheck,
-    title: 'neverLose reliability',
-    description:
-      'Idempotency keys on every retry, Web Locks-coordinated replay across tabs, and queue schema migration — at-least-once delivery with server-side deduplication.',
-  },
-  {
-    icon: RefreshCw,
-    title: 'action()',
-    description:
-      'Mutations queue when offline and replay in order once the network returns — with conflict-resolution presets (serverWins, clientWins, merge, custom).',
-  },
-  {
-    icon: Database,
-    title: 'resource()',
-    description:
-      'Declare a fetchable endpoint once. Eidos handles caching strategy, freshness, and offline reads automatically.',
-  },
-  {
-    icon: Wifi,
-    title: 'Generated Service Worker',
-    description:
-      'No hand-written Workbox config. Eidos generates the Service Worker and registers it for you.',
-  },
-  {
-    icon: Layers,
-    title: 'Cache strategies built in',
-    description:
-      'cache-first, network-first, and stale-while-revalidate — pick per resource, no boilerplate.',
-  },
-  {
-    icon: Zap,
-    title: 'Every runtime, one queue contract',
-    description:
-      'React, Next.js Server Actions, SvelteKit, Vue, React Native, and Tauri/Electron (SQLite-backed queue) — all share the same neverLose guarantees.',
-  },
-  {
-    icon: BellRing,
-    title: 'Web push, built in',
-    description:
-      'Subscribe, route notification clicks, and resubscribe on key rotation — headless and tree-shaken unless imported.',
-  },
-  {
-    icon: Gauge,
-    title: 'Devtools & inspector',
-    description:
-      'Live queue, cache state, and offline simulation — plus per-item cancel/retry and idempotency-key inspection.',
-  },
-] as const;
+const HERO_CODE = `import { resource, action } from '@sweidos/eidos'
 
-const CODE_SAMPLE = `import { resource, action } from '@sweidos/eidos'
+// Read — still works offline
+export const products = resource('/api/products', { offline: true })
 
-export const products = resource('/api/products', {
-  offline: true,
-  strategy: 'stale-while-revalidate',
-})
-
-export const createOrder = action(
-  async (payload: OrderPayload) => {
-    const res = await fetch('/api/orders', { method: 'POST', body: JSON.stringify(payload) })
-    return res.json()
-  },
-  { reliability: 'neverLose', name: 'createOrder' },
-)
-
-const data = await products.json<Product[]>()`;
+// Save — never lose this click
+export const createOrder = action(submitOrder, {
+  reliability: 'neverLose',
+  name: 'createOrder',
+})`;
 
 export function Landing() {
   return (
-    <div className="mx-auto max-w-6xl px-4 py-16 sm:py-24">
-      {/* Hero */}
-      <section className="flex flex-col items-center text-center">
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-eidos-border px-3 py-1 text-2xs text-eidos-muted">
-          <ShieldCheck size={11} className="text-eidos-accent" />
-          Idempotent by default, even offline
-        </span>
+    <div className="relative">
+      {/* Atmosphere */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-[70vh] overflow-hidden"
+      >
+        <div className="absolute -left-1/4 top-0 h-[28rem] w-[28rem] rounded-full bg-sky-400/10 blur-3xl animate-pulse-soft" />
+        <div className="absolute -right-1/4 top-24 h-[24rem] w-[24rem] rounded-full bg-emerald-500/10 blur-3xl animate-pulse-soft-delayed" />
+        <div className="hero-grid absolute inset-0 opacity-[0.35]" />
+      </div>
 
-        <h1 className="mt-6 max-w-3xl text-4xl font-bold leading-tight tracking-tight text-eidos-text sm:text-5xl md:text-6xl">
-          Never lose a <span className="text-eidos-accent">write</span>
-        </h1>
+      <div className="relative mx-auto max-w-5xl px-4 pb-20 pt-14 sm:px-6 sm:pt-20">
+        {/* Hero — brand first, one job */}
+        <section className="flex min-h-[min(72vh,640px)] flex-col justify-center animate-rise">
+          <p className="font-mono text-sm font-semibold tracking-[0.35em] text-eidos-accent">
+            EIDOS
+          </p>
 
-        <p className="mt-5 max-w-2xl text-base text-eidos-text-dim sm:text-md">
-          <code className="font-mono text-eidos-blue">resource()</code> and{' '}
-          <code className="font-mono text-eidos-blue">action()</code> replace 200 lines of Workbox
-          config, IndexedDB schema, and retry logic — with idempotency keys and cross-tab replay
-          locks built in for at-least-once delivery with server-side deduplication. Works with
-          React, Next.js Server Actions, SvelteKit, Vue, React Native, and Tauri/Electron.
-        </p>
+          <h1 className="mt-5 max-w-3xl text-4xl font-bold leading-[1.08] tracking-tight text-eidos-text sm:text-5xl md:text-6xl">
+            Never lose a write.
+          </h1>
 
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-          <Link
-            to="/docs/quickstart"
-            className="inline-flex min-h-11 items-center gap-2 rounded-full bg-eidos-accent px-5 text-sm font-semibold text-eidos-bg transition-colors duration-150 hover:bg-eidos-accent/90"
-          >
-            Get started
-            <ArrowRight size={15} />
-          </Link>
-          <Link
-            to="/overview"
-            className="inline-flex min-h-11 items-center gap-2 rounded-full border border-eidos-border px-5 text-sm font-semibold text-eidos-text-dim transition-colors duration-150 hover:border-eidos-elevated hover:text-eidos-text"
-          >
-            Live playground
-          </Link>
-        </div>
-      </section>
+          <p className="mt-5 max-w-xl text-base leading-relaxed text-eidos-text-dim sm:text-lg">
+            When someone hits Save, Eidos keeps that click until the server says OK — even if the
+            network dies mid-way.
+          </p>
 
-      {/* Code sample */}
-      <section className="mt-16 sm:mt-24">
-        <CodeBlock title="resources.ts" code={CODE_SAMPLE} />
-      </section>
-
-      {/* Feature bento grid */}
-      <section className="mt-16 sm:mt-24">
-        <h2 className="text-center text-2xl font-bold text-eidos-text sm:text-3xl">
-          A reliability core, not just a cache
-        </h2>
-        <p className="mx-auto mt-3 max-w-xl text-center text-sm text-eidos-muted">
-          Built for durable mutations under flaky networks — IndexedDB queue, Web Lock replay, and
-          idempotency keys your server can dedupe. Use TanStack Query or Workbox alone when you only
-          need cache/retry UI.
-        </p>
-
-        <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {FEATURES.map(({ icon: Icon, title, description }) => (
-            <div
-              key={title}
-              className="rounded-xl border border-eidos-border/80 bg-eidos-surface/95 p-5 transition-colors duration-200 hover:border-eidos-elevated"
+          <div className="mt-9 flex flex-wrap items-center gap-3">
+            <Link
+              to="/docs/start"
+              className="inline-flex min-h-11 items-center gap-2 rounded-md bg-eidos-accent px-5 text-sm font-semibold text-eidos-bg transition-transform duration-200 hover:scale-[1.02] hover:bg-green-400"
             >
-              <div className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-eidos-border bg-eidos-accent-dim text-eidos-accent">
-                <Icon size={16} />
-              </div>
-              <h3 className="mt-4 text-sm font-semibold text-eidos-text">{title}</h3>
-              <p className="mt-1.5 text-xs leading-relaxed text-eidos-muted">{description}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+              Start in 3 steps
+              <ArrowRight size={15} />
+            </Link>
+            <Link
+              to="/try"
+              className="inline-flex min-h-11 items-center gap-2 rounded-md border border-eidos-border px-5 text-sm font-semibold text-eidos-text-dim transition-colors hover:border-eidos-accent hover:text-eidos-text"
+            >
+              Try it live
+            </Link>
+          </div>
+        </section>
 
-      {/* Final CTA */}
-      <section className="mt-16 flex flex-col items-center rounded-2xl border border-eidos-border bg-eidos-surface/60 px-6 py-12 text-center sm:mt-24">
-        <h2 className="text-2xl font-bold text-eidos-text sm:text-3xl">
-          Ship writes that survive offline, reloads, and retries
-        </h2>
-        <p className="mt-3 max-w-lg text-sm text-eidos-muted">
-          Install <code className="font-mono text-eidos-blue">@sweidos/eidos</code> and declare your
-          first <code className="font-mono text-eidos-blue">neverLose</code> action in under five
-          minutes.
-        </p>
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-          <Link
-            to="/docs/quickstart"
-            className="inline-flex min-h-11 items-center gap-2 rounded-full bg-eidos-accent px-5 text-sm font-semibold text-eidos-bg transition-colors duration-150 hover:bg-eidos-accent/90"
-          >
-            Read the docs
-            <ArrowRight size={15} />
-          </Link>
-          <Link
-            to="/overview"
-            className="inline-flex min-h-11 items-center gap-2 rounded-full border border-eidos-border px-5 text-sm font-semibold text-eidos-text-dim transition-colors duration-150 hover:border-eidos-elevated hover:text-eidos-text"
-          >
-            Try the playground
-          </Link>
-        </div>
-      </section>
+        {/* One composition continuation: the two words */}
+        <section className="mt-6 grid gap-8 border-t border-eidos-border/70 pt-14 sm:grid-cols-2 animate-rise-delayed">
+          <div>
+            <h2 className="font-mono text-xs uppercase tracking-[0.22em] text-eidos-muted">
+              Two words
+            </h2>
+            <ul className="mt-4 space-y-5">
+              <li>
+                <p className="text-lg font-semibold text-eidos-text">
+                  Save → <code className="font-mono text-eidos-accent">action()</code>
+                </p>
+                <p className="mt-1 text-sm text-eidos-text-dim">
+                  Pocket the click. Replay when online. Same ticket number every retry.
+                </p>
+              </li>
+              <li>
+                <p className="text-lg font-semibold text-eidos-text">
+                  Read → <code className="font-mono text-eidos-blue">resource()</code>
+                </p>
+                <p className="mt-1 text-sm text-eidos-text-dim">
+                  Cache the shelf so the list still opens on a dead network.
+                </p>
+              </li>
+            </ul>
+          </div>
+          <div className="min-w-0">
+            <CodeBlock title="src/lib/eidos.ts" code={HERO_CODE} />
+          </div>
+        </section>
+
+        <section className="mt-16 border-t border-eidos-border/70 pt-12 animate-rise-delayed">
+          <h2 className="text-xl font-semibold text-eidos-text sm:text-2xl">Honest promise</h2>
+          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-eidos-text-dim sm:text-[15px]">
+            Delivery is <span className="text-eidos-text">at least once</span>. Your server must
+            dedupe with the idempotency key. Eidos is not magical exactly-once. If you only need
+            online cache UI, use TanStack Query. If you only need SW assets, use Workbox.
+          </p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link
+              to="/docs/safety"
+              className="text-sm font-medium text-eidos-accent hover:text-green-400"
+            >
+              When things break →
+            </Link>
+            <Link
+              to="/docs/save"
+              className="text-sm font-medium text-eidos-accent hover:text-green-400"
+            >
+              Never lose a save →
+            </Link>
+          </div>
+        </section>
+      </div>
     </div>
   );
 }

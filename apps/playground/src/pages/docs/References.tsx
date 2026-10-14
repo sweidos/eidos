@@ -4,7 +4,7 @@ import { SectionHeading } from './shared';
 const LINKS = [
   {
     label: 'Project README',
-    href: 'https://github.com/iamadi11/eidos/blob/main/README.md',
+    href: 'https://github.com/sweidos/eidos/blob/main/README.md',
   },
   {
     label: 'MDN - Service Worker API',

@@ -11,19 +11,25 @@ interface SearchEntry {
 
 const INDEX: SearchEntry[] = [
   {
-    label: 'Overview',
-    description: 'Live demo + status panels',
-    path: '/overview',
-    keywords: 'home demo overview',
+    label: 'Home',
+    description: 'Never lose a write',
+    path: '/',
+    keywords: 'home landing brand',
   },
   {
-    label: 'Resources',
+    label: 'Try it',
+    description: 'Live offline Save demo',
+    path: '/try',
+    keywords: 'try demo overview playground',
+  },
+  {
+    label: 'Resources lab',
     description: 'Cached resources inspector',
     path: '/resources',
     keywords: 'cache resource resources',
   },
   {
-    label: 'Actions',
+    label: 'Actions lab',
     description: 'Offline action queue',
     path: '/actions',
     keywords: 'queue actions replay',
@@ -35,10 +41,34 @@ const INDEX: SearchEntry[] = [
     keywords: 'sw cache inspector devtools',
   },
   {
-    label: 'Quick start',
-    description: 'Install, wrap, declare',
-    path: '/docs/quickstart',
-    keywords: 'install setup vite plugin getting started',
+    label: 'Start here',
+    description: 'Install, wrap, first Save',
+    path: '/docs/start',
+    keywords: 'install setup vite plugin getting started quickstart',
+  },
+  {
+    label: 'Never lose a save',
+    description: 'neverLose actions explained simply',
+    path: '/docs/save',
+    keywords: 'save action neverLose idempotency',
+  },
+  {
+    label: 'Read offline',
+    description: 'resource() caching',
+    path: '/docs/read',
+    keywords: 'read resource cache offline',
+  },
+  {
+    label: 'When things break',
+    description: 'Offline, reload, crash, server duties',
+    path: '/docs/safety',
+    keywords: 'safety guarantees offline crash reload server',
+  },
+  {
+    label: 'Recipes',
+    description: 'Copy-paste patterns',
+    path: '/docs/recipes',
+    keywords: 'examples recipes tanstack query ttl test',
   },
   {
     label: 'resource(url, config)',
@@ -65,22 +95,16 @@ const INDEX: SearchEntry[] = [
     keywords: 'replay queue retry',
   },
   {
-    label: 'Examples',
-    description: 'TanStack Query, TTLs, offline tests',
-    path: '/docs/examples',
-    keywords: 'examples tanstack query ttl test',
-  },
-  {
     label: 'React hooks',
     description: 'useEidosStatus, useEidosResource, useEidosQueueStats',
-    path: '/docs/hooks',
+    path: '/docs/api',
     keywords:
       'hooks useEidosStatus useEidosResource useEidosQueueStats useEidosAction useEidosOnDrain',
   },
   {
     label: 'Framework-agnostic stores',
     description: 'eidosStatus, eidosQueue, eidosResource',
-    path: '/docs/hooks',
+    path: '/docs/api',
     keywords: 'stores svelte vue vanilla subscribe',
   },
   {
@@ -112,12 +136,6 @@ const INDEX: SearchEntry[] = [
     description: 'GET-only caching, module-scope actions, full reference',
     path: '/docs/advanced',
     keywords: 'limits types reference readme',
-  },
-  {
-    label: 'Further reading',
-    description: 'README, MDN service worker / cache / IndexedDB docs',
-    path: '/docs/references',
-    keywords: 'references readme mdn service worker cache indexeddb',
   },
 ];
 

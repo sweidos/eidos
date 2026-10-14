@@ -15,18 +15,15 @@ const Inspector = lazy(() => import('./pages/Inspector').then((m) => ({ default:
 const DocsLayout = lazy(() =>
   import('./pages/docs/DocsLayout').then((m) => ({ default: m.DocsLayout })),
 );
-const QuickStart = lazy(() =>
-  import('./pages/docs/QuickStart').then((m) => ({ default: m.QuickStart })),
-);
+const Start = lazy(() => import('./pages/docs/Start').then((m) => ({ default: m.Start })));
+const Save = lazy(() => import('./pages/docs/Save').then((m) => ({ default: m.Save })));
+const Read = lazy(() => import('./pages/docs/Read').then((m) => ({ default: m.Read })));
+const Safety = lazy(() => import('./pages/docs/Safety').then((m) => ({ default: m.Safety })));
+const Recipes = lazy(() => import('./pages/docs/Recipes').then((m) => ({ default: m.Recipes })));
 const ApiReference = lazy(() =>
   import('./pages/docs/ApiReference').then((m) => ({ default: m.ApiReference })),
 );
-const Examples = lazy(() => import('./pages/docs/Examples').then((m) => ({ default: m.Examples })));
-const Hooks = lazy(() => import('./pages/docs/Hooks').then((m) => ({ default: m.Hooks })));
 const Advanced = lazy(() => import('./pages/docs/Advanced').then((m) => ({ default: m.Advanced })));
-const References = lazy(() =>
-  import('./pages/docs/References').then((m) => ({ default: m.References })),
-);
 
 function RouteFallback() {
   return (
@@ -51,22 +48,29 @@ export function App() {
           <Suspense fallback={<RouteFallback />}>
             <Routes>
               <Route path="/" element={<Landing />} />
-              <Route path="/overview" element={<Demo />} />
-              <Route path="/demo" element={<Navigate to="/overview" replace />} />
+              <Route path="/try" element={<Demo />} />
+              <Route path="/overview" element={<Navigate to="/try" replace />} />
+              <Route path="/demo" element={<Navigate to="/try" replace />} />
               <Route path="/resources" element={<Resources />} />
               <Route path="/actions" element={<Actions />} />
               <Route path="/inspector" element={<Inspector />} />
               <Route path="/docs" element={<DocsLayout />}>
-                <Route index element={<Navigate to="/docs/quickstart" replace />} />
-                <Route path="quickstart" element={<QuickStart />} />
+                <Route index element={<Navigate to="/docs/start" replace />} />
+                <Route path="start" element={<Start />} />
+                <Route path="save" element={<Save />} />
+                <Route path="read" element={<Read />} />
+                <Route path="safety" element={<Safety />} />
+                <Route path="recipes" element={<Recipes />} />
                 <Route path="api" element={<ApiReference />} />
-                <Route path="examples" element={<Examples />} />
-                <Route path="hooks" element={<Hooks />} />
                 <Route path="advanced" element={<Advanced />} />
-                <Route path="references" element={<References />} />
+                {/* Legacy redirects */}
+                <Route path="quickstart" element={<Navigate to="/docs/start" replace />} />
+                <Route path="examples" element={<Navigate to="/docs/recipes" replace />} />
+                <Route path="hooks" element={<Navigate to="/docs/api" replace />} />
+                <Route path="references" element={<Navigate to="/docs/safety" replace />} />
               </Route>
-              <Route path="/learn" element={<Navigate to="/docs/quickstart" replace />} />
-              <Route path="*" element={<Navigate to="/overview" replace />} />
+              <Route path="/learn" element={<Navigate to="/docs/start" replace />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Suspense>
         </main>

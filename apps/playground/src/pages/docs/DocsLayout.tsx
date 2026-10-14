@@ -11,32 +11,38 @@ export function DocsLayout() {
   const next = index >= 0 && index < DOC_PAGES.length - 1 ? DOC_PAGES[index + 1] : undefined;
 
   return (
-    <div className="mx-auto grid max-w-6xl gap-5 px-4 py-6 lg:grid-cols-[200px_minmax(0,1fr)] lg:px-6 animate-fade-in">
+    <div className="mx-auto grid max-w-6xl gap-6 px-4 py-6 lg:grid-cols-[220px_minmax(0,1fr)] lg:px-6">
       <nav
         aria-label="Docs sections"
         className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 lg:sticky lg:top-4 lg:mx-0 lg:h-fit lg:flex-col lg:overflow-visible lg:px-0 lg:pb-0"
       >
-        <div className="hidden text-2xs uppercase tracking-[0.24em] text-eidos-muted lg:block lg:px-3 lg:pb-1">
-          Docs
+        <div className="hidden px-3 pb-2 lg:block">
+          <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-eidos-accent">
+            Learn
+          </p>
+          <p className="mt-1 text-xs text-eidos-muted">Read top to bottom</p>
         </div>
-        {DOC_PAGES.map((page) => (
+        {DOC_PAGES.map((page, i) => (
           <NavLink
             key={page.slug}
             to={`/docs/${page.slug}`}
             className={({ isActive }) =>
-              `shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-xs transition-colors lg:rounded-lg lg:border-transparent lg:px-3 lg:py-2 ${
+              `shrink-0 whitespace-nowrap rounded-md border px-3 py-1.5 text-xs transition-colors lg:rounded-md lg:border-transparent lg:px-3 lg:py-2.5 ${
                 isActive
                   ? 'border-eidos-accent bg-eidos-accent-dim text-eidos-text'
                   : 'border-eidos-border text-eidos-text-dim hover:border-eidos-accent hover:bg-eidos-elevated/40 hover:text-eidos-text lg:border-transparent'
               }`
             }
           >
+            <span className="hidden font-mono text-eidos-muted lg:inline">
+              {String(i + 1).padStart(2, '0')} ·{' '}
+            </span>
             {page.label}
           </NavLink>
         ))}
       </nav>
 
-      <div className="min-w-0 space-y-5">
+      <div className="min-w-0 space-y-6">
         <Outlet />
 
         <div className="flex flex-col gap-2 border-t border-eidos-border pt-4 sm:flex-row sm:items-center sm:justify-between sm:flex-wrap">
@@ -54,7 +60,7 @@ export function DocsLayout() {
           {prev ? (
             <Link
               to={`/docs/${prev.slug}`}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-eidos-border px-3 py-2 text-xs text-eidos-text-dim transition-colors hover:border-eidos-accent hover:text-eidos-text"
+              className="inline-flex items-center gap-1.5 rounded-md border border-eidos-border px-3 py-2 text-xs text-eidos-text-dim transition-colors hover:border-eidos-accent hover:text-eidos-text"
             >
               ← {prev.label}
             </Link>
@@ -64,7 +70,7 @@ export function DocsLayout() {
           {next && (
             <Link
               to={`/docs/${next.slug}`}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-eidos-border px-3 py-2 text-xs text-eidos-text-dim transition-colors hover:border-eidos-accent hover:text-eidos-text"
+              className="inline-flex items-center gap-1.5 rounded-md border border-eidos-border px-3 py-2 text-xs text-eidos-text-dim transition-colors hover:border-eidos-accent hover:text-eidos-text"
             >
               {next.label} →
             </Link>
