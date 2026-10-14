@@ -17,7 +17,7 @@ const queryClient = new QueryClient({
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <EidosProvider swPath="/eidos-sw.js">
+    <EidosProvider>
       <QueryClientProvider client={queryClient}>
         <App />
       </QueryClientProvider>

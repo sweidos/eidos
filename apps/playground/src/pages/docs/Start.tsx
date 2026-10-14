@@ -21,7 +21,7 @@ export function Start() {
       </StoryBox>
 
       <section className="space-y-4">
-        <h2 className="text-lg font-semibold text-eidos-text">Three steps</h2>
+        <h2 className="text-lg font-semibold text-eidos-text">Three steps (Vite)</h2>
         <Steps
           items={[
             {
@@ -35,13 +35,13 @@ export function Start() {
               ),
             },
             {
-              title: 'Copy the helper file (Vite does this for you)',
+              title: 'Add the Vite plugin',
               body: (
                 <>
                   <p className="mb-2">
-                    Add the Vite plugin so{' '}
-                    <code className="font-mono text-eidos-blue">eidos-sw.js</code> lands in{' '}
-                    <code className="font-mono text-eidos-blue">public/</code> on every build.
+                    One plugin copies <code className="font-mono text-eidos-blue">eidos-sw.js</code>{' '}
+                    into <code className="font-mono text-eidos-blue">public/</code> on every build.
+                    You do not hand-write a service worker.
                   </p>
                   <CodeBlock
                     title="vite.config.ts"
@@ -72,11 +72,15 @@ import { EidosProvider } from '@sweidos/eidos'
 import { App } from './App'
 
 createRoot(document.getElementById('root')!).render(
-  <EidosProvider swPath="/eidos-sw.js">
+  <EidosProvider>
     <App />
   </EidosProvider>,
 )`}
                   />
+                  <p className="mt-2 mb-3 text-xs text-eidos-muted">
+                    Defaults to <code className="font-mono">/eidos-sw.js</code> — only pass{' '}
+                    <code className="font-mono">swPath</code> if you renamed the file.
+                  </p>
                   <div className="mt-3">
                     <CodeBlock
                       title="src/lib/eidos.ts"

@@ -26,7 +26,7 @@ npm install @sweidos/eidos
 
 ---
 
-## 2. Copy the helper file (Vite)
+## 2. Add the Vite plugin
 
 ```ts
 // vite.config.ts
@@ -37,6 +37,8 @@ export default defineConfig({
   plugins: [eidos()],
 });
 ```
+
+This copies `eidos-sw.js` into `public/` on every build. You do not hand-write a service worker.
 
 Not using Vite?
 
@@ -55,11 +57,13 @@ import { EidosProvider } from '@sweidos/eidos';
 import { App } from './App';
 
 createRoot(document.getElementById('root')!).render(
-  <EidosProvider swPath="/eidos-sw.js">
+  <EidosProvider>
     <App />
   </EidosProvider>,
 );
 ```
+
+`EidosProvider` defaults to `/eidos-sw.js`. Pass `swPath` only if you renamed the file.
 
 ---
 

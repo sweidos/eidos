@@ -83,11 +83,13 @@ import { createRoot } from 'react-dom/client';
 import { App } from './App';
 
 createRoot(document.getElementById('root')!).render(
-  <EidosProvider swPath="/eidos-sw.js">
+  <EidosProvider>
     <App />
   </EidosProvider>,
 );
 ```
+
+Defaults to `/eidos-sw.js`. Pass `swPath` only if you renamed the file.
 
 ### 3. Declare Save + Read at module scope
 
