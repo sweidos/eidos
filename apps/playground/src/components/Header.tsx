@@ -16,12 +16,13 @@ const LAB = [
 ];
 
 export function Header() {
-  const { isOnline, swStatus } = useEidosStatus();
+  const { isOnline, swStatus, swError } = useEidosStatus();
   const { pending: pendingCount, failed: failedCount } = useEidosQueueStats();
   const [simulating, setSimulating] = useState(false);
   const { pathname } = useLocation();
   const showLab =
     pathname === '/try' || pathname === '/overview' || LAB.some((t) => pathname.startsWith(t.path));
+  const swBroken = swStatus === 'error' || swStatus === 'unsupported';
 
   function toggleSim() {
     const next = !simulating;
@@ -70,16 +71,21 @@ export function Header() {
           <SearchPalette />
 
           <span
-            className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 ${
+            title={swBroken ? (swError ?? `Service worker ${swStatus}`) : undefined}
+            className={`inline-flex max-w-[14rem] items-center gap-1.5 truncate rounded-md border px-2.5 py-1 ${
               swStatus === 'active'
                 ? 'border-eidos-accent/30 text-eidos-accent'
                 : swStatus === 'registering'
                   ? 'border-eidos-amber/30 text-eidos-amber'
-                  : 'border-eidos-border text-eidos-muted'
+                  : swBroken
+                    ? 'border-eidos-red/40 text-eidos-red'
+                    : 'border-eidos-border text-eidos-muted'
             }`}
           >
-            <Cpu size={10} />
-            SW {swStatus}
+            <Cpu size={10} className="shrink-0" />
+            <span className="truncate">
+              {swBroken ? `SW ${swStatus}${swError ? `: ${swError}` : ''}` : `SW ${swStatus}`}
+            </span>
           </span>
 
           <span
