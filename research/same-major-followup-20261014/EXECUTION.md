@@ -1,7 +1,7 @@
 # Same-major pin follow-up — Execution Ledger
 
 **Mission:** Maintenance sweep — align stale same-major declared mins; skip broken eslint 9.39.5.
-**Status:** `in_progress`
+**Status:** `complete` — merged #119
 **Skill:** eidos-product-engineering v1.1.0 (bare re-invoke → Maintenance sweep)
 **Branch:** `cursor/same-major-followup-34f7`
 **Baseline:** `main` @ post-#118 (`@sweidos/eidos@2.5.1`)
@@ -25,6 +25,14 @@
 | @types/node (packages) | ^26.6.5  |
 | js-yaml (eidos-gen)    | ^5.4.3   |
 
+## Outcome
+
+| Gate                 | Status                |
+| -------------------- | --------------------- |
+| Pin alignment merged | done (#119)           |
+| eslint 9.39.5        | skipped (breaks lint) |
+| Deploy               | success               |
+
 ## Next action
 
-Validate tests/lint/size, PR, merge.
+None for this mission.
