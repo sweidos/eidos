@@ -1,7 +1,7 @@
 # lucide-react 1.57 — Execution Ledger
 
 **Mission:** Maintenance sweep — bump `@sweidos/playground` `lucide-react` 1.56 → 1.57 (safe same-major).
-**Status:** `in_progress`
+**Status:** `in_progress` — PR open
 **Skill:** eidos-product-engineering v1.1.0 (bare re-invoke → Maintenance sweep)
 **Branch:** `cursor/lucide-react-157-34f7`
 **Baseline:** main tip; npm `@sweidos/eidos@2.5.1`
@@ -16,4 +16,4 @@
 
 ## Next action
 
-Bump dependency, validate playground type-check/build + core tests/size, PR → merge.
+Merge PR; mark complete after tip Deploy (playground-only; no npm publish).
