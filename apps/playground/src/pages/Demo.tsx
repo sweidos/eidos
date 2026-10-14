@@ -55,8 +55,8 @@ function now() {
 
 const HERO_STEPS = [
   'Fetch products while online, then tap sim offline in the header.',
-  'Submit an order — watch it land in the pocket (queue).',
-  'Turn the network back on — the Save sends itself. Docs if you want the why.',
+  'Submit an order — it pockets with the same Idempotency-Key ticket.',
+  'Go online again — one Save, one server charge. Docs → Save for the copy-paste.',
 ] as const;
 
 const EXAMPLES = [
@@ -79,10 +79,13 @@ const data = await products.json<Product[]>()`,
     description:
       'Persist order submissions to IndexedDB and replay them when the connection returns.',
     code: `export const createOrder = action(
-  async (payload: OrderPayload) => {
+  async (payload: OrderPayload, ctx: ActionContext) => {
     const res = await fetch('/api/orders', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Idempotency-Key': ctx.idempotencyKey,
+      },
       body: JSON.stringify(payload),
     })
 

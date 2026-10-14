@@ -254,7 +254,7 @@ async function persistAndQueue<TArgs extends any[]>(
     /* Background Sync unavailable — online-event replay remains */
   }
 
-  return { queued: true, id, message: `"${actionName}" queued` };
+  return { queued: true, id, message: `"${actionName}" queued`, idempotencyKey };
 }
 
 function isAbortError(err: unknown): boolean {

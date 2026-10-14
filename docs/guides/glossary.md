@@ -102,7 +102,7 @@ const createOrder = action(
 
 **Important**: Eidos provides the idempotency key automatically, but your server must implement deduplication logic using that key. Eidos guarantees at-least-once delivery; achieving exactly-once execution requires server-side support.
 
-→ Config: `name` on `action()` (used to generate stable keys across reloads)
+→ Config: `name` on `action()` is the stable registration id for replay after reload — it is **not** the idempotency key. The key lives on `ActionContext.idempotencyKey` (and on `QueuedResult` when offline).
 → Docs: [Reliability guarantees](./guarantees.md)
 
 ---
