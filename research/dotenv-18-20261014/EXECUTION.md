@@ -1,24 +1,22 @@
 # dotenv 18 — Execution Ledger
 
 **Mission:** Maintenance sweep — major bump `dotenv` 17 → 18 in `@sweidos/e2e`
-**Status:** `in_progress`
+**Status:** `complete`
 **Freeze line:** Do not change `@sweidos/eidos` core runtime API or raise 7 kB budget
-**Branch tip:** `cursor/dotenv-18-34f7` (from `main` @ `1f16364`)
+**Branch tip:** `main` @ `09896b2` (#97)
 **Skill:** eidos-product-engineering v1.1.0 bare re-invoke
 
-## Notes
+## Outcome
 
-- Attempted `size-limit` 12 → 14 first; v14 measures via rolldown and reports core **7.07 kB** (over 7 kB) without code changes. Deferred — do not raise budget for tooling noise.
-- Landed `dotenv` **18.0.7** instead (e2e-only; `config()` API smoke-tested).
-
-## Tasks
-
-| Task                        | Status  |
-| --------------------------- | ------- |
-| Bump dotenv + lockfile      | done    |
-| Core tests + size unchanged | done    |
-| PR + squash merge           | pending |
+| Gate                                               | Status                            |
+| -------------------------------------------------- | --------------------------------- |
+| PR #97 merged                                      | done                              |
+| `dotenv` **18.0.7**                                | done                              |
+| Core 222 tests; size **6.98 kB / 7 kB**            | done                              |
+| `size-limit` 14 deferred (measurement over budget) | noted                             |
+| Open Dependabot PRs                                | none                              |
+| Remaining open Dependabot alert                    | `sprintf-js` (no patched release) |
 
 ## Next action
 
-Commit → PR → merge → mark complete.
+None for this mission.
