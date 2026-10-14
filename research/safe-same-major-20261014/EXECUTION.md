@@ -1,7 +1,7 @@
 # Safe same-major bumps — Execution Ledger
 
 **Mission:** Maintenance sweep — one Dependabot-style same-major bump group (tooling + playground runtime).
-**Status:** `in_progress`
+**Status:** `complete` — merged #113
 **Skill:** eidos-product-engineering v1.1.0 (bare re-invoke → Maintenance sweep)
 **Branch:** `cursor/safe-same-major-34f7`
 **Baseline:** `main` @ `7fbb030` (`@sweidos/eidos@2.5.1`)
@@ -26,6 +26,14 @@
 | react-router             | ^8.3.0          | ^8.4.0  |
 | @browserbasehq/stagehand | ^3.7.1          | ^3.7.3  |
 
+## Outcome
+
+| Gate                    | Status      |
+| ----------------------- | ----------- |
+| Same-major bumps merged | done (#113) |
+| Tests + size ≤7 kB      | done        |
+| Deploy on main          | verified    |
+
 ## Next action
 
-Apply bumps, `pnpm install`, run tests/size/lint, open PR, merge.
+None for this mission.
