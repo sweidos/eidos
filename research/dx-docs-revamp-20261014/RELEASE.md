@@ -1,21 +1,31 @@
 # Release — dx-docs-revamp-20261014
 
-## PR
+## Merged PRs
 
-- **#103** merged `2026-10-14T06:17:46Z` → merge commit `f7e61e5`
-- Branch: `cursor/dx-docs-revamp-34f7`
+| PR                                                | What                                               |
+| ------------------------------------------------- | -------------------------------------------------- |
+| [#103](https://github.com/sweidos/eidos/pull/103) | DX/docs/README revamp                              |
+| [#104](https://github.com/sweidos/eidos/pull/104) | Research ledger                                    |
+| [#105](https://github.com/sweidos/eidos/pull/105) | README size-doc row + JSDoc + troubleshooting link |
+| [#106](https://github.com/sweidos/eidos/pull/106) | Version Packages → **2.5.1** (manual `gh`)         |
 
-## Post-merge workflows (started)
+## Deploy
 
-- Deploy & Release run `38521376673` — in_progress
-- Release PR run `38521376607` — in_progress (expected to open/update Version Packages for patch changeset)
+| Run                | Result                                                  |
+| ------------------ | ------------------------------------------------------- |
+| #105 `38521753230` | **success**                                             |
+| #106 `38521857847` | **success** (Test, Playground, npm Release core/next/…) |
 
-## Publish
+## npm (verified)
 
-- Patch changeset landed: `.changeset/dx-docs-revamp-metadata.md` (`@sweidos/eidos` patch for description/homepage)
-- npm publish follows Version Packages PR merge + Deploy `npm-release` job
-- Baseline npm before this mission: `2.5.0`
+```
+npm view @sweidos/eidos version       → 2.5.1
+npm view @sweidos/eidos homepage      → https://sweidos.vercel.app/docs/start
+npm view @sweidos/eidos description   → Never lose a write. …
+```
 
-## Next
+GitHub release: [@sweidos/eidos-v2.5.1](https://github.com/sweidos/eidos/releases/tag/%40sweidos/eidos-v2.5.1)
 
-Verify Deploy green + Version Packages PR merge + `npm view @sweidos/eidos version` when publish completes.
+## Notes
+
+- Release PR Actions still cannot create PRs — open Version Packages with `gh` when needed.
