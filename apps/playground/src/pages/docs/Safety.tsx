@@ -71,7 +71,7 @@ export function Safety() {
       </section>
 
       <p className="text-sm text-eidos-text-dim">
-        Deeper narrative guides live in the repo:{' '}
+        Deeper guides in the repo:{' '}
         <a
           className="text-eidos-accent hover:text-green-400"
           href="https://github.com/sweidos/eidos/blob/main/docs/guides/guarantees.md"
@@ -79,6 +79,15 @@ export function Safety() {
           rel="noopener noreferrer"
         >
           guarantees.md
+        </a>
+        {' · '}
+        <a
+          className="text-eidos-accent hover:text-green-400"
+          href="https://github.com/sweidos/eidos/blob/main/docs/guides/troubleshooting.md"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          troubleshooting.md
         </a>
         {' · '}
         <Link to="/docs/advanced" className="text-eidos-accent hover:text-green-400">

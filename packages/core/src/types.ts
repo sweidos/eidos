@@ -116,8 +116,8 @@ interface ActionConfigBase<TArgs extends any[] = any[]> {
   /**
    * Prefixes the registered action id (`namespace::name`). Use to avoid
    * collisions when two actions share a name (e.g. across micro-frontends,
-   * or two `createOrder` actions in different modules) — without a
-   * namespace, the second registration silently overwrites the first.
+   * or two `createOrder` actions in different modules). A second registration
+   * with the same action id throws — pass a unique `name` or `namespace`.
    */
   namespace?: string;
   /**
