@@ -1,6 +1,6 @@
 {
   "name": "@sweidos/eidos",
-  "version": "2.5.0",
+  "version": "2.5.1",
   "description": "Never lose a write. Durable client Saves for unreliable networks \u2014 action({ reliability: 'neverLose' }) + resource() offline reads.",
   "author": "Aditya Raj",
   "license": "MIT",
