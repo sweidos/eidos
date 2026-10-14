@@ -56,22 +56,22 @@ importers:
         specifier: ^9.1.7
         version: 9.1.7
       lint-staged:
-        specifier: ^17.4.1
+        specifier: ^17.6.0
         version: 17.6.0
       prettier:
-        specifier: ^3.9.6
+        specifier: ^3.9.10
         version: 3.9.10
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
       typescript-eslint:
-        specifier: ^8.69.0
+        specifier: ^8.71.2
         version: 8.71.2(eslint@9.39.4(jiti@2.7.0))(typescript@6.0.3)
 
   apps/e2e:
     dependencies:
       '@browserbasehq/stagehand':
-        specifier: ^3.7.1
+        specifier: ^3.7.3
         version: 3.7.3(playwright-core@1.60.0)(zod@4.6.7)
       zod:
         specifier: ^4.6.7
@@ -130,13 +130,13 @@ importers:
         specifier: ^2.4.1
         version: 2.4.1(react@19.3.0)
       react:
-        specifier: ^19.2.8
+        specifier: ^19.3.0
         version: 19.3.0
       react-dom:
-        specifier: ^19.2.8
+        specifier: ^19.3.0
         version: 19.3.0(react@19.3.0)
       react-router:
-        specifier: ^8.3.0
+        specifier: ^8.4.0
         version: 8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
     devDependencies:
       '@tailwindcss/postcss':
@@ -167,7 +167,7 @@ importers:
         specifier: ^6.0.3
         version: 6.0.3
       vite:
-        specifier: ^8.2.2
+        specifier: ^8.3.4
         version: 8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
 
   packages/core:
@@ -213,7 +213,7 @@ importers:
         specifier: ^6.0.3
         version: 6.0.3
       vite:
-        specifier: ^8.2.2
+        specifier: ^8.3.4
         version: 8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-dts:
         specifier: ^5.1.0
@@ -3066,6 +3066,10 @@ packages:
     resolution: {integrity: sha512-MULkVLfKGYDFYejP07QOurDLLQpcjk7Fw+7jXS2R2czRQzR56yHRveU5NDJEOviH+hETZKSkIk5c+T23GjFUMg==}
     engines: {node: 18 || 20 || >=22}
 
+  minimatch@10.2.6:
+    resolution: {integrity: sha512-vpLQEs+VLCr1nU0BXS07maYoFwlDAH0gngQuuttxIwutDFEMHq2blX+8vpgxDdK3J1PwjCJiep77OitTZ4Ll1A==}
+    engines: {node: 18 || 20 || >=22}
+
   minimatch@3.1.5:
     resolution: {integrity: sha512-VgjWUsnnT6n+NUk6eZq77zeFdpW2LWDzP6zFGrCbHXiYNul5Dzqk2HHQ5uFH2DNW5Xbp8+jVzaeNt94ssEEl4w==}
 
@@ -4891,7 +4895,7 @@ snapshots:
       '@rushstack/terminal': 0.10.0(@types/node@26.6.5)
       '@rushstack/ts-command-line': 4.19.1(@types/node@26.6.5)
       lodash: 4.18.1
-      minimatch: 10.2.5
+      minimatch: 10.2.6
       resolve: 1.22.13
       semver: 7.5.4
       source-map: 0.6.1
@@ -5411,7 +5415,7 @@ snapshots:
       '@typescript-eslint/visitor-keys': 8.71.2
       debug: 4.4.3
       minimatch: 10.2.5
-      semver: 7.8.4
+      semver: 7.8.5
       tinyglobby: 0.2.17
       ts-api-utils: 2.5.0(typescript@6.0.3)
       typescript: 6.0.3
@@ -6913,6 +6917,11 @@ snapshots:
     dependencies:
       brace-expansion: 5.0.12
 
+  minimatch@10.2.6:
+    dependencies:
+      brace-expansion: 5.0.12
+    optional: true
+
   minimatch@3.1.5:
     dependencies:
       brace-expansion: 1.1.21
@@ -7426,8 +7435,7 @@ snapshots:
 
   semver@7.8.4: {}
 
-  semver@7.8.5:
-    optional: true
+  semver@7.8.5: {}
 
   send@1.2.1:
     dependencies:
