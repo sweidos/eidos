@@ -1,7 +1,7 @@
 # Security overrides (fixable audit alerts) — Execution Ledger
 
 **Mission:** Maintenance sweep — clear fixable `pnpm audit` / Dependabot alerts via targeted `pnpm.overrides` (same pattern as medium-deps).
-**Status:** `in_progress`
+**Status:** `complete` — merged #111
 **Skill:** eidos-product-engineering v1.1.0 (bare re-invoke → Maintenance sweep)
 **Branch:** `cursor/security-overrides-34f7`
 **Baseline:** `main` @ `7e015e5` (`@sweidos/eidos@2.5.1`)
@@ -34,6 +34,19 @@
 | ---------- | ------------------------------------------------ |
 | sprintf-js | No patched release (`<=1.1.3`; npm latest 1.1.3) |
 
+## Outcome
+
+| Gate                                | Status                    |
+| ----------------------------------- | ------------------------- |
+| Overrides landed + lockfile         | done (#111)               |
+| `pnpm audit` fixable alerts cleared | done (sprintf-js remains) |
+| Tests + size ≤7 kB                  | done (6.99 kB)            |
+| Deploy on main                      | success (`38524360597`)   |
+
+## Residual (non-blocking)
+
+Vercel annotates missing typings for `api/shared/*.js` imports (from #110 ESM fix). Deploy still succeeds; `/api/products` returns 200. Follow-up: restore typed shared modules without breaking Node ESM.
+
 ## Next action
 
-Apply overrides, `pnpm install`, run core/next tests + size, open PR, merge.
+None for this mission.
