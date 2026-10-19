@@ -9,7 +9,7 @@
     "test:ui": "vitest --ui"
   },
   "dependencies": {
-    "@browserbasehq/stagehand": "^3.7.3",
+    "@browserbasehq/stagehand": "^4.2.1",
     "zod": "^4.6.7"
   },
   "devDependencies": {
