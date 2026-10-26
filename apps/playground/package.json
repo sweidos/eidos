@@ -17,7 +17,7 @@
     "prism-react-renderer": "^2.4.1",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
-    "react-router": "^8.4.0"
+    "react-router": "^8.5.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",
